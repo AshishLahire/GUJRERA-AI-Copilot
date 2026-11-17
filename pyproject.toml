@@ -24,6 +24,8 @@ dependencies = [
     "faster-whisper==1.2.1",
     "av==18.1.0",
     "jiwer==4.0.0",
+    "sqlalchemy>=2.0",
+    "rapidfuzz>=3.0",
 ]
 
 [project.optional-dependencies]
@@ -35,7 +37,7 @@ ui = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["factcheck*"]
+include = ["factcheck*", "gujrera*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

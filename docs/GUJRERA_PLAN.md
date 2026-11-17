@@ -222,6 +222,13 @@ Relative order. Map to calendar dates once the deadline is known.
 
 Phases 2, 3 and 6 can run in parallel once phase 1 is done, and 4 and 5 can follow 3 in parallel.
 
+### Progress
+
+**Phase 1 (2026-11-17): partly done.**
+- Done: schema (`gujrera/db/models.py`), four analytics views (`gujrera/db/views.py`), read-only engine, role-scoped repository with audit log (`gujrera/db/repository.py`), seeded mock generator (`gujrera/ingest/mock_generator.py`), public-records CSV importer, RERA number parser (`gujrera/trust/rera_number.py`), `scripts/seed_gujrera.py`, 29 tests (`tests/test_gujrera_*.py`).
+- Mock data safety: names end in "(Demo)", registration numbers use the `MOCK` code prefix, and every row has `is_mock=1`.
+- Not done: portal scraper (waiting on the portal terms check; use the CSV importer meanwhile), and the RAG index of the Act and Gujarat Rules (needs the source texts).
+
 ---
 
 ## 11. Risks and mitigations
