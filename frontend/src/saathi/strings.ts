@@ -226,6 +226,26 @@ const STRINGS = {
     hi: "GUJRERA की प्रवर्तन टीम विज्ञापन का टेक्स्ट और इस जाँच का नतीजा देखेगी। आपका नाम और फोन नंबर नहीं भेजा जाता।",
   },
   reportSent: { en: "Reported. Thank you.", gu: "રિપોર્ટ થઈ ગયું. આભાર.", hi: "रिपोर्ट हो गया। धन्यवाद।" },
+  navReport: { en: "Before-you-buy report", gu: "ખરીદી પહેલાંનો રિપોર્ટ", hi: "खरीद से पहले रिपोर्ट" },
+  repIntro: {
+    en: "A one-page report on any registered project from GUJRERA records: registration, dates, construction progress, approvals, complaints, orders and the promoter's record, with questions to ask before you pay. Save it as PDF to share with your bank or family.",
+    gu: "GUJRERA રેકોર્ડ પરથી કોઈ પણ નોંધાયેલા પ્રોજેક્ટનો એક પાનાનો રિપોર્ટ: નોંધણી, તારીખો, બાંધકામ પ્રગતિ, મંજૂરીઓ, ફરિયાદો, આદેશો અને પ્રમોટરનો રેકોર્ડ, તથા ચૂકવતા પહેલાં પૂછવાના પ્રશ્નો. બેંક કે પરિવાર સાથે શેર કરવા PDF તરીકે સાચવો.",
+    hi: "GUJRERA रिकॉर्ड से किसी भी पंजीकृत प्रोजेक्ट की एक पेज की रिपोर्ट: पंजीकरण, तारीखें, निर्माण प्रगति, अनुमोदन, शिकायतें, आदेश और प्रमोटर का रिकॉर्ड, साथ में भुगतान से पहले पूछने के सवाल। बैंक या परिवार के साथ साझा करने के लिए PDF के रूप में सहेजें।",
+  },
+  repPrint: { en: "Save as PDF / Print", gu: "PDF તરીકે સાચવો / પ્રિન્ટ", hi: "PDF के रूप में सहेजें / प्रिंट" },
+  repGlance: { en: "At a glance", gu: "એક નજરે", hi: "एक नज़र में" },
+  repDates: { en: "Key dates", gu: "મુખ્ય તારીખો", hi: "मुख्य तारीखें" },
+  repProgress: { en: "Construction progress (quarterly reports)", gu: "બાંધકામ પ્રગતિ (ત્રિમાસિક અહેવાલ)", hi: "निर्माण प्रगति (तिमाही रिपोर्ट)" },
+  repApprovals: { en: "Approvals", gu: "મંજૂરીઓ", hi: "अनुमोदन" },
+  repComplaints: { en: "Complaints", gu: "ફરિયાદો", hi: "शिकायतें" },
+  repOrders: { en: "Orders", gu: "આદેશો", hi: "आदेश" },
+  repPromoter: { en: "Promoter's record", gu: "પ્રમોટરનો રેકોર્ડ", hi: "प्रमोटर का रिकॉर्ड" },
+  repQuestions: { en: "Questions to ask before you pay", gu: "ચૂકવતા પહેલાં પૂછવાના પ્રશ્નો", hi: "भुगतान से पहले पूछने के सवाल" },
+  repRights: { en: "Your rights under the RERA Act", gu: "RERA કાયદા હેઠળ તમારા અધિકારો", hi: "RERA अधिनियम के तहत आपके अधिकार" },
+  repSources: { en: "Sources", gu: "સ્રોત", hi: "स्रोत" },
+  repGood: { en: "No major red flags found in the registry", gu: "રજિસ્ટ્રીમાં મોટા જોખમ સંકેત મળ્યા નથી", hi: "रजिस्ट्री में कोई बड़ा खतरे का संकेत नहीं मिला" },
+  repWarn: { en: "Some points to check before you pay", gu: "ચૂકવતા પહેલાં કેટલીક બાબતો તપાસો", hi: "भुगतान से पहले कुछ बातें जाँचें" },
+  repBad: { en: "Serious points to check before you pay", gu: "ચૂકવતા પહેલાં ગંભીર બાબતો તપાસો", hi: "भुगतान से पहले गंभीर बातें जाँचें" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

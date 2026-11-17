@@ -482,6 +482,17 @@ def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
     }
 
 
+@router.get("/report/project/{project_id}")
+def project_report(project_id: int, lang: str = Query("en"), repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    """Before-you-buy report: public registry facts with sources, questions to ask, buyer rights."""
+    from gujrera.tools.project_report import build_report
+
+    report = build_report(repo, project_id, _lang(lang))
+    if report is None:
+        raise HTTPException(404, "Project not found.")
+    return report
+
+
 @router.get("/calc/projects")
 def calc_projects(q: str = Query("", max_length=120), repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
     """Projects for the calculator's picker: by RERA number or by (English or Gujarati) name."""

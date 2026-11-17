@@ -445,3 +445,40 @@ export function updateCase(token: string, id: number, body: { status?: string; o
     body: JSON.stringify(body),
   });
 }
+
+
+// ------------------------------------------------------------ before-you-buy report
+type Cite = { type: string; id: string };
+export interface ProjectReport {
+  generated_on: string;
+  lang: Lang;
+  overall: "good" | "warn" | "bad";
+  project: {
+    id: number; name: string; name_gu: string | null; rera_no: string; district: string; taluka: string | null;
+    type: string; units: number | null; status: string; status_text: string; promoter: string; reg_date: string;
+    reg_valid_until: string; proposed_completion: string; revised_completion: string | null;
+    actual_completion: string | null; delay_days: number; source_url: string | null;
+  };
+  glance: { key: string; tone: "good" | "warn" | "bad"; text: string; citations: Cite[] }[];
+  progress: { quarter: string; percent: number; due_on: string; filed_on: string | null; state: "on_time" | "late" | "missing" | "due" }[];
+  approvals: { kind: string; authority: string; status: string; ref: string | null; decided_on: string | null }[];
+  complaints: { total: number; open: number; by_category: Record<string, number> };
+  orders: { order_no: string; type: string; issued_on: string; summary: string }[];
+  promoter: {
+    name: string; projects: number | null; delayed: number | null; complaints_total: number | null;
+    complaints_open: number | null; adverse_orders: number | null;
+    other_projects: { id: number; name: string; district: string; status: string; delay_days: number }[];
+  };
+  questions: { key: string; text: string; citations: Cite[] }[];
+  rights: { key: string; text: string; citations: Cite[] }[];
+  is_mock: boolean;
+}
+
+export async function fetchProjectReport(projectId: number, lang: Lang): Promise<ProjectReport> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/report/project/${projectId}?lang=${lang}`));
+}
+
+export const OPEN_REPORT_EVENT = "saathi:open-report";
+export function openReport(projectId: number): void {
+  window.dispatchEvent(new CustomEvent<number>(OPEN_REPORT_EVENT, { detail: projectId }));
+}

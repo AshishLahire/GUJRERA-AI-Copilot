@@ -34,10 +34,11 @@ const inputCls =
   "w-full rounded-lg border border-warm-border bg-card text-body px-3 py-2 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/30";
 
 /** Project picker: search as you type by name (English or Gujarati) or RERA number. */
-const ProjectPicker: React.FC<{ value: CalcProject | null; onChange: (p: CalcProject | null) => void; initialText?: string }> = ({
+export const ProjectPicker: React.FC<{ value: CalcProject | null; onChange: (p: CalcProject | null) => void; initialText?: string; inputId?: string }> = ({
   value,
   onChange,
   initialText = "",
+  inputId = "calc-project",
 }) => {
   const { lang } = useSaathi();
   const [text, setText] = useState(initialText);
@@ -76,7 +77,7 @@ const ProjectPicker: React.FC<{ value: CalcProject | null; onChange: (p: CalcPro
   return (
     <div className="relative">
       <input
-        id="calc-project"
+        id={inputId}
         value={text}
         onChange={(e) => { setText(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}

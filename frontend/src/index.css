@@ -67,3 +67,15 @@
 .focus-amber {
   @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-1;
 }
+
+
+/* Printing the before-you-buy report: A4, white page, colours kept for the status dots and banner. */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  html, body { background: #fff !important; }
+  .report-sheet { color: #14161b; }
+  .report-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .report-sheet > section, .report-sheet > div { margin-top: 0.9rem !important; }
+  .report-sheet footer { margin-top: 0.6rem !important; break-before: avoid; }
+  .report-sheet h3 { margin-bottom: 0.5rem !important; }
+}

@@ -69,6 +69,8 @@ SUGGESTIONS = {
 
 # Tests replace these with fakes; None means "use the configured self-hosted LLM".
 analytics_generate = None
+REPORT_WORDS = ("report", "pdf", "before you buy", "before buying", "due diligence", "રિપોર્ટ", "અહેવાલ આપો",
+                "ખરીદતા પહેલાં", "रिपोर्ट", "खरीदने से पहले")
 router_generate = None
 
 # English companion answers (see respond_with_english). _RECORD collects what the first pass
@@ -290,6 +292,26 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             return _from_flow(my_complaints(repo, lang), lang)
         out = (start_tracking if wants_tracking(message) else start_filing)(message, state, repo, lang)
         return _from_flow(out, lang)
+
+    # 6b'. Before-you-buy report for one named project (or the project being discussed)
+    if (any(w in text_lc for w in REPORT_WORDS) and "complaint_file" not in u.intents
+            and not any(w in text_lc for w in ("progress report", "quarterly", "qpr", "ત્રિમાસિક", "तिमाही",
+                                               "complaint", "ફરિયાદ", "शिकायत", " ad", "advert", "જાહેરાત",
+                                               "विज्ञापन"))):
+        projects = [c for c in u.candidates if c.kind == "project"]
+        pid = projects[0].id if len(projects) == 1 else (
+            state.entity["id"] if not u.candidates and state.entity and state.entity.get("kind") == "project" else None)
+        if pid is not None:
+            from gujrera.tools.project_report import build_report
+
+            rep = build_report(repo, pid, lang)
+            if rep:
+                state.entity = {"kind": "project", "id": pid}
+                sentences = [Sentence(g["text"], g["citations"], f"report_{g['key']}") for g in rep["glance"]]
+                card = {"type": "report", "project_id": pid, "project": rep["project"]["name"],
+                        "overall": rep["overall"], "questions": len(rep["questions"]), "is_mock": rep["is_mock"]}
+                return Reply(lang, "project_report", sentences, cards=[card], is_mock=rep["is_mock"],
+                             suggestions=SUGGESTIONS["start"][lang])
 
     # 6c. Delay interest / refund estimate for one named project (or the project being discussed)
     if wants_calculation(text_lc) and "complaint_file" not in u.intents:

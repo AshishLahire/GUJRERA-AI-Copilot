@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CalcSeed, Lang, NAVIGATE_EVENT, OPEN_CALC_EVENT } from "../api/gujrera";
+import { CalcSeed, Lang, NAVIGATE_EVENT, OPEN_CALC_EVENT, OPEN_REPORT_EVENT } from "../api/gujrera";
 import { AccountBar } from "../components/AccountBar";
 import { AskPage } from "../components/AskPage";
 import { ReraCheckPage } from "../components/ReraCheckPage";
@@ -11,14 +11,16 @@ import { HomePage, Page } from "./HomePage";
 import { OfficerPage, PromoterPage } from "./RolePages";
 import { RiskPage } from "./RiskPage";
 import { EnforcementPage } from "./EnforcementPage";
+import { ReportPage } from "./ReportPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
   { page: "check", key: "navCheck", icon: "shield" },
   { page: "calc", key: "navCalc", icon: "calc" },
+  { page: "report", key: "navReport", icon: "doc" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
   { page: "officer", key: "navOfficer", icon: "chart" },
   { page: "risk", key: "navRisk", icon: "alert" },
@@ -53,6 +55,7 @@ const Shell: React.FC = () => {
   // A question from the overview page; the counter remounts the chat so each one starts fresh.
   const [askSeed, setAskSeed] = useState<{ q: string; n: number } | null>(null);
   const [calcSeed, setCalcSeed] = useState<{ seed: CalcSeed; n: number } | null>(null);
+  const [reportId, setReportId] = useState<number | null>(null);
   const current = NAV.find((n) => n.page === page) ?? NAV[0];
 
   useEffect(() => {
@@ -65,9 +68,15 @@ const Shell: React.FC = () => {
       const target = (e as CustomEvent<string>).detail as Page;
       if (PAGES.includes(target)) setPage(target);
     };
+    const report = (e: Event) => {
+      setReportId((e as CustomEvent<number>).detail);
+      setPage("report");
+    };
     window.addEventListener(OPEN_CALC_EVENT, open);
     window.addEventListener(NAVIGATE_EVENT, go);
+    window.addEventListener(OPEN_REPORT_EVENT, report);
     return () => {
+      window.removeEventListener(OPEN_REPORT_EVENT, report);
       window.removeEventListener(OPEN_CALC_EVENT, open);
       window.removeEventListener(NAVIGATE_EVENT, go);
     };
@@ -80,6 +89,7 @@ const Shell: React.FC = () => {
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.set("tab", page);
+    if (page !== "report") url.searchParams.delete("project");
     window.history.replaceState(null, "", url.toString());
     window.scrollTo({ top: 0 });
   }, [page]);
@@ -90,13 +100,13 @@ const Shell: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-page flex">
+    <div className="min-h-screen bg-page flex print:block print:bg-white">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-card px-3 py-2 rounded z-50">
         Skip to content
       </a>
 
       {/* Sidebar (desktop) */}
-      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-warm-border bg-card sticky top-0 h-screen">
+      <aside className="print:!hidden hidden lg:flex w-64 shrink-0 flex-col border-r border-warm-border bg-card sticky top-0 h-screen">
         <button type="button" onClick={() => setPage("home")} className="h-16 px-5 flex items-center gap-3 border-b border-warm-border text-left">
           <BrandMark className="w-8 h-8" />
           <span className="flex flex-col leading-tight">
@@ -137,7 +147,7 @@ const Shell: React.FC = () => {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-warm-border">
+        <header className="print:hidden sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-warm-border">
           <div className="h-16 px-4 sm:px-6 flex items-center gap-3">
             <button type="button" onClick={() => setPage("home")} className="lg:hidden shrink-0" aria-label="GujRERA Saathi">
               <BrandMark className="w-8 h-8" />
@@ -212,9 +222,10 @@ const Shell: React.FC = () => {
           {page === "officer" && <OfficerPage />}
           {page === "risk" && <RiskPage />}
           {page === "enforce" && <EnforcementPage />}
+          {page === "report" && <ReportPage projectId={reportId} />}
         </main>
 
-        <footer className="lg:hidden border-t border-warm-border">
+        <footer className="print:hidden lg:hidden border-t border-warm-border">
           <div className="px-4 sm:px-6 py-4 text-xs text-muted">{tr("footer", lang)}</div>
         </footer>
       </div>

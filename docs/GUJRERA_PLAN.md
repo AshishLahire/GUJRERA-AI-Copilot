@@ -369,6 +369,12 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Found and fixed on the way: a request that writes data and then logs an audit row deadlocked (the audit row waited for the request's own write lock). Audit rows now join the request's transaction when it has already written.
 - Tests: `tests/test_gujrera_enforcement.py` (7).
 
+**PoC feature 4: before-you-buy project report (2026-11-17): done.**
+- `gujrera/tools/project_report.py`: for any project, from public registry data through the Repository: at-a-glance findings with a tone (registration validity, completion moved and by how much, promised date passed, progress at the last quarterly report, reports not filed, approvals pending, complaint counts, the promoter's record), key dates, approvals, quarterly progress (on time / late / not filed), complaint counts by category, orders, the promoter's other projects, questions to ask the promoter generated from the findings, and the buyer's rights (Sections 13, 14, 14(3), 18, 19). Every finding cites its records; complaints are counts only.
+- Dashboard page "Before-you-buy report" (`?tab=report&project=<id>`, shareable): project picker, report sheet, "Save as PDF / Print". Printing hides the app chrome and gives a clean A4 document; Gujarati is shaped by the browser, so the PDF is correct (checked with Edge print-to-PDF: two pages). Chat: "report for <project>" / "<project> નો રિપોર્ટ આપો" and a button on every project answer.
+- Found and fixed on the way: Tailwind opacity modifiers (e.g. `bg-card/95`, `bg-brand/60`, `ring-brand/30`, about 70 uses) generated no CSS because theme colours are CSS variables; the sticky header was see-through. Theme colours are now functions using `color-mix`, so all of them work.
+- Tests: `tests/test_gujrera_report.py` (4).
+
 ---
 
 ## 11. Risks and mitigations

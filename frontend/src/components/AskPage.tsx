@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, sendChat, transcribeVoice } from "../api/gujrera";
+import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openReport, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { tr } from "../saathi/strings";
@@ -81,6 +81,12 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
         <div><span className="text-muted">Valid until </span>{fmt(card.reg_valid_until)}</div>
         <div><span className="text-muted">Promoter </span>{fmt(card.promoter_name)}</div>
         <div><span className="text-muted">Delay </span>{Number(card.delay_days) > 0 ? `${card.delay_days} days` : "None"}</div>
+        {card.project_id != null && (
+          <button type="button" onClick={() => openReport(Number(card.project_id))}
+            className="col-span-2 justify-self-start mt-1 px-3 py-1.5 rounded-md border border-warm-strong bg-card font-semibold hover:bg-page">
+            Before-you-buy report (PDF) →
+          </button>
+        )}
       </div>
     );
   }
@@ -230,6 +236,18 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
             </li>
           ))}
         </ol>
+      </div>
+    );
+  }
+  if (card.type === "report") {
+    const tone: Record<string, string> = { good: "No major red flags", warn: "Some points to check", bad: "Serious points to check" };
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs flex flex-wrap items-center gap-3">
+        <span><span className="text-muted">Overall </span><span className="font-semibold">{tone[String(card.overall)] ?? ""}</span></span>
+        <span className="text-muted">{String(card.questions)} questions to ask</span>
+        <button type="button" onClick={() => openReport(Number(card.project_id))} className="ml-auto px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+          Open full report (PDF) →
+        </button>
       </div>
     );
   }

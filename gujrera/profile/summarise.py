@@ -49,7 +49,7 @@ def project_profile(repo: Repository, project_id: int, lang: str, *, focus: str 
     promoter = repo.get_promoter(p["promoter_id"])
     prof = Profile("project", p["rera_no"], _name(p, lang), is_mock=src["is_mock"])
     prof.card = {
-        "type": "project", "name": p["name"], "name_gu": p.get("name_gu"), "rera_no": p["rera_no"],
+        "type": "project", "project_id": p["id"], "name": p["name"], "name_gu": p.get("name_gu"), "rera_no": p["rera_no"],
         "promoter_id": p["promoter_id"], "promoter_name": p["promoter_name"], "district": p["district"],
         "status": p["status"], "reg_valid_until": p["reg_valid_until"],
         "proposed_completion": p["proposed_completion"], "revised_completion": p["revised_completion"],
