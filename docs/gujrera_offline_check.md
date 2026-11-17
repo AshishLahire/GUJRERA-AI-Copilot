@@ -7,15 +7,15 @@ Every demo flow run through the API with all network connections to other machin
 
 | Flow | Worked | Time | Blocked attempts | Detail |
 |:--|:-:|--:|:-:|:--|
-| Gujarati ad image → trust check | ✅ | 1.9 s | 0 | verdict=not_found, OCR engine=tesseract |
+| Gujarati ad image → trust check | ✅ | 2.0 s | 0 | verdict=not_found, OCR engine=tesseract |
 | Gujarati possession question | ✅ | 0.1 s | 0 | intent=possession, 2 sources |
 | Builder profile | ✅ | 0.1 s | 0 | intent=promoter_profile |
-| Law question (local LLM summary on) | ✅ | 18.2 s | 0 | intent=legal, cites s.13: True |
+| Law question (local LLM summary on) | ✅ | 24.4 s | 0 | intent=legal, cites s.13: True |
 | Free-form question | ✅ | 0.1 s | 0 | intent=project_profile, understood_by=rules |
-| Hindi complaint filing and tracking | ✅ | 0.6 s | 0 | filed MOCK-CMP-2026-00001; tracking intent=complaint_status |
-| Promoter login: own dues, other refused | ✅ | 0.3 s | 0 | own=self_service, other=access_denied |
+| Hindi complaint filing and tracking | ✅ | 0.5 s | 0 | filed MOCK-CMP-2026-00001; tracking intent=complaint_status |
+| Promoter login: own dues, other refused | ✅ | 0.5 s | 0 | own=self_service, other=access_denied |
 | Officer: Surat delayed promoters (report) | ✅ | 0.1 s | 0 | 8 rows, SQL shown |
 | Officer: AI-written SQL (local LLM) | ✅ | 3.7 s | 0 | 4 rows, llm |
-| English voice input (Whisper) | ✅ | 5.1 s | 0 | "When will I get possession of my flat?" |
+| English voice input (Whisper) | ✅ | 5.0 s | 0 | "When will I get possession of my flat?" |
 
 Times include loading each model the first time it is used.

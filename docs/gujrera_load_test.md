@@ -8,36 +8,36 @@ The API returns each answer in one piece, so the times below run until the **who
 
 100 users each send 5 requests, pausing 5–15 s between them to read the answer, as people do.
 
-- Requests: **541** in 68.6 s (7.9 per second), errors: **0**
-- Complete answer within 3 s: **538/541** (99%; p50 0.07 s, p95 0.20 s, slowest 5.55 s)
+- Requests: **541** in 66.5 s (8.1 per second), errors: **0**
+- Complete answer within 3 s: **538/541** (99%; p50 0.09 s, p95 0.21 s, slowest 3.37 s)
 
 | Request | Count | p50 | p95 | Slowest | Errors |
 |:--|--:|--:|--:|--:|--:|
-| RERA check (pasted ad) | 89 | 0.02 s | 0.05 s | 0.08 s | 0 |
-| chat question | 228 | 0.08 s | 0.20 s | 5.55 s | 0 |
-| login | 80 | 0.15 s | 0.23 s | 0.35 s | 0 |
-| profile | 64 | 0.02 s | 0.06 s | 0.13 s | 0 |
-| promoter: my dues | 80 | 0.07 s | 0.18 s | 0.25 s | 0 |
+| RERA check (pasted ad) | 89 | 0.02 s | 0.07 s | 0.20 s | 0 |
+| chat question | 228 | 0.12 s | 0.23 s | 3.37 s | 0 |
+| login | 80 | 0.13 s | 0.30 s | 0.40 s | 0 |
+| profile | 64 | 0.02 s | 0.06 s | 0.08 s | 0 |
+| promoter: my dues | 80 | 0.06 s | 0.18 s | 0.21 s | 0 |
 
 ## 2. Stress: 100 users with no pause
 
 The same 100 users fire all 5 requests back to back. Far heavier than real use; shows where one process saturates.
 
-- Requests: **548** in 78.4 s (7.0 per second), errors: **0**
-- Complete answer within 3 s: **290/548** (53%; p50 2.32 s, p95 6.46 s, slowest 53.90 s)
+- Requests: **548** in 40.1 s (13.7 per second), errors: **0**
+- Complete answer within 3 s: **275/548** (50%; p50 2.88 s, p95 9.20 s, slowest 14.81 s)
 
 | Request | Count | p50 | p95 | Slowest | Errors |
 |:--|--:|--:|--:|--:|--:|
-| RERA check (pasted ad) | 63 | 0.37 s | 1.52 s | 2.35 s | 0 |
-| chat question | 243 | 4.66 s | 6.86 s | 53.90 s | 0 |
-| login | 81 | 0.62 s | 1.35 s | 1.51 s | 0 |
-| profile | 80 | 0.50 s | 1.32 s | 2.67 s | 0 |
-| promoter: my dues | 81 | 5.29 s | 6.49 s | 6.70 s | 0 |
+| RERA check (pasted ad) | 63 | 0.35 s | 1.01 s | 1.52 s | 0 |
+| chat question | 243 | 5.48 s | 9.65 s | 14.81 s | 0 |
+| login | 81 | 0.48 s | 1.01 s | 1.49 s | 0 |
+| profile | 80 | 0.47 s | 1.04 s | 1.76 s | 0 |
+| promoter: my dues | 81 | 4.34 s | 4.98 s | 5.22 s | 0 |
 
 ## 3. Questions that need the self-hosted LLM
 
 10 free-form and law questions sent at once, plus the 72 gold questions in parts 1–2 that the rules passed to the LLM; one laptop GPU, one Ollama model.
 
-- Answers: **82**, errors **0**; within 3 s: 3; p50 10.1 s, p95 46.1 s, slowest 52.5 s
+- Answers: **82**, errors **0**; within 3 s: 7; p50 4.7 s, p95 25.7 s, slowest 27.3 s
 
 One GPU answers LLM questions one after another, so they queue when many arrive together. For the PoC: stream answers so the first words arrive in about a second, serve the model with parallel batching (e.g. vLLM on a GPU server), and keep the rule-based path for routine questions, as now. More API processes need the chat state moved to a shared store (Redis or Postgres), as noted in the plan.
