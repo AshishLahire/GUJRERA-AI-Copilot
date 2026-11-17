@@ -86,6 +86,8 @@ export interface ChatReply {
   suggestions: string[];
   is_mock: boolean;
   phrased_by: "template" | "llm";
+  /** The same answer in English, from the same records, when the reply is in Gujarati or Hindi. */
+  english?: string | null;
 }
 
 async function parse<T>(res: Response): Promise<T> {

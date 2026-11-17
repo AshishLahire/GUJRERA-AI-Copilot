@@ -308,3 +308,34 @@ def test_english_focus_words_match_whole_words_only():
 
     assert "dues" not in focus_of("possession of my flat in mangal towers")  # "owe" inside "towers"
     assert "dues" in focus_of("what do i owe") and "dues" in focus_of("મારી બાકી ચુકવણીઓ")
+
+
+def test_english_companion_for_gujarati_and_hindi(repo):
+    from gujrera.chat.orchestrator import respond_with_english
+
+    p = _unique_project(repo)
+    state = ChatState()
+    reply, english = respond_with_english(f"{p.name_gu or p.name} નું પઝેશન ક્યારે મળશે?", state, repo)
+    assert reply.lang == "gu" and reply.intent == "possession"
+    assert english and "completion date" in english and "[1]" in english
+    # follow-up keeps its context in the English pass, and the real state is not disturbed
+    reply, english = respond_with_english("બિલ્ડર વિશે જણાવો", state, repo)
+    assert reply.intent == "promoter_profile" and english and "projects registered" in english
+    # English questions need no companion; complaint filing is never repeated
+    assert respond_with_english(f"When will I get possession of {p.name}?", ChatState(), repo)[1] is None
+    reply, english = respond_with_english("મારે ફરિયાદ નોંધાવવી છે", ChatState(), repo)
+    assert reply.intent == "complaint_filing" and english is None
+
+
+def test_english_companion_makes_no_second_model_call(repo, monkeypatch):
+    import gujrera.chat.orchestrator as orch
+
+    calls = []
+
+    def fake_route(message, generate=None):
+        calls.append(message)
+        return None
+
+    monkeypatch.setattr(orch, "llm_route", fake_route)
+    orch.respond_with_english("આજે કંઈક મજાનું કહો ને", ChatState(), repo)
+    assert len(calls) <= 1

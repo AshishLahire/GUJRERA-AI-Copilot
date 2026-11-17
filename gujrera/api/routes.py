@@ -42,7 +42,7 @@ from sqlalchemy import Engine, func, inspect, select
 from sqlalchemy.orm import Session
 
 from gujrera.auth import LoginError, authenticate, issue_token, principal_for, read_token
-from gujrera.chat.orchestrator import ChatState, respond
+from gujrera.chat.orchestrator import ChatState, respond, respond_with_english
 from gujrera.config import get_gujrera_settings
 from gujrera.db.models import Agent, Project, Promoter, User
 from gujrera.db.repository import AccessDenied, Principal, Repository
@@ -323,10 +323,10 @@ def chat(body: ChatRequest, repo: Repository = Depends(user_repo)) -> dict[str, 
 
         rephrase = make_rephraser()
     try:
-        reply = respond(message, state, repo, lang=lang, rephrase=rephrase)
+        reply, english = respond_with_english(message, state, repo, lang=lang, rephrase=rephrase)
     except AccessDenied as exc:  # last line of defence; skills normally answer politely first
         raise HTTPException(403, str(exc)) from None
-    return {"session_id": session_id, **reply.to_dict()}
+    return {"session_id": session_id, **reply.to_dict(), "english": english}
 
 
 @router.get("/chat/starters")

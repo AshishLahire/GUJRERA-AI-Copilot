@@ -11,7 +11,9 @@ so ("not found") instead of guessing.
 
 from __future__ import annotations
 
+import copy
 import re
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -64,6 +66,11 @@ SUGGESTIONS = {
 # Tests replace these with fakes; None means "use the configured self-hosted LLM".
 analytics_generate = None
 router_generate = None
+
+# English companion answers (see respond_with_english). _RECORD collects what the first pass
+# decided with the LLM; _EN_PASS marks the second, English pass, which reuses that and calls no model.
+_RECORD: ContextVar[dict | None] = ContextVar("gujrera_chat_record", default=None)
+_EN_PASS: ContextVar[dict | None] = ContextVar("gujrera_chat_en_pass", default=None)
 
 
 @dataclass
@@ -168,6 +175,42 @@ def respond(message: str, state: ChatState, repo: Repository, *, lang: str | Non
     return reply
 
 
+def respond_with_english(message: str, state: ChatState, repo: Repository, *, lang: str | None = None,
+                         rephrase: Callable[[Reply], Reply] | None = None) -> tuple[Reply, str | None]:
+    """``respond``, plus the same answer in English when the reply is in Gujarati or Hindi, so English
+    readers can follow. The English text is built from the same records and templates (not machine
+    translated); None when the reply is English or the turn is not safe or cheap to repeat."""
+    before = copy.deepcopy(state)
+    record: dict = {}
+    token = _RECORD.set(record)
+    try:
+        reply = respond(message, state, repo, lang=lang, rephrase=rephrase)
+    finally:
+        _RECORD.reset(token)
+    return reply, english_companion(message, before, repo, reply, record.get("routed"))
+
+
+def english_companion(message: str, state_before: ChatState, repo: Repository, reply: Reply,
+                      routed: Routed | None = None) -> str | None:
+    if reply.lang == "en" or not reply.sentences or reply.text_override:
+        return None
+    # Complaint filing/tracking changes data and asks step by step; officer analytics may call the model.
+    if (reply.intent.startswith("complaint_") or state_before.complaint is not None
+            or state_before.tracking is not None or any(c.get("type") == "analytics" for c in reply.cards)):
+        return None
+    quiet = Repository(repo.s, repo.p, audit_sink=lambda _row: None)  # same reads, already audited
+    token = _EN_PASS.set({"routed": routed})
+    try:
+        en = respond(message, copy.deepcopy(state_before), quiet, lang="en")
+    except Exception:  # noqa: BLE001 - the English line is a convenience, never a failure
+        return None
+    finally:
+        _EN_PASS.reset(token)
+    if en.intent != reply.intent or not en.sentences:
+        return None
+    return en.to_dict()["text"]
+
+
 def _route(message: str, u: Understanding, state: ChatState, repo: Repository, lang: str) -> Reply:
     # 1. Answer to a "which one did you mean?" question
     if state.options:
@@ -220,7 +263,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 6. Questions about the law: RAG over the RERA Act, Gujarat Rules and orders
     if "legal" in u.intents and not u.candidates and not u.project_numbers and "complaint_file" not in u.intents:
-        la = legal_answer(message, lang)
+        la = legal_answer(message, lang, use_llm=False if _EN_PASS.get() is not None else None)
         return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
                      suggestions=SUGGESTIONS["start"][lang])
 
@@ -261,7 +304,14 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 9. Rules did not understand: let the self-hosted LLM classify it and copy out the name
     if not (u.intents & {"greeting"}) and len((message or "").strip()) >= 6:
-        routed = llm_route(message, generate=router_generate)
+        en_pass = _EN_PASS.get()
+        if en_pass is not None:
+            routed = en_pass.get("routed")  # reuse the first pass's reading: no second model call
+        else:
+            routed = llm_route(message, generate=router_generate)
+            record = _RECORD.get()
+            if record is not None:
+                record["routed"] = routed
         if routed:
             reply = _from_llm_route(routed, message, state, repo, lang)
             if reply:
@@ -299,7 +349,8 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
     if intent == "legal":
         # Search with the model's English rewrite as well (helps romanised Gujarati/Hindi).
         query = routed.english or message
-        la = legal_answer(message, lang, search_query=query)
+        la = legal_answer(message, lang, search_query=query,
+                          use_llm=False if _EN_PASS.get() is not None else None)
         return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
                      suggestions=SUGGESTIONS["start"][lang])
     if intent == "file_complaint":

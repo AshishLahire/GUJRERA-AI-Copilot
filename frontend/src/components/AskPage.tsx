@@ -461,6 +461,12 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
               }`}
             >
               <CitedText text={m.reply.text} />
+              {m.reply.english && (
+                <div lang="en" className="mt-2 pt-2 border-t border-dashed border-warm-strong text-muted">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5">In English</span>
+                  <CitedText text={m.reply.english} />
+                </div>
+              )}
               {m.reply.cards.map((c, j) => <Card key={j} card={c} />)}
               {m.reply.options.length > 0 && (
                 <div className="mt-2 flex flex-col gap-1.5">
