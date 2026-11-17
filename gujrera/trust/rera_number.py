@@ -119,12 +119,21 @@ def parse_rera_number(raw: str) -> ReraNumber | None:
 def find_rera_numbers(text: str) -> list[ReraNumber]:
     """Find registration numbers in free text (OCR output, ads, chat messages)."""
     found: dict[str, ReraNumber] = {}
-    for line in text.splitlines():
+    lines = [ln for ln in text.splitlines()]
+    for idx, line in enumerate(lines):
         starts = [m.start() for m in _START_RE.finditer(line)]
         for i, start in enumerate(starts):
             end = starts[i + 1] if i + 1 < len(starts) else len(line)
             chunk = re.split(r"[,;]", line[start:end])[0]
             parsed = parse_rera_number(chunk)
+            is_last_on_line = i + 1 == len(starts)
+            if is_last_on_line and (parsed is None or not parsed.code or "missing_date" in parsed.warnings):
+                # Long numbers often wrap in brochures and OCR output: "…/SURAT/SURAT" + "CITY/SUDA/…"
+                nxt = next((ln.strip() for ln in lines[idx + 1:idx + 3] if ln.strip()), "")
+                if "/" in nxt and not _START_RE.search(nxt):
+                    joined = parse_rera_number(chunk.rstrip() + " " + re.split(r"[,;]", nxt)[0])
+                    if joined and joined.code and (parsed is None or len(joined.warnings) <= len(parsed.warnings)):
+                        parsed = joined
             if parsed and parsed.code and parsed.normalised not in found:
                 found[parsed.normalised] = parsed
     return list(found.values())

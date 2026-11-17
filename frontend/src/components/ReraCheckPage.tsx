@@ -324,10 +324,19 @@ export const ReraCheckPage: React.FC = () => {
             </section>
 
             {report.ocr && (
-              <details className="rounded-card border border-warm-border bg-card p-4 text-sm">
+              <details
+                open={!!report.ocr.low_confidence}
+                className="rounded-card border border-warm-border bg-card p-4 text-sm"
+              >
                 <summary className="cursor-pointer font-semibold text-body">
-                  Text read from the document ({report.ocr.engine})
+                  Text read from the document ({report.ocr.engine}
+                  {report.ocr.confidence != null ? ` · ${Math.round(report.ocr.confidence)}% confidence` : ""})
                 </summary>
+                {report.ocr.note && (
+                  <p className={`mt-2 text-xs ${report.ocr.low_confidence ? "text-amber-700 dark:text-amber-300" : "text-muted"}`}>
+                    {report.ocr.note}
+                  </p>
+                )}
                 <pre className="mt-2 whitespace-pre-wrap text-xs text-muted font-sans">{report.ocr.text}</pre>
               </details>
             )}

@@ -328,6 +328,12 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - "Did you mean …?": when a name is not found but a registry name is close (a typo or a voice slip such as "Mungal Square"), the chat offers it as a choice instead of answering.
 - IndicConformer is not usable yet: its Hugging Face cache entry is empty (gated model, needs login and PyTorch setup).
 
+**Gujarati OCR for uploaded ads (2026-11-17): done with Tesseract.**
+- `gujrera/trust/ocr.py`: Tesseract 5.5 with `guj+hin+eng` (greyscale, upscaling, contrast); PDFs use their text layer when present. Pramaan's OCR chain (local VLM; Gemini only if allowed) is the fallback when Tesseract is missing or reads almost nothing. Mean word confidence is returned; below 55 the user is told to check the text.
+- Registration numbers wrapped over two lines (common in brochures and OCR) are now joined.
+- Test ads (`tests/fixtures/gujrera_ads/`, rendered from HTML with Edge for correct Gujarati shaping): Gujarati read at 91–94% confidence in 1–2 s; genuine → registered with warnings, fake number + bank transfer → not found, possession promised after the registered date → mismatch.
+- Still to do: a set of real photographed ads and hoardings (angles, glare, stylised fonts), which will be harder than these clean renders.
+
 ---
 
 ## 11. Risks and mitigations

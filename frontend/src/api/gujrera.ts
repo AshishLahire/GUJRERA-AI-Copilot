@@ -44,7 +44,14 @@ export interface TrustReport {
   records: Array<Record<string, unknown> & { source: RecordSource }>;
   is_mock: boolean;
   as_of: string | null;
-  ocr?: { text: string; engine: string; valid: boolean; note: string | null };
+  ocr?: {
+    text: string;
+    engine: string;
+    valid: boolean;
+    note: string | null;
+    confidence?: number | null;
+    low_confidence?: boolean;
+  };
 }
 
 export interface TrustSample {
