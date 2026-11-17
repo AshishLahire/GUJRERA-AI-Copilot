@@ -24,6 +24,33 @@ Build one multilingual copilot (Gujarati, Hindi, English, mixed input, text and 
 - Access control is enforced in code, never by the LLM.
 - Everything runs fully offline (Ollama) so it can be hosted on-premise.
 
+### 1.1 How the challenge is scored
+
+From the AI CoE AI Innovation Challenge page (gujarat.coe-iot.com). The jury evaluates after mentoring sessions on proposals; winners get a paid PoC with GUJRERA.
+
+| Parameter | Weight | What it means for the build |
+|:--|:-:|:--|
+| Solution relevance | 20% | Cover all four asks from the use case, plus the trust check |
+| Technical capability | 20% | Show the stack working: hybrid RAG, guarded text-to-SQL, Gujarati speech and OCR, with measured numbers |
+| Past experience | 15% | Pramaan and JanSeva Karnataka (from the deck) |
+| Innovation and uniqueness | 15% | RERA trust check; open-source and self-hosted models |
+| Scalability potential | 10% | Stateless API, Postgres-ready schema, async OCR/speech workers |
+| Implementation readiness | 10% | **A working demo, not slides**: this is why the prototype matters |
+| Security and privacy | 5% | Role scoping in code, read-only analytics, audit log, DPDP |
+| Cost and timeline | 5% | Already set in the deck: 16 weeks, ₹26 L |
+
+### 1.2 Commitments made in the Stage 1 deck
+
+The prototype must not contradict these:
+- Answers are cited to a RERA record, or the copilot says "not found".
+- Self-hosted open models, no paid API by default, deployable on government cloud or on-premise.
+- Gujarati, Hindi and English, by text, voice and scanned documents.
+- Promoters see only their own data; officer queries are read-only, with the SQL shown and logged.
+- Trust check verdicts named in the deck: registration not found, promoter name mismatch, registration lapsed, advertised details differ from approved. Each links to the registry record.
+- Demo flows shown in the deck: Gujarati possession-date question answered from the registration record, then complaint filing and tracking; officer asks "Which Surat promoters have the most delayed projects?" and gets SQL, a table and a chart.
+- Targets: 90%+ answers correct and cited, 80%+ complaints complete on first submission, 40%+ routine queries answered without the helpdesk, 100+ concurrent users with answers starting within 3 seconds.
+- Testing: 300 gold questions, 100 per language, measuring accuracy and speech WER.
+
 ---
 
 ## 2. Architecture
@@ -65,7 +92,14 @@ gujrera/
   api/         routes.py
 ```
 
-**LLM:** keep Pramaan's provider setup. Gemini is the hosted fallback; Ollama (Qwen) is the offline default for on-premise. All model calls go through one interface, so hosting can be decided later. Prompts are versioned and cached as in `factcheck/claims/cache.py`.
+**Models (as committed in the Stage 1 deck):**
+- **LLM:** a self-hosted open LLM served through Ollama is the default, with **no paid API by default** (the deck promises ₹0 per-query fees). The final model is picked by a Gujarati benchmark. Pramaan's Gemini path stays available behind `OFFLINE_MODE=false` only if GUJRERA allows it.
+- **Translation:** IndicTrans2 (AI4Bharat) normalises Gujarati and Hindi to English for retrieval and SQL, and translates answers back.
+- **OCR:** AksharDrishti OCR (from JanSeva) plus Tesseract with Gujarati; Pramaan's OCR runner stays as the fallback chain.
+- **Speech:** IndicConformer, benchmarked against Whisper small (about 64% error on Gujarati in the Pramaan evaluation).
+- **Retrieval:** Pramaan's BM25 + multilingual-e5-small with rank fusion, run locally.
+
+All model calls go through one interface, so models can be swapped without changing the app. Prompts are versioned and cached as in `factcheck/claims/cache.py`.
 
 ---
 
@@ -105,7 +139,7 @@ gujrera/
 | Step | Reuse from Pramaan | New |
 |:--|:--|:--|
 | Ingest | `factcheck/ingest/`, `/api/check/text` paste intake | none |
-| OCR | `factcheck/extract/ocr/` | Add `gu` to `OCR_LANGUAGES`; Gujarati OCR evaluation (section 9) |
+| OCR | `factcheck/extract/ocr/` | Add AksharDrishti + Tesseract (`guj`) engines; add `gu` to `OCR_LANGUAGES`; Gujarati OCR evaluation (section 9) |
 | Extract | `factcheck/claims/extractor.py` pattern + cache | New prompt/schema `RERAClaim`: rera_no, project, promoter, district, price, carpet area, possession date, payment instructions |
 | RERA number | none | `rera_number.py`: regex parse + normalise. The Gujarat format is believed to be `PR/GJ/<DISTRICT>/.../RAA#####/<DDMMYY>` and agents `AG/GJ/...`; **verify on real certificates** |
 | Lookup | none | Exact match on rera_no; fuzzy match (rapidfuzz) on project and promoter name when the number is missing or wrong |
@@ -199,6 +233,9 @@ gujrera/
 | Access control | 30 cross-tenant attempts ("show developer Y's dues") | 0 leaks |
 | Gujarati OCR | 30 real Gujarati brochures/ads | CER reported per engine |
 | Gujarati ASR | 30 voice clips | WER: IndicConformer vs Whisper |
+| **Gold question set (deck)** | 300 questions, 100 each in gu, hi, en, across all four capabilities | ≥ 90% correct and cited |
+| Complaint completeness | Simulated filing dialogues | ≥ 80% complete on first submission |
+| Latency | 100 concurrent users (load test) | Answer starts within 3 s |
 
 Scripts go in `scripts/eval_gujrera_*.py` and results in `docs/gujrera_eval.md`, as for the existing evaluations.
 
@@ -206,21 +243,22 @@ Scripts go in `scripts/eval_gujrera_*.py` and results in `docs/gujrera_eval.md`,
 
 ## 10. Milestones
 
-Relative order. Map to calendar dates once the deadline is known.
+Build steps for the jury prototype, mapped to the four phases of the 16-week PoC promised in the deck. The prototype runs the same steps faster, on mock and public data; the PoC repeats them on GUJRERA's real data.
 
-| Phase | Deliverable | Depends on | Effort |
-|:-:|:--|:--|:-:|
-| 0 | Read the requirements zip; confirm deliverables, deadline, scoring, hosting; check portal terms | none | S |
-| 1 | Schema, mock generator, portal scraper (1–2 districts), views, RAG index of Act/Rules | 0 | M |
-| 2 | Trust check end to end, with API + UI card + eval set | 1 | M |
-| 3 | Profiles + chat orchestrator (citizen role) + citations + "not found" | 1 | M |
-| 4 | Auth + roles; developer/agent self-service | 1, 3 | S–M |
-| 5 | Complaint filing (Form A/B, slot filling, mock adapter) + tracking | 3 | M–L |
-| 6 | Officer analytics: text-to-SQL guard, canned reports, exports | 1, 4 | M |
-| 7 | Gujarati/Hindi pass: UI strings, mixed input, IndicConformer, OCR eval | 2, 3 | M |
-| 8 | Full eval run, offline-mode check, demo script and recording, docs | all | S–M |
+| Step | Deliverable | Depends on | Effort | Deck PoC phase |
+|:-:|:--|:--|:-:|:--|
+| 0 | Confirm Stage 2 deliverables, deadline and hosting; check portal terms | none | S | 1 · Foundations (wk 1–3) |
+| 1 | Schema, mock generator, portal scraper (1–2 districts), views, RAG index of Act/Rules | 0 | M | 1 · Foundations |
+| 1b | Gujarati voice and OCR benchmarks (IndicConformer, AksharDrishti, Tesseract) | 0 | S–M | 1 · Foundations |
+| 2 | Trust check end to end, with API + UI card + eval set | 1 | M | 2 · Citizen copilot (wk 4–8) |
+| 3 | Profiles + chat orchestrator (citizen role) + citations + "not found"; IndicTrans2 | 1 | M | 2 · Citizen copilot |
+| 7 | Gujarati/Hindi pass: UI strings, mixed input, voice input | 2, 3 | M | 2 · Citizen copilot |
+| 4 | Auth + roles; developer/agent self-service (promoter login) | 1, 3 | S–M | 3 · Complaints (wk 9–12) |
+| 5 | Complaint filing (Form A/B, slot filling, mock adapter) + tracking | 3 | M–L | 3 · Complaints |
+| 6 | Officer analytics: text-to-SQL guard, canned reports, exports | 1, 4 | M | 4 · Officers and pilot (wk 13–16) |
+| 8 | 300-question gold set, load test, offline-mode check, demo script and recording, docs | all | S–M | 4 · Officers and pilot |
 
-Phases 2, 3 and 6 can run in parallel once phase 1 is done, and 4 and 5 can follow 3 in parallel.
+Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow 3 in parallel. For the jury, the demo should cover all four deck flows even if some parts run on mock data, since implementation readiness is scored.
 
 ### Progress
 
@@ -259,8 +297,10 @@ Phases 2, 3 and 6 can run in parallel once phase 1 is done, and 4 and 5 can foll
 
 ## 13. Open questions
 
-1. What exactly must be delivered at Stage 2: demo, working prototype, document? Deadline and demo format?
-2. Will GUJRERA share data samples, the complaint form spec, or API access?
-3. Hosting: cloud, on-premise, or government cloud?
-4. Evaluation criteria and weighting?
-5. Is public-portal scraping acceptable for the prototype?
+1. What exactly must be delivered at Stage 2 (mentoring session or jury): live demo, recording, revised proposal? Deadline and demo format?
+2. Will GUJRERA share data samples, the complaint form spec, or API access? (The deck asks for registry exports, sample orders, anonymised complaints and the complaint hand-off format.)
+3. Hosting: government cloud or on-premise?
+4. Is public-portal scraping acceptable for the prototype?
+5. The deck's OCR line relies on AksharDrishti from JanSeva, which is not in this repo. Where does that code live, and can it be brought in?
+
+Evaluation criteria and weights are now known (section 1.1).
