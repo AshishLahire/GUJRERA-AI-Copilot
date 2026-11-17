@@ -74,3 +74,6 @@ data/gujrera/legal_index/
 
 # Voice evaluation recordings are personal data: keep them out of git (prompts.csv is committed)
 data/eval/gujrera_voice/clips/
+# SQLite working files (WAL mode)
+*.sqlite-wal
+*.sqlite-shm
