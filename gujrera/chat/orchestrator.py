@@ -19,6 +19,9 @@ from gujrera.db.models import Project
 from gujrera.db.repository import Repository
 from gujrera.i18n import t, word
 from gujrera.profile.summarise import Profile, Sentence, agent_profile, project_profile, promoter_profile
+from gujrera.analytics.engine import answer as analytics_answer
+from gujrera.analytics.engine import s as analytics_text
+from gujrera.analytics.reports import looks_like_analytics, match_report
 from gujrera.chat.understand import Candidate, Understanding, understand
 from gujrera.complaints.flow import (
     CODE_RE,
@@ -52,6 +55,10 @@ SUGGESTIONS = {
         "hi": ["शिकायत दर्ज करें", "मेरी शिकायत की स्थिति"],
     },
 }
+
+
+# Tests replace this with a fake; None means "use the configured self-hosted LLM".
+analytics_generate = None
 
 
 @dataclass
@@ -190,14 +197,21 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         state.entity = {"kind": "project", "id": project["id"]}
         return _answer_entity(state, repo, lang, _focus(u))
 
-    # 4. Promoter / agent self-service (role-scoped), or a login prompt for private data
+    # 4. Officer analytics: standard reports, or LLM-written SQL behind the guard
     text_lc = (message or "").lower()
+    if repo.p.role == "officer" and (match_report(text_lc) or (looks_like_analytics(text_lc) and not u.candidates)):
+        a = analytics_answer(message, repo, lang, generate=analytics_generate)
+        return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
+    if repo.p.role != "officer" and match_report(text_lc) and not u.candidates:
+        return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
+
+    # 5. Promoter / agent self-service (role-scoped), or a login prompt for private data
     if is_self_service(text_lc) and not (repo.p.role == "citizen" and "complaint_file" in u.intents):
         reply = _self_service(text_lc, u, repo, lang)
         if reply:
             return reply
 
-    # 5. Complaint filing / tracking
+    # 6. Complaint filing / tracking
     if "complaint_file" in u.intents or REF_RE.search(message or ""):
         if (repo.p.role == "citizen" and repo.p.user_id is not None and not REF_RE.search(message or "")
                 and wants_tracking(message)):
@@ -205,7 +219,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         out = (start_tracking if wants_tracking(message) else start_filing)(message, state, repo, lang)
         return _from_flow(out, lang)
 
-    # 6. Names
+    # 7. Names
     cands = u.candidates
     if u.districts and len(cands) > 1:
         narrowed = [c for c in cands if c.district in u.districts]
@@ -224,7 +238,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         state.pending_focus = focus
         return Reply(lang, "disambiguate", [_say("disambiguate", lang)], options=state.options)
 
-    # 7. Follow-up about the entity already in the conversation
+    # 8. Follow-up about the entity already in the conversation
     topical = u.intents & {"possession", "promoter", "complaints"}
     if state.entity and topical and len(u.leftover.split()) <= 2:
         if "promoter" in topical and state.entity["kind"] == "project":
@@ -232,7 +246,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             state.entity = {"kind": "promoter", "id": p.promoter_id}
         return _answer_entity(state, repo, lang, focus)
 
-    # 8. Nothing matched
+    # 9. Nothing matched
     if "greeting" in u.intents and not u.leftover:
         return Reply(lang, "greeting", [_say("greeting", lang)], suggestions=SUGGESTIONS["start"][lang])
     if u.leftover and not u.leftover.isdigit() and (u.names_something or u.intents - {"greeting"}):

@@ -302,6 +302,14 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Tests: `tests/test_gujrera_auth.py` (12), including "every dues record a promoter is shown belongs to that promoter".
 - Officers can log in, but officer analytics is step 6.
 
+**Step 6, officer analytics (2026-11-17): done.**
+- `gujrera/analytics/reports.py`: 10 standard reports matched from Gujarati, Hindi or English questions (delays by promoter, most delayed projects, complaints by category/district, oldest open complaints, promoters by complaints, lapsed or ending registrations, expired agents, district-wise projects, adverse orders). A question that asks for something no report covers (averages, per year/month, project type, comparisons) never gets a report; it goes to the LLM.
+- `gujrera/analytics/engine.py`: otherwise the self-hosted model writes SQL from the view schema (`GUJRERA_SQL_MODEL`). Answers carry the table, a bar chart when it fits, the SQL, and a "Standard report" or "AI-written query" label; every query and refusal is in the audit log.
+- `gujrera/analytics/sql_guard.py`: sqlglot parse; one SELECT only; no writes, schema changes, PRAGMA/ATTACH or non-allow-listed functions; only the four reporting views; district officers' views replaced by filtered subqueries; row limit; read-only connection with a time limit.
+- Chat: logged-in officers get analytics; others asking an officer report are told it is for officers. API: `POST /analytics/query` (officers only).
+- Console: analytics card with chart, table, CSV download (formula-safe) and the SQL.
+- Evaluation (`docs/gujrera_analytics_eval.md`): 27/27 questions routed correctly in three languages, 0 wrong reports, 30/30 attacks blocked, district scope held 126/126, report p95 3.5 ms. LLM path: correct SQL for "average delay by project type" in about 30 s with the installed thinking model; a non-thinking SQL model is needed for interactive speed.
+
 ---
 
 ## 11. Risks and mitigations

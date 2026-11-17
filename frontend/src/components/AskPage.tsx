@@ -9,6 +9,7 @@ import {
   sendChat,
 } from "../api/gujrera";
 import { AccountBar } from "./AccountBar";
+import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
 
 const TOKEN_KEY = "gujrera.token";
 
@@ -39,6 +40,12 @@ const ROLE_SUGGESTIONS: Record<string, string[]> = {
   developer: ["What are my dues?", "Pending notices for my projects", "My QPR filings", "My registration expiry"],
   agent: ["My registration status", "My complaints"],
   citizen: ["My complaints", "File a complaint"],
+  officer: [
+    "Which promoters have the most delayed projects?",
+    "Complaints by category",
+    "Oldest open complaints",
+    "Lapsed or soon-ending registrations",
+  ],
 };
 
 type Message = { role: "user"; text: string } | { role: "assistant"; reply: ChatReply };
@@ -130,6 +137,9 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
         </ul>
       </div>
     );
+  }
+  if (card.type === "analytics") {
+    return <AnalyticsCard card={card as unknown as AnalyticsCardData} />;
   }
   if (card.type === "self_service") {
     const dues = (card.dues as { description: string; amount: number | null; due_date: string; overdue: boolean }[]) ?? [];
@@ -395,7 +405,12 @@ export const AskPage: React.FC = () => {
               {m.text}
             </div>
           ) : (
-            <div key={i} className="self-start max-w-[92%] rounded-2xl rounded-bl-sm border border-warm-border bg-page px-4 py-3 text-body">
+            <div
+              key={i}
+              className={`self-start min-w-0 rounded-2xl rounded-bl-sm border border-warm-border bg-page px-4 py-3 text-body ${
+                m.reply.cards.some((c) => c.type === "analytics") ? "w-full" : "max-w-[92%]"
+              }`}
+            >
               <CitedText text={m.reply.text} />
               {m.reply.cards.map((c, j) => <Card key={j} card={c} />)}
               {m.reply.options.length > 0 && (

@@ -4,6 +4,7 @@ Login and self-service (send "Authorization: Bearer <token>"):
     POST /api/gujrera/auth/login           {"username": "...", "password": "..."}
     GET  /api/gujrera/auth/me
     GET  /api/gujrera/self-service/summary?lang=gu   promoter or agent compliance summary
+    POST /api/gujrera/analytics/query      {"question": "...", "lang"?: "gu|hi|en"}   officers only
 
 Chat and profiles:
     POST /api/gujrera/chat                 {"message": "...", "session_id"?: "...", "lang"?: "gu|hi|en"}
@@ -65,6 +66,11 @@ class TrustTextRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class AnalyticsRequest(BaseModel):
+    question: str
+    lang: str = "en"
 
 
 class ChatRequest(BaseModel):
@@ -211,6 +217,22 @@ def self_service_summary(lang: str = Query("gu"), repo: Repository = Depends(use
         "sentences": [{"text": x.text, "citations": x.citations} for x in summary.sentences],
         "card": summary.card, "is_mock": summary.is_mock,
     }
+
+
+@router.post("/analytics/query")
+def analytics_query(body: AnalyticsRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    if repo.p.role != "officer":
+        raise HTTPException(403, "Analytics is available to GUJRERA officers only.")
+    question = (body.question or "").strip()
+    if not question:
+        raise HTTPException(400, "Please type a question.")
+    if len(question) > 500:
+        raise HTTPException(400, "Question exceeds 500 characters.")
+    from gujrera.analytics.engine import answer as analytics_answer
+
+    a = analytics_answer(question, repo, _lang(body.lang))
+    return {"intent": a.intent, "sentences": [{"text": x.text} for x in a.sentences], "card": a.card,
+            "suggestions": a.suggestions}
 
 
 @router.post("/chat")

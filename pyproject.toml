@@ -26,6 +26,7 @@ dependencies = [
     "jiwer==4.0.0",
     "sqlalchemy>=2.0",
     "rapidfuzz>=3.0",
+    "sqlglot==25.34.1",
 ]
 
 [project.optional-dependencies]

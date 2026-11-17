@@ -24,8 +24,14 @@ class GujreraSettings(BaseSettings):
     GUJRERA_DB_URL: str = Field(default="sqlite:///data/gujrera/gujrera.sqlite")
     # Seed for the reproducible mock data generator.
     GUJRERA_MOCK_SEED: int = Field(default=2016)
-    # Upper bound on rows returned by any analytics query.
+    # Upper bound on rows returned by any analytics query, and its time limit.
     GUJRERA_MAX_ROWS: int = Field(default=500, gt=0)
+    GUJRERA_SQL_TIMEOUT_SECONDS: float = Field(default=5.0, gt=0)
+    # Officer questions that match no standard report are sent to the self-hosted LLM to write SQL.
+    GUJRERA_ANALYTICS_LLM: bool = Field(default=True)
+    GUJRERA_ANALYTICS_LLM_TIMEOUT_SECONDS: float = Field(default=150.0, gt=0)
+    # Model that writes officer SQL. A non-thinking, SQL-capable model (e.g. qwen2.5-coder) is much faster.
+    GUJRERA_SQL_MODEL: str = Field(default="qwen3-vl:4b")
 
     # Optional: let a self-hosted LLM (Ollama) rephrase template answers. The answer is kept only
     # if every sentence keeps a citation and no new number appears; otherwise the template is used.
