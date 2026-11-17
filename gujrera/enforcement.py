@@ -51,10 +51,11 @@ NAME_MATCH = 90
 
 def ensure_tables(engine: Engine) -> None:
     """Add tables introduced after a database was seeded (enforcement cases, ad reports, order compliance)."""
-    from gujrera.db.models import OrderCompliance
+    from gujrera.db.models import OrderCompliance, QprSubmission
 
     names = set(inspect(engine).get_table_names())
-    missing = [t for t in (EnforcementCase.__table__, AdReport.__table__, OrderCompliance.__table__) if t.name not in names]
+    missing = [t for t in (EnforcementCase.__table__, AdReport.__table__, OrderCompliance.__table__,
+                           QprSubmission.__table__) if t.name not in names]
     if missing:
         Base.metadata.create_all(engine, tables=missing)
 

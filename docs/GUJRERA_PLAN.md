@@ -392,6 +392,13 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Officers: "Orders to enforce" tab on the Complaint desk (oldest overdue first; record complied with date, partly done with what is left, not complied, recovery under Section 40), API `/orders/enforce` and `/orders/{id}/compliance`, chat ("which orders are not complied with?"). District officers see their district; updates are audited.
 - Tests: `tests/test_gujrera_orders.py` (5).
 
+**PoC feature 7: quarterly report assistant for promoters (2026-11-17): done.**
+- Law (checked against the indexed Act): Section 11(1)(b)-(e) quarterly details (apartments or plots and garages booked, approvals taken and pending, project status); Section 4(2)(l)(D) seventy per cent of collections in a separate account, withdrawals in proportion to completion and certified by an engineer, an architect and a chartered accountant; Section 6 extension.
+- `gujrera/selfservice/qpr.py`: for the logged-in promoter's ongoing projects: reports overdue, the quarter now running and its due date, late filings, unpaid late-filing penalties. Draft for an ended quarter pre-filled from the last report and the approvals on record. Checks before filing: errors (completion lower than the previous report or higher than a later one, bookings above the registered units, less than 70% deposited, more withdrawn than deposited, withdrawals ahead of construction, figures missing) stop filing; warnings (unusually large jump, a pace that misses the registered date with a Section 6 prompt, pending approvals, late filing) are filed with the report. The pace warning is skipped when back-filling a missed quarter.
+- Filing creates a `qpr_submissions` row (the portal hand-off in the PoC) and marks the registry's progress row for that quarter filed, so the risk watchlist and reports update. Promoters only, own projects only; audited.
+- API `/qpr/overview`, `/qpr/{project}/{quarter}/draft|check|submit`; page "Quarterly reports" with a check-then-file form; buttons from the promoter dashboard and the chat's compliance card. The demo promoter shortcut is now `dev_002` (three ongoing projects with overdue reports); `dev_001` has none.
+- Tests: `tests/test_gujrera_qpr.py` (4).
+
 ---
 
 ## 11. Risks and mitigations

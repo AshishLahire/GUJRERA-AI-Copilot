@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import Path as Path_
 from datetime import date
 
 from pydantic import BaseModel
@@ -104,6 +105,18 @@ class ComplianceUpdate(BaseModel):
     status: str
     complied_on: date | None = None
     note: str | None = None
+
+
+class QprData(BaseModel):
+    percent_complete: float | None = None
+    units_booked: int | None = None
+    garages_booked: int | None = None
+    collected_total: float | None = None
+    deposited_total: float | None = None
+    withdrawn_total: float | None = None
+    project_cost: float | None = None
+    approvals_pending: list[str] = []
+    status_note: str | None = None
 
 
 class InterestRequest(BaseModel):
@@ -415,6 +428,39 @@ def enforcement_case_update(case_id: int, body: CaseUpdate, repo: Repository = D
     if case is None:
         raise HTTPException(404, "Case not found.")
     return case
+
+
+QUARTER_RE = r"^\d{4}-Q[1-4]$"
+
+
+@router.get("/qpr/overview")
+def qpr_overview(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.selfservice.qpr import overview
+
+    return _officer_or_403(overview, repo)
+
+
+@router.get("/qpr/{project_id}/{quarter}/draft")
+def qpr_draft(project_id: int, quarter: str = Path_(..., pattern=QUARTER_RE), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.selfservice.qpr import draft
+
+    return _officer_or_403(draft, repo, project_id, quarter)
+
+
+@router.post("/qpr/{project_id}/{quarter}/check")
+def qpr_check(project_id: int, body: QprData, quarter: str = Path_(..., pattern=QUARTER_RE),
+              repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.selfservice.qpr import check
+
+    return {"issues": _officer_or_403(check, repo, project_id, quarter, body.model_dump())}
+
+
+@router.post("/qpr/{project_id}/{quarter}/submit")
+def qpr_submit(project_id: int, body: QprData, quarter: str = Path_(..., pattern=QUARTER_RE),
+               repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.selfservice.qpr import submit
+
+    return _officer_or_403(submit, repo, project_id, quarter, body.model_dump())
 
 
 @router.get("/orders/track")

@@ -560,3 +560,45 @@ export function updateCompliance(token: string, orderId: number, body: { status:
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
 }
+
+
+// ------------------------------------------------------------ quarterly report assistant (promoters)
+export interface QprProject {
+  project_id: number; name: string; name_gu: string | null; rera_no: string; district: string;
+  last_filed: { quarter: string; percent: number; filed_on: string } | null;
+  overdue: { quarter: string; due_on: string; days_late: number }[];
+  to_file: string[]; next_due: { quarter: string; due_on: string };
+  late_last_8: number; penalties_pending: { description: string; amount: number | null }[];
+  completion_target: string; reg_valid_until: string;
+}
+export interface QprDraft {
+  project: { id: number; name: string; rera_no: string; units: number; completion_target: string; reg_valid_until: string };
+  quarter: string; due_on: string; late: boolean; previous: { quarter: string; percent: number } | null;
+  prefill: { percent_complete: number | null; units_booked: number | null; garages_booked: number | null;
+             collected_total: number | null; deposited_total: number | null; withdrawn_total: number | null; project_cost: number | null;
+             approvals: { id: number; kind: string; authority: string; status: string }[] };
+}
+export interface QprIssue { level: "error" | "warning"; code: string; text: string; citations: { type: string; id: string }[] }
+export interface QprInput {
+  percent_complete: number | null; units_booked: number | null; garages_booked: number | null;
+  collected_total: number | null; deposited_total: number | null; withdrawn_total: number | null; project_cost: number | null;
+  approvals_pending: string[]; status_note: string | null;
+}
+
+export function fetchQprOverview(token: string): Promise<{ projects: QprProject[]; as_of: string }> {
+  return officerFetch(`${API_BASE}/api/gujrera/qpr/overview`, token);
+}
+export function fetchQprDraft(token: string, projectId: number, quarter: string): Promise<QprDraft> {
+  return officerFetch(`${API_BASE}/api/gujrera/qpr/${projectId}/${quarter}/draft`, token);
+}
+export function checkQpr(token: string, projectId: number, quarter: string, data: QprInput): Promise<{ issues: QprIssue[] }> {
+  return officerFetch(`${API_BASE}/api/gujrera/qpr/${projectId}/${quarter}/check`, token, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+  });
+}
+export function submitQpr(token: string, projectId: number, quarter: string, data: QprInput):
+  Promise<{ filed: boolean; receipt?: string; filed_on?: string; late?: boolean; issues: QprIssue[] }> {
+  return officerFetch(`${API_BASE}/api/gujrera/qpr/${projectId}/${quarter}/submit`, token, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+  });
+}

@@ -183,6 +183,9 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
             {qpr.map((q) => (
               <div key={q.project} className="text-body">{q.project}: <span className="text-muted">{q.quarters.join(", ")}</span></div>
             ))}
+            <button type="button" onClick={() => navigateTo("qpr")} className="mt-1.5 px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+              Prepare quarterly report →
+            </button>
           </div>
         )}
         {regs.length > 0 && (

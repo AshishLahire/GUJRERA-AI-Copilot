@@ -12,7 +12,7 @@ const ROLE_LABEL: Record<AuthUser["role"], string> = {
 
 // Seeded demo accounts. The password is GUJRERA_DEMO_PASSWORD (see .env.example); it is never stored here.
 const DEMO_ACCOUNTS: { username: string; label: string }[] = [
-  { username: "dev_001", label: "Promoter" },
+  { username: "dev_002", label: "Promoter" },
   { username: "agent_001", label: "Agent" },
   { username: "citizen_01", label: "Home buyer" },
   { username: "officer_surat", label: "Officer (Surat)" },

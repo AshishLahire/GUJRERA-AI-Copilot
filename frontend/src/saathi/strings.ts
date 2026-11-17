@@ -273,6 +273,20 @@ const STRINGS = {
   ordOrProject: { en: "or a project", gu: "અથવા પ્રોજેક્ટ", hi: "या प्रोजेक्ट" },
   ordFind: { en: "Find", gu: "શોધો", hi: "खोजें" },
   ordEnforce: { en: "Orders to enforce", gu: "અમલ કરાવવાના આદેશો", hi: "लागू कराने वाले आदेश" },
+  navQpr: { en: "Quarterly reports", gu: "ત્રિમાસિક અહેવાલ", hi: "तिमाही रिपोर्ट" },
+  qprIntro: {
+    en: "Prepare and file your quarterly progress reports (Section 11). The form starts from your last report, and checks it before filing: completion, bookings, and the project account rule that 70% of collections stay in the separate account and withdrawals follow construction (Section 4(2)(l)(D)).",
+    gu: "તમારા ત્રિમાસિક પ્રગતિ અહેવાલ તૈયાર કરીને ફાઈલ કરો (કલમ 11). ફોર્મ છેલ્લા અહેવાલથી શરૂ થાય છે અને ફાઈલ કરતાં પહેલાં ચકાસે છે: પૂર્ણતા, બુકિંગ, અને પ્રોજેક્ટ ખાતાનો નિયમ કે વસૂલાતના 70% અલગ ખાતામાં રહે અને ઉપાડ બાંધકામ મુજબ થાય (કલમ 4(2)(l)(D)).",
+    hi: "अपनी तिमाही प्रगति रिपोर्ट तैयार करके दाखिल करें (धारा 11)। फॉर्म पिछली रिपोर्ट से शुरू होता है और दाखिल करने से पहले जाँचता है: पूर्णता, बुकिंग, और परियोजना खाते का नियम कि वसूली का 70% अलग खाते में रहे और निकासी निर्माण के अनुसार हो (धारा 4(2)(l)(D))।",
+  },
+  loginNeededQpr: {
+    en: "Log in with a promoter account to prepare your quarterly reports.",
+    gu: "ત્રિમાસિક અહેવાલ તૈયાર કરવા પ્રમોટર ખાતાથી લોગિન કરો.",
+    hi: "तिमाही रिपोर्ट तैयार करने के लिए प्रमोटर खाते से लॉगिन करें।",
+  },
+  qprPrepare: { en: "Prepare quarterly report", gu: "ત્રિમાસિક અહેવાલ તૈયાર કરો", hi: "तिमाही रिपोर्ट तैयार करें" },
+  qprCheck: { en: "Check", gu: "ચકાસો", hi: "जाँचें" },
+  qprFile: { en: "File report", gu: "અહેવાલ ફાઈલ કરો", hi: "रिपोर्ट दाखिल करें" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

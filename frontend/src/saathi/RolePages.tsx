@@ -6,6 +6,7 @@ import {
   fetchSelfServiceSummary,
   runAnalytics,
 } from "../api/gujrera";
+import { navigateTo } from "../api/gujrera";
 import { AnalyticsCard, AnalyticsCardData } from "../components/AnalyticsCard";
 import { AccountBar } from "../components/AccountBar";
 import { Icon } from "./Brand";
@@ -99,6 +100,11 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
                 >
                   {tr("dashAsk", lang)}
                   <En k="dashAsk" />
+                </button>
+                <button type="button" onClick={() => navigateTo("qpr")}
+                  className="mt-4 ml-2 px-4 py-2 rounded-lg border border-warm-strong text-body text-sm font-semibold">
+                  {tr("qprPrepare", lang)}
+                  <En k="qprPrepare" />
                 </button>
               </section>
               <section className="flex flex-col gap-4">

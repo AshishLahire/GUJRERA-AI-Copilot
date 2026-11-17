@@ -329,3 +329,20 @@ class OrderCompliance(Base):
     updated_on: Mapped[date] = mapped_column(Date)
     note: Mapped[str | None] = mapped_column(String(300))
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class QprSubmission(Base):
+    """A quarterly progress report prepared and filed through the assistant: the Section 11(1) details and
+    the project-account figures behind the Section 4(2)(l)(D) checks. In the PoC this is handed to the
+    GUJRERA portal; here it also marks the registry's progress row as filed."""
+
+    __tablename__ = "qpr_submissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    quarter: Mapped[str] = mapped_column(String(7))
+    filed_on: Mapped[date] = mapped_column(Date)
+    filed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    payload_json: Mapped[str] = mapped_column(Text)
+    warnings: Mapped[str | None] = mapped_column(Text)
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False)

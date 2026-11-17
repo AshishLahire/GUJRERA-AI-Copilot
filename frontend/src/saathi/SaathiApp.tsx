@@ -14,9 +14,10 @@ import { EnforcementPage } from "./EnforcementPage";
 import { ReportPage } from "./ReportPage";
 import { ComplaintDeskPage } from "./ComplaintDeskPage";
 import { OrderTrackerPage } from "./OrderTrackerPage";
+import { QprPage } from "./QprPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
@@ -25,6 +26,7 @@ const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "report", key: "navReport", icon: "doc" },
   { page: "orders", key: "navOrders", icon: "law" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
+  { page: "qpr", key: "navQpr", icon: "calendar" },
   { page: "officer", key: "navOfficer", icon: "chart" },
   { page: "desk", key: "navDesk", icon: "complaint" },
   { page: "risk", key: "navRisk", icon: "alert" },
@@ -229,6 +231,7 @@ const Shell: React.FC = () => {
           {page === "report" && <ReportPage projectId={reportId} />}
           {page === "desk" && <ComplaintDeskPage />}
           {page === "orders" && <OrderTrackerPage />}
+          {page === "qpr" && <QprPage />}
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">

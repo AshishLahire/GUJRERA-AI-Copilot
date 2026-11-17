@@ -65,7 +65,7 @@ npm --prefix frontend install
 npm --prefix frontend run dev
 ```
 
-Open http://localhost:5173. Demo accounts: `dev_001` (promoter), `agent_001` (agent), `citizen_01` (home buyer), `officer_surat` / `officer_state` (officers); password = `GUJRERA_DEMO_PASSWORD` in `.env`.
+Open http://localhost:5173. Demo accounts: `dev_002` (promoter), `agent_001` (agent), `citizen_01` (home buyer), `officer_surat` / `officer_state` (officers); password = `GUJRERA_DEMO_PASSWORD` in `.env`.
 
 `gujrera.api.dev_app` serves only the GujRERA Saathi endpoints. The full Pramaan backend (`factcheck.api.app`) also mounts them, but needs Pramaan's retrieval indexes and extra packages.
 
