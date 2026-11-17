@@ -1,4 +1,4 @@
-# GUJRERA AI Copilot: Architecture and Build Plan
+# GujRERA Saathi (formerly GUJRERA AI Copilot): Architecture and Build Plan
 
 _Drafted 2026-11-17. Status: draft for team review. Based on the problem brief; the Stage 2 requirements zip has not been read yet, so scope and dates may change (see section 11)._
 
@@ -333,6 +333,11 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Registration numbers wrapped over two lines (common in brochures and OCR) are now joined.
 - Test ads (`tests/fixtures/gujrera_ads/`, rendered from HTML with Edge for correct Gujarati shaping): Gujarati read at 91–94% confidence in 1–2 s; genuine → registered with warnings, fake number + bank transfer → not found, possession promised after the registered date → mismatch.
 - Still to do: a set of real photographed ads and hoardings (angles, glare, stylised fonts), which will be harder than these clean renders.
+
+**Rename and new UI (2026-11-17): GujRERA Saathi.**
+- Product renamed **GujRERA Saathi** (ગુજરેરા સાથી, "companion"). API titles, user-facing text and the README updated; Pramaan's README moved to `docs/PRAMAAN_README.md`. Internal Python package names (`gujrera`, `factcheck`) are unchanged.
+- New civic design (white and deep blue, saffron accent) in `frontend/src/saathi/`: header with Gujarati/Hindi/English switch, login and theme toggle; home page (ask box, four tasks, role cards, trust points); Ask Saathi; Check an ad; promoter compliance dashboard; officer analytics workspace; footer stating it is a demo and not an official GUJRERA service.
+- Pramaan's original screens (Verify, Narratives, Evaluation) are no longer reachable from the UI; the code is kept.
 
 ---
 

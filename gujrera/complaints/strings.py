@@ -170,11 +170,11 @@ S: dict[str, dict[str, str]] = {
         "hi": "{ref} संदर्भ संख्या वाली शिकायत नहीं मिली।",
     },
     "no_code_on_record": {
-        "en": "Complaint {ref} was not filed through this copilot, so it has no tracking code. "
+        "en": "Complaint {ref} was not filed through GujRERA Saathi, so it has no tracking code. "
               "Please check its status on the GUJRERA portal.",
-        "gu": "ફરિયાદ {ref} આ કોપાયલટ દ્વારા નોંધાઈ ન હતી, તેથી તેનો ટ્રેકિંગ કોડ નથી. "
+        "gu": "ફરિયાદ {ref} ગુજરેરા સાથી દ્વારા નોંધાઈ ન હતી, તેથી તેનો ટ્રેકિંગ કોડ નથી. "
               "તેની સ્થિતિ GUJRERA પોર્ટલ પર જુઓ.",
-        "hi": "शिकायत {ref} इस कोपायलट से दर्ज नहीं हुई थी, इसलिए इसका ट्रैकिंग कोड नहीं है। "
+        "hi": "शिकायत {ref} गुजरेरा साथी से दर्ज नहीं हुई थी, इसलिए इसका ट्रैकिंग कोड नहीं है। "
               "इसकी स्थिति GUJRERA पोर्टल पर देखें।",
     },
     "status": {

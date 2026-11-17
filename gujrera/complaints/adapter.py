@@ -112,7 +112,7 @@ class MockComplaintAdapter:
         self.s.add(complaint)
         self.s.flush()
         self.s.add(ComplaintEvent(complaint_id=complaint.id, at=today, status="filed",
-                                  note="Filed through the GUJRERA copilot"))
+                                  note="Filed through GujRERA Saathi"))
         # What the real portal would receive, including contact details.
         self.s.add(MockPortalSubmission(
             ref_no=ref_no, submitted_at=datetime.now(timezone.utc).replace(tzinfo=None),

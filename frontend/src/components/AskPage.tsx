@@ -1,35 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  AuthExpiredError,
-  AuthUser,
-  ChatReply,
-  Lang,
-  fetchChatStarters,
-  fetchMe,
-  sendChat,
-  transcribeVoice,
-} from "../api/gujrera";
-import { AccountBar } from "./AccountBar";
+import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, sendChat, transcribeVoice } from "../api/gujrera";
+import { useSaathi } from "../saathi/context";
+import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
-
-const TOKEN_KEY = "gujrera.token";
-
-function readToken(): string | null {
-  try {
-    return sessionStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeToken(token: string | null): void {
-  try {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token);
-    else sessionStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // storage unavailable: the login lasts for this page view only
-  }
-}
 
 const SUMMARY_PROMPT: Record<Lang, string> = {
   en: "Show my compliance summary",
@@ -301,7 +274,7 @@ const SubmittedCard: React.FC<{ refNo: string; code: string; form: string }> = (
   );
 };
 
-export const AskPage: React.FC = () => {
+export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initialQuestion = null }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [lang, setLang] = useState<Lang | null>(null);
@@ -364,22 +337,39 @@ export const AskPage: React.FC = () => {
   };
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const [token, setToken] = useState<string | null>(() => readToken());
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    fetchMe(token)
-      .then((r) => setUser(r.user))
-      .catch(() => {
-        setToken(null);
-        writeToken(null);
-      });
-  }, [token]);
+  const { token, user, logout: appLogout, lang: uiLang } = useSaathi();
 
   useEffect(() => {
     fetchChatStarters().then((r) => setStarters(r.items)).catch((e: Error) => setError(e.message));
   }, []);
+
+  // A new login (or logout) starts a fresh conversation; promoters and agents get their summary.
+  const lastUser = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const name = user?.username ?? null;
+    if (lastUser.current === undefined) {
+      lastUser.current = name;
+      return;
+    }
+    if (lastUser.current === name) return;
+    lastUser.current = name;
+    setMessages([]);
+    setSessionId(null);
+    if (user && (user.role === "developer" || user.role === "agent")) {
+      void send(SUMMARY_PROMPT[lang ?? uiLang], undefined, { token, sessionId: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.username]);
+
+  // A question typed on the home page arrives here once.
+  const sentInitial = useRef(false);
+  useEffect(() => {
+    if (initialQuestion && !sentInitial.current) {
+      sentInitial.current = true;
+      void send(initialQuestion);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuestion]);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
@@ -406,23 +396,9 @@ export const AskPage: React.FC = () => {
   };
 
   const logout = () => {
-    setToken(null);
-    setUser(null);
-    writeToken(null);
+    appLogout();
     setMessages([]);
     setSessionId(null);
-  };
-
-  const onLogin = (newToken: string, newUser: AuthUser) => {
-    setToken(newToken);
-    setUser(newUser);
-    writeToken(newToken);
-    setMessages([]);
-    setSessionId(null);
-    if (newUser.role === "developer" || newUser.role === "agent") {
-      const l = lang ?? newUser.preferred_lang;
-      void send(SUMMARY_PROMPT[l], undefined, { token: newToken, sessionId: null });
-    }
   };
 
   const last = [...messages].reverse().find((m) => m.role === "assistant") as
@@ -433,14 +409,8 @@ export const AskPage: React.FC = () => {
     <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-bold text-body">Ask GUJRERA</h2>
-          <p className="text-sm text-muted">
-            Ask about a project, builder or agent in Gujarati, Hindi or English. Every answer cites the registry
-            record it comes from, or says it was not found.
-          </p>
-        </div>
-        <div className="w-full">
-          <AccountBar user={user} onLogin={onLogin} onLogout={logout} />
+          <h2 className="font-heading text-xl font-bold text-body">{tr("navAsk", uiLang)}</h2>
+          <p className="text-sm text-muted">{tr("askIntro", uiLang)}</p>
         </div>
         <div className="flex gap-1 rounded-lg border border-warm-border p-1 bg-subtle" role="group" aria-label="Answer language">
           {LANG_CHOICES.map((l) => (

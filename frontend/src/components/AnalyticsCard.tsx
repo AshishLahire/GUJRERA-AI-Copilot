@@ -39,11 +39,20 @@ function download(card: AnalyticsCardData) {
 
 const label = (c: string) => c.replace(/_/g, " ");
 
+/** SVG fill attributes cannot read CSS variables, so resolve the theme colours when rendering. */
+function themeColor(name: string, fallback: string): string {
+  try {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) => {
   const chartData =
     card.chart && card.rows.length > 0
       ? card.rows.slice(0, 15).map((r) => ({
-          x: String(r[card.columns.indexOf(card.chart!.x)] ?? "").replace(" (Demo)", ""),
+          x: String(r[card.columns.indexOf(card.chart!.x)] ?? "").replace(" (Demo)", "").replace(/_/g, " "),
           y: Number(r[card.columns.indexOf(card.chart!.y)] ?? 0),
         }))
       : null;
@@ -81,13 +90,13 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) =
         <div className="h-56 w-full" aria-label={`Bar chart of ${label(card.chart!.y)} by ${label(card.chart!.x)}`}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
-              <XAxis type="number" tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <YAxis type="category" dataKey="x" width={150} tick={{ fontSize: 10, fill: "var(--text-body)" }} axisLine={false} tickLine={false} />
+              <XAxis type="number" tick={{ fontSize: 10, fill: themeColor("--text-muted", "#55657F") }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <YAxis type="category" dataKey="x" width={150} interval={0} tick={{ fontSize: 10, fill: themeColor("--text-body", "#0F1E3A") }} axisLine={false} tickLine={false} />
               <Tooltip
                 formatter={(v: number) => [v, label(card.chart!.y)]}
-                contentStyle={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border-warm)", fontSize: 11 }}
+                contentStyle={{ backgroundColor: themeColor("--bg-card", "#fff"), border: `1px solid ${themeColor("--border-warm", "#DCE4EF")}`, fontSize: 11 }}
               />
-              <Bar dataKey="y" fill="var(--accent-amber)" radius={[0, 3, 3, 0]} />
+              <Bar dataKey="y" fill={themeColor("--brand", "#0B3B8C")} radius={[0, 3, 3, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

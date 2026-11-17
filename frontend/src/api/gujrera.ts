@@ -188,3 +188,34 @@ export async function transcribeVoice(audio: Blob, lang: Lang | null): Promise<V
   if (lang) form.append("lang", lang);
   return parse(await fetch(`${API_BASE}/api/gujrera/voice/transcribe`, { method: "POST", body: form }));
 }
+
+export interface SelfServiceSummary {
+  sentences: { text: string; citations: RecordSource[] }[];
+  card: Record<string, unknown> & { role: "developer" | "agent" };
+  is_mock: boolean;
+}
+
+export async function fetchSelfServiceSummary(token: string, lang: Lang): Promise<SelfServiceSummary> {
+  const res = await fetch(`${API_BASE}/api/gujrera/self-service/summary?lang=${lang}`, {
+    headers: authHeaders(token),
+  });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
+export interface AnalyticsResponse {
+  intent: string;
+  sentences: { text: string }[];
+  card: (Record<string, unknown> & { type: "analytics" }) | null;
+  suggestions: string[];
+}
+
+export async function runAnalytics(token: string, question: string, lang: Lang): Promise<AnalyticsResponse> {
+  const res = await fetch(`${API_BASE}/api/gujrera/analytics/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ question, lang }),
+  });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}

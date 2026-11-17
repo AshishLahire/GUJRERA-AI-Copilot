@@ -193,7 +193,7 @@ def test_tracking_lockout_and_unknown_refs(repo):
     assert out["intent"] == "complaint_tracking" and "Too many" in out["text"]
 
     seeded = repo.s.scalars(select(Complaint.ref_no).where(Complaint.tracking_code_hash.is_(None))).first()
-    assert "not filed through this copilot" in talk(repo, ChatState(), f"status of {seeded}")["text"]
+    assert "not filed through GujRERA Saathi" in talk(repo, ChatState(), f"status of {seeded}")["text"]
     assert "couldn't find" in talk(repo, ChatState(), "status of MOCK-CMP-2099-99999")["text"]
 
 

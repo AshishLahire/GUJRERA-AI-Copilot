@@ -242,7 +242,7 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
     if project is None:
         out.append(Check(
             "registry_lookup", "fail", "critical", "Registration number not found",
-            f"{number.normalised} is not in the GUJRERA registry data available to this copilot.",
+            f"{number.normalised} is not in the GUJRERA registry data available to GujRERA Saathi.",
             evidence=number.normalised, verdict_hint="not_found"))
         return out
 

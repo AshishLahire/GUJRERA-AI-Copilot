@@ -463,7 +463,7 @@ def _run_payload(payload: dict[str, Any], run: DocumentRun) -> dict[str, Any]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Pramaan API",
+        title="GujRERA Saathi API",
         description="Multilingual document & claim verification backend",
         version="0.1.0",
     )

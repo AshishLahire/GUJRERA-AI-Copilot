@@ -1,4 +1,4 @@
-"""HTTP endpoints for the GUJRERA copilot, mounted on the Pramaan FastAPI app.
+"""HTTP endpoints for GujRERA Saathi, mounted on the Pramaan FastAPI app.
 
 Login and self-service (send "Authorization: Bearer <token>"):
     POST /api/gujrera/auth/login           {"username": "...", "password": "..."}
@@ -170,7 +170,7 @@ def health(session: Session = Depends(get_session)) -> dict[str, Any]:
 
 def _profile_dict(prof: Profile | None) -> dict[str, Any]:
     if prof is None:
-        raise HTTPException(404, "Not found in the GUJRERA records available to this copilot.")
+        raise HTTPException(404, "Not found in the GUJRERA records available to GujRERA Saathi.")
     return {
         "kind": prof.kind, "id": prof.entity_id, "title": prof.title, "card": prof.card,
         "sentences": [{"text": s.text, "citations": s.citations} for s in prof.sentences],

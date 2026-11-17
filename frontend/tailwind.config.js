@@ -54,6 +54,11 @@ export default {
           bg: "var(--btn-primary-bg)",
           text: "var(--btn-primary-text)",
         },
+        brand: {
+          DEFAULT: "var(--brand)",
+          strong: "var(--brand-strong)",
+          soft: "var(--brand-soft)",
+        },
       },
       borderRadius: {
         card: "12px",

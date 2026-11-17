@@ -1,4 +1,4 @@
-"""Settings for the GUJRERA copilot.
+"""Settings for GujRERA Saathi.
 
 Read from environment variables and ``.env`` (see ``.env.example``), the same
 way as ``factcheck.config``.
