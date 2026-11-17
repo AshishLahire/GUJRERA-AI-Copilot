@@ -245,6 +245,17 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
       </div>
     );
   }
+  if (card.type === "agreement") {
+    const c = card.counts as { fail: number; warn: number; pass: number } | null;
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs flex flex-wrap items-center gap-3">
+        {c && <span><b className="text-red-700 dark:text-red-300">{c.fail}</b> problems · <b>{c.warn}</b> to check · <b className="text-emerald-700 dark:text-emerald-300">{c.pass}</b> in order</span>}
+        <button type="button" onClick={() => navigateTo("agreement")} className="ml-auto px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+          Open agreement checker →
+        </button>
+      </div>
+    );
+  }
   if (card.type === "watch_feed" || card.type === "watch") {
     return (
       <div className="mt-3">

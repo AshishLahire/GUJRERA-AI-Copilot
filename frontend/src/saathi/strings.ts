@@ -301,6 +301,18 @@ const STRINGS = {
   watchOn: { en: "Watch this project", gu: "આ પ્રોજેક્ટ પર નજર રાખો", hi: "इस प्रोजेक्ट पर नज़र रखें" },
   watchOff: { en: "Watching", gu: "નજર રાખો છો", hi: "नज़र रख रहे हैं" },
   watchMarkRead: { en: "Mark all as read", gu: "બધા વાંચ્યા તરીકે ચિહ્નિત કરો", hi: "सभी को पढ़ा हुआ चिह्नित करें" },
+  navAgreement: { en: "Agreement checker", gu: "કરાર ચકાસણી", hi: "अनुबंध जाँच" },
+  agrIntro: {
+    en: "Before you sign, compare your draft agreement for sale with the model agreement in the Gujarat RERA Rules (Annexure A) and the RERA Act: carpet area, price escalation, interest both ways, possession date, excuses for delay, refunds, cancellation, plan changes, defect liability, the 10% advance limit, the project account and your right to complain.",
+    gu: "સહી કરતાં પહેલાં તમારા વેચાણ કરારના મુસદ્દાને ગુજરાત RERA નિયમોના મોડેલ કરાર (પરિશિષ્ટ A) અને RERA કાયદા સાથે સરખાવો: કાર્પેટ એરિયા, કિંમત વધારો, બંને પક્ષે વ્યાજ, પઝેશન તારીખ, વિલંબનાં કારણો, રિફંડ, રદ્દીકરણ, પ્લાન ફેરફાર, ખામી જવાબદારી, 10% એડવાન્સ મર્યાદા, પ્રોજેક્ટ ખાતું અને ફરિયાદનો અધિકાર.",
+    hi: "हस्ताक्षर से पहले अपने बिक्री अनुबंध के मसौदे को गुजरात RERA नियमों के मॉडल अनुबंध (परिशिष्ट A) और RERA अधिनियम से मिलाएँ: कारपेट एरिया, कीमत बढ़ोतरी, दोनों तरफ़ ब्याज, पज़ेशन तारीख, देरी के कारण, रिफंड, रद्दीकरण, नक्शे में बदलाव, खामी ज़िम्मेदारी, 10% अग्रिम सीमा, प्रोजेक्ट खाता और शिकायत का अधिकार।",
+  },
+  agrPaste: { en: "Paste the agreement text", gu: "કરારનું લખાણ પેસ્ટ કરો", hi: "अनुबंध का टेक्स्ट पेस्ट करें" },
+  agrUpload: { en: "or upload PDF / photo", gu: "અથવા PDF / ફોટો અપલોડ કરો", hi: "या PDF / फोटो अपलोड करें" },
+  agrCheck: { en: "Check agreement", gu: "કરાર તપાસો", hi: "अनुबंध जाँचें" },
+  agrProblems: { en: "Problems", gu: "સમસ્યાઓ", hi: "समस्याएँ" },
+  agrToCheck: { en: "To check", gu: "તપાસવાનું", hi: "जाँचने को" },
+  agrOk: { en: "In order", gu: "બરાબર", hi: "ठीक" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

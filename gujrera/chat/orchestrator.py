@@ -49,6 +49,8 @@ from gujrera.enforcement import chat_reply as enforcement_reply, wants_enforceme
 from gujrera.enforcement import citizen_reply as enforcement_citizen_reply
 from gujrera.complaints.triage import chat_reply as triage_reply, wants_triage
 from gujrera.watch import chat_feed as watch_feed, chat_watch as watch_project, wants_feed, wants_watch
+from gujrera.tools.agreement import chat_reply as agreement_reply, looks_like_agreement
+from gujrera.tools.agreement import wants_check as wants_agreement_check
 
 SUGGESTIONS = {
     "project": {
@@ -235,6 +237,14 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
                 and not (u.candidates or u.project_numbers or u.agent_numbers)):
             state.options, state.pending_focus = options, focus
             return Reply(lang, "disambiguate", [_say("disambiguate", lang)], options=options)
+
+    # 1b. A pasted agreement for sale (long, names a promoter and an allottee) or a request to check one
+    if looks_like_agreement(message or ""):
+        sentences, card = agreement_reply(message, repo, lang, run=True)
+        return Reply(lang, "agreement_check", sentences, cards=[card])
+    if wants_agreement_check((message or "").lower()):
+        sentences, card = agreement_reply(message, repo, lang, run=False)
+        return Reply(lang, "agreement_check", sentences, cards=[card])
 
     # 2. Pasted ad, or an explicit "is this genuine?" with a registration number → trust check
     if u.project_numbers and ("trust" in u.intents or u.looks_like_ad):

@@ -626,3 +626,28 @@ export function markWatchSeen(token: string, projectId?: number): Promise<{ mark
   return officerFetch(`${API_BASE}/api/gujrera/watch/seen${projectId != null ? `?project_id=${projectId}` : ""}`, token, { method: "POST" });
 }
 export const WATCH_CHANGED_EVENT = "saathi:watch-changed";
+
+
+// ------------------------------------------------------------ agreement-for-sale checker
+export interface AgreementFinding {
+  id: string; status: "fail" | "warn" | "pass"; title: string; title_en: string; detail: string;
+  excerpt: string | null; ask: string | null; citations: { type: string; id: string }[];
+}
+export interface AgreementReport {
+  findings: AgreementFinding[]; counts: { fail: number; warn: number; pass: number };
+  project: { id: number; name: string; rera_no: string; status: string } | null; sentences: number; read_as?: string;
+}
+export async function checkAgreement(text: string, lang: Lang): Promise<AgreementReport> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/agreement/check`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, lang }),
+  }));
+}
+export async function uploadAgreement(file: File, lang: Lang): Promise<AgreementReport> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("lang", lang);
+  return parse(await fetch(`${API_BASE}/api/gujrera/agreement/upload`, { method: "POST", body: form }));
+}
+export async function fetchAgreementSamples(): Promise<{ one_sided: string; fair: string }> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/agreement/samples`));
+}

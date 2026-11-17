@@ -405,6 +405,14 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Buyers: "Watch this project" on the before-you-buy report and on chat project cards; "Watched projects" page (alert timeline per project, NEW markers, mark all read, stop watching); a bell with the unread count in the top bar; chat ("watch Mangal Square", "મંગલ સ્ક્વેર પર નજર રાખો", "what's new on my projects?"). Others asking to watch are asked to log in with a buyer account. API `/watch` (list, add, remove, seen, unread).
 - Tests: `tests/test_gujrera_watch.py` (4).
 
+**PoC feature 9: agreement-for-sale checker (2026-11-17): done.**
+- Yardstick: the model agreement for sale in the Gujarat RERA General Rules 2017 (Annexure A, read from the indexed text) and the Act: recital/1(a) carpet area; 1(g) area variation capped at 3%; 1(e) price escalation-free except authority charges; 4.1 interest for delay and on late payments at the same rate (Rule 16); 4 termination only after three defaults with fifteen days' notice, refund within thirty days; 6 possession on or before a date, excuses only war, civil commotion, act of God or an order of the Government, an authority or a court, otherwise refund with interest; 7.4 five-year defect liability (Section 14(3)); 1 proviso and Section 14(2) no plan changes without consent; Section 13 at most 10% before a registered agreement; Section 4(2)(l)(D) project account; Section 31 the right to complain to the Authority.
+- `gujrera/tools/agreement.py`: 14 rule checks over the text, each a problem, a point to check or in order, with the sentence it rests on, what to ask the promoter, and the clause or section; the project's registration number is checked in the registry. Text is pasted, or read from every page of a PDF (scanned pages by OCR, up to 15), a photo or a text file; the upload is deleted after reading and the text is not kept. Two samples (`agreement_samples.py`): a one-sided agreement (11 problems, 2 to check) and a fair one (13 of 13 in order).
+- Chat: a pasted agreement is checked (before the ad check, which it would otherwise trigger); "check my agreement" points to the page. Page "Agreement checker" with paste, upload and samples. API `/agreement/check`, `/agreement/upload`, `/agreement/samples`.
+- Limits: the rules read English wording; Gujarati agreements need the same rules in Gujarati (PoC). Not legal advice.
+- Found and fixed: the PDF library kept uploaded files open on Windows, so they could not be deleted after reading; "Rs. 62,00,000" was split as a sentence end.
+- Tests: `tests/test_gujrera_agreement.py` (18).
+
 ---
 
 ## 11. Risks and mitigations

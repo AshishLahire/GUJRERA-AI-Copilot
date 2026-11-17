@@ -16,15 +16,17 @@ import { ComplaintDeskPage } from "./ComplaintDeskPage";
 import { OrderTrackerPage } from "./OrderTrackerPage";
 import { QprPage } from "./QprPage";
 import { WatchBell, WatchPage } from "./WatchPage";
+import { AgreementPage } from "./AgreementPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
   { page: "check", key: "navCheck", icon: "shield" },
   { page: "calc", key: "navCalc", icon: "calc" },
   { page: "report", key: "navReport", icon: "doc" },
+  { page: "agreement", key: "navAgreement", icon: "law" },
   { page: "orders", key: "navOrders", icon: "law" },
   { page: "watch", key: "navWatch", icon: "eye" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
@@ -236,6 +238,7 @@ const Shell: React.FC = () => {
           {page === "orders" && <OrderTrackerPage />}
           {page === "qpr" && <QprPage />}
           {page === "watch" && <WatchPage />}
+          {page === "agreement" && <AgreementPage />}
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">

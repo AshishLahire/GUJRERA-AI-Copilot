@@ -119,6 +119,11 @@ class QprData(BaseModel):
     status_note: str | None = None
 
 
+class AgreementText(BaseModel):
+    text: str
+    lang: str = "en"
+
+
 class InterestRequest(BaseModel):
     project_id: int
     mode: str = "stay"  # stay | withdraw
@@ -496,6 +501,58 @@ def watch_remove(project_id: int, repo: Repository = Depends(user_repo)) -> dict
     from gujrera.watch import remove_watch
 
     return {"removed": _officer_or_403(remove_watch, repo, project_id)}
+
+
+MAX_AGREEMENT_CHARS = 200_000
+
+
+@router.get("/agreement/samples")
+def agreement_samples() -> dict[str, Any]:
+    from gujrera.tools.agreement_samples import FAIR, ONE_SIDED
+
+    return {"one_sided": ONE_SIDED, "fair": FAIR}
+
+
+@router.post("/agreement/check")
+def agreement_check(body: AgreementText, repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    """Compare a draft agreement for sale with the model in the Gujarat RERA Rules (Annexure A)."""
+    from gujrera.tools.agreement import report
+
+    text = (body.text or "").strip()
+    if len(text) < 200:
+        raise HTTPException(400, "Paste the full agreement (at least a few clauses).")
+    if len(text) > MAX_AGREEMENT_CHARS:
+        raise HTTPException(400, "The agreement is too long; paste the main clauses.")
+    return report(text, repo, _lang(body.lang))
+
+
+@router.post("/agreement/upload")
+async def agreement_upload(file: UploadFile = File(...), lang: str = Form(default="en"),
+                           repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    from gujrera.tools.agreement import extract_text, report
+
+    ext = Path(file.filename or "agreement").suffix.lower()
+    if ext not in (".pdf", ".png", ".jpg", ".jpeg", ".webp", ".txt"):
+        raise HTTPException(400, "Upload a PDF, a photo (PNG/JPG) or a text file.")
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "The file is empty.")
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(400, "File exceeds the 20 MB size limit.")
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    path = UPLOAD_DIR / f"{uuid.uuid4().hex}{ext}"
+    path.write_bytes(data)
+    try:
+        text, how = extract_text(path)
+    except Exception as exc:  # noqa: BLE001 - unreadable file
+        raise HTTPException(400, f"Could not read the file: {str(exc).splitlines()[0][:150]}") from None
+    finally:
+        path.unlink(missing_ok=True)
+    if len(text.strip()) < 200:
+        raise HTTPException(400, "Too little text could be read from the file; paste the text instead.")
+    out = report(text[:MAX_AGREEMENT_CHARS], repo, _lang(lang))
+    out["read_as"] = how
+    return out
 
 
 @router.get("/orders/track")
