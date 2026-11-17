@@ -86,11 +86,11 @@ def _excerpt(text: str, limit: int = 320) -> str:
 
 
 def answer(question: str, lang: str, *, generate: Callable[[str], str] | None = None,
-           use_llm: bool | None = None) -> LegalAnswer:
+           use_llm: bool | None = None, search_query: str | None = None) -> LegalAnswer:
     index = default_index()
     if index is None:
         return LegalAnswer("legal_unavailable", [Sentence(s("no_index", lang), [], "legal_no_index")])
-    hits: list[Hit] = index.search(question, k=3)
+    hits: list[Hit] = index.search(search_query or question, k=3)
     if not hits:
         return LegalAnswer("legal_not_found", [Sentence(s("not_found", lang), [], "legal_not_found")])
 

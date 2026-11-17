@@ -73,8 +73,12 @@ def main() -> int:
     for r in results:
         by_lang[r[0].lang].append(r)
         by_kind[r[0].kind].append(r)
-    latencies = sorted(r[3] for r in results)
-    p95 = latencies[int(0.95 * (len(latencies) - 1))]
+    def p95_of(rows):
+        lat = sorted(r[3] for r in rows)
+        return lat[int(0.95 * (len(lat) - 1))] if lat else 0.0
+
+    by_rules = [r for r in results if r[1].get("understood_by") != "llm"]
+    by_llm = [r for r in results if r[1].get("understood_by") == "llm"]
     invented = [r for r in results if r[0].kind in ("not_found", "out_of_scope") and r[2]]
 
     lines = [
@@ -90,7 +94,9 @@ def main() -> int:
         "",
         f"- **Passed: {passed}/{len(results)} ({100 * passed / len(results):.1f}%)** (deck target: 90%+ correct and cited)",
         f"- Unknown names or off-topic questions answered as if found: **{len(invented)}**",
-        f"- Latency: p95 {p95 * 1000:.0f} ms, total {total_s:.1f} s on CPU (template answers, no LLM)",
+        f"- Understood by the keyword rules: {len(by_rules)} (p95 {p95_of(by_rules) * 1000:.0f} ms); "
+        f"by the local LLM fallback: {len(by_llm)} (p95 {p95_of(by_llm):.1f} s, qwen2.5:7b-instruct on GPU). "
+        f"Total {total_s:.0f} s.",
         "",
         "| Language | Passed |",
         "|:--|:-:|",

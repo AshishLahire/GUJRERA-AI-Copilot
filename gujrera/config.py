@@ -36,6 +36,8 @@ class GujreraSettings(BaseSettings):
     # Optional: let a self-hosted LLM (Ollama) rephrase template answers. The answer is kept only
     # if every sentence keeps a citation and no new number appears; otherwise the template is used.
     GUJRERA_LLM_PHRASING: bool = Field(default=False)
+    # When the keyword rules do not understand a question, let the LLM classify it and copy out the name.
+    GUJRERA_LLM_ROUTER: bool = Field(default=True)
     GUJRERA_LLM_MODEL: str = Field(default="qwen2.5:7b-instruct")
     GUJRERA_LLM_BASE_URL: str = Field(default="http://localhost:11434")
     GUJRERA_LLM_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)

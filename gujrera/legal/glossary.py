@@ -36,9 +36,22 @@ GLOSSARY: dict[str, str] = {
 }
 
 
+# Everyday English → the Act's own vocabulary ("per cent", "allottee", "promoter").
+ENGLISH_TERMS: dict[str, str] = {
+    "percent": "per cent", "%": "per cent", "builder": "promoter", "developer": "promoter",
+    "buyer": "allottee", "home buyer": "allottee", "flat": "apartment", "money back": "refund return of amount",
+    "deposit": "advance payment", "token amount": "advance payment", "late": "delay",
+    "handover": "possession", "hand over": "possession", "sale deed": "conveyance deed",
+}
+
+
 def expand(query: str) -> str:
-    """The query plus English legal terms for any Gujarati/Hindi words it contains."""
+    """The query plus English legal terms for any Gujarati/Hindi words or everyday English it contains."""
     terms = []
+    lowered = query.lower()
+    for word, english in ENGLISH_TERMS.items():
+        if word in lowered and english not in terms:
+            terms.append(english)
     for word, english in GLOSSARY.items():
         if word in query and english not in terms:
             terms.append(english)

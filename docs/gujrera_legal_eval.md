@@ -12,6 +12,4 @@
 | gu | 5/5 | 5/5 |
 | hi | 3/5 | 5/5 |
 
-- LLM summaries that passed the citation guard: **21/25** (the rest fell back to quoting the provision); average 3.7 s per answer
-
 Known limitation: 10 of the Act's 92 section headings could not be read from the scan (e.g. sections 21, 22, 27, 44); their text is indexed under the preceding section.

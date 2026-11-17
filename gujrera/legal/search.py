@@ -37,7 +37,9 @@ RULE_RE = re.compile(r"(?:\brule|નિયમ|नियम)\s*(\d{1,3}[A-Z]?)", 
 
 
 ORDER_WORDS = ("order", "orders", "judgment", "judgement", "penalty imposed", "decided", "આદેશ", "ચુકાદો", "आदेश", "फैसला")
-AGREEMENT_WORDS = ("agreement", "clause", "કરાર", "अनुबंध", "agreement for sale")
+# Only questions about what the model agreement itself says lift the annexure's weight.
+AGREEMENT_WORDS = ("clause", "model agreement", "agreement say", "agreement says", "in the agreement",
+                   "કરારમાં", "કરારની શરત", "अनुबंध में", "अनुबंध की शर्त")
 ANNEXURE_WEIGHT = 0.85  # the long model agreement otherwise outranks the specific section
 
 

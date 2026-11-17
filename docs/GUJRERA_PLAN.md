@@ -317,6 +317,11 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Evaluation (`docs/gujrera_legal_eval.md`): right provision in the top 3 for 25/25 questions (22 ranked first) in three languages; 7/7 off-topic questions answered "not found"; 21/25 LLM summaries passed the guard, 3.7 s average on an RTX 3070 Ti.
 - Models: `qwen2.5:7b-instruct` is now the default for chat rephrasing, legal summaries and officer SQL.
 
+**LLM fallback for free-form questions (2026-11-17): done.**
+- `gujrera/chat/llm_router.py`: when the keyword rules do not understand a question, `qwen2.5:7b-instruct` returns JSON only (intent, the name as written, an English rewrite). The name is matched against the registry like a typed name and the answer is built from records; malformed output or a model failure falls back to the rule-based reply. Replies say `understood_by: "llm"`.
+- Everyday English is mapped to the Act's words ("percent" → "per cent", "builder" → "promoter") and the English rewrite is used for legal search, which fixed romanised Gujarati and "20 percent before agreement" (→ Section 13).
+- Chat evaluation with the fallback on: 300/300; 259 questions understood by rules (p95 48 ms), 41 by the LLM (p95 3.5 s). Unit tests never call a real model (`tests/conftest.py`).
+
 ---
 
 ## 11. Risks and mitigations

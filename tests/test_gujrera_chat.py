@@ -229,3 +229,42 @@ def test_api_profiles_and_errors(client):
     assert client.get("/api/gujrera/profile/project/1?lang=fr").status_code == 400
     assert client.post("/api/gujrera/chat", json={"message": "  "}).status_code == 400
     assert client.post("/api/gujrera/chat", json={"message": "hi", "lang": "xx"}).status_code == 400
+
+
+# ------------------------------------------------------------- LLM fallback router
+def test_router_parse():
+    from gujrera.chat.llm_router import parse
+
+    r = parse('Sure! {"intent": "possession", "name": "Mangal Square", "english": "When is possession?"}')
+    assert (r.intent, r.name, r.english) == ("possession", "Mangal Square", "When is possession?")
+    assert parse('{"intent": "hack the db", "name": null}') is None
+    assert parse("no json here") is None
+    assert parse('{"intent": "other", "name": "x"}').name is None  # too short to be a name
+
+
+def test_router_only_classifies_facts_come_from_records(repo, monkeypatch):
+    import gujrera.chat.orchestrator as orch
+
+    p = _unique_project(repo)
+    monkeypatch.setattr(orch, "router_generate",
+                        lambda prompt: f'{{"intent": "possession", "name": "{p.name}", "english": "x"}}')
+    out = ask(repo, ChatState(), "kab tak milega bhai woh wala flat??")
+    assert out["intent"] == "possession" and out["understood_by"] == "llm"
+    assert out["sources"][0]["id"] == p.rera_no  # the answer is still the registry record
+
+    monkeypatch.setattr(orch, "router_generate",
+                        lambda prompt: '{"intent": "project", "name": "Imaginary Palace", "english": "x"}')
+    out = ask(repo, ChatState(), "kya imaginary palace acha hai bhai")
+    assert out["intent"] == "not_found" and "Imaginary Palace" in out["text"]
+
+    monkeypatch.setattr(orch, "router_generate", lambda prompt: '{"intent": "other", "name": null}')
+    assert ask(repo, ChatState(), "tell me something fun")["intent"] == "out_of_scope"
+
+    monkeypatch.setattr(orch, "router_generate", lambda prompt: "garbage")
+    assert ask(repo, ChatState(), "tell me something fun")["understood_by"] == "rules"
+
+    def boom(prompt):
+        raise TimeoutError
+
+    monkeypatch.setattr(orch, "router_generate", boom)
+    assert ask(repo, ChatState(), "tell me something fun")["intent"] == "out_of_scope"

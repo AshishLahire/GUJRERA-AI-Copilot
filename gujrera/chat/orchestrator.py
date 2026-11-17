@@ -22,7 +22,10 @@ from gujrera.profile.summarise import Profile, Sentence, agent_profile, project_
 from gujrera.analytics.engine import answer as analytics_answer
 from gujrera.analytics.engine import s as analytics_text
 from gujrera.analytics.reports import looks_like_analytics, match_report
-from gujrera.chat.understand import Candidate, Understanding, understand
+from gujrera.analytics.reports import ANALYTICS_CUES
+from gujrera.chat.llm_router import Routed
+from gujrera.chat.llm_router import route as llm_route
+from gujrera.chat.understand import Candidate, Understanding, find_candidates, understand
 from gujrera.legal.answer import answer as legal_answer
 from gujrera.complaints.flow import (
     CODE_RE,
@@ -58,8 +61,9 @@ SUGGESTIONS = {
 }
 
 
-# Tests replace this with a fake; None means "use the configured self-hosted LLM".
+# Tests replace these with fakes; None means "use the configured self-hosted LLM".
 analytics_generate = None
+router_generate = None
 
 
 @dataclass
@@ -83,6 +87,7 @@ class Reply:
     suggestions: list[str] = field(default_factory=list)
     is_mock: bool = False
     phrased_by: str = "template"
+    understood_by: str = "rules"  # "llm" when the self-hosted model classified the question
     text_override: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,6 +110,7 @@ class Reply:
             "lang": self.lang, "intent": self.intent, "text": text, "sentences": out_sentences,
             "sources": sources, "cards": self.cards, "options": self.options,
             "suggestions": self.suggestions, "is_mock": self.is_mock, "phrased_by": self.phrased_by,
+            "understood_by": self.understood_by,
         }
 
 
@@ -203,7 +209,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if repo.p.role == "officer" and (match_report(text_lc) or (looks_like_analytics(text_lc) and not u.candidates)):
         a = analytics_answer(message, repo, lang, generate=analytics_generate)
         return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
-    if repo.p.role != "officer" and match_report(text_lc) and not u.candidates:
+    if repo.p.role != "officer" and match_report(text_lc) and looks_like_report_request(text_lc)             and not u.candidates:
         return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
 
     # 5. Promoter / agent self-service (role-scoped), or a login prompt for private data
@@ -253,7 +259,16 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             state.entity = {"kind": "promoter", "id": p.promoter_id}
         return _answer_entity(state, repo, lang, focus)
 
-    # 9. Nothing matched
+    # 9. Rules did not understand: let the self-hosted LLM classify it and copy out the name
+    if not (u.intents & {"greeting"}) and len((message or "").strip()) >= 6:
+        routed = llm_route(message, generate=router_generate)
+        if routed:
+            reply = _from_llm_route(routed, message, state, repo, lang)
+            if reply:
+                reply.understood_by = "llm"
+                return reply
+
+    # 10. Nothing matched
     if "greeting" in u.intents and not u.leftover:
         return Reply(lang, "greeting", [_say("greeting", lang)], suggestions=SUGGESTIONS["start"][lang])
     if u.leftover and not u.leftover.isdigit() and (u.names_something or u.intents - {"greeting"}):
@@ -262,6 +277,48 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if u.intents - {"greeting"} or u.leftover.isdigit():
         return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])
     return Reply(lang, "out_of_scope", [_say("out_of_scope", lang)], suggestions=SUGGESTIONS["start"][lang])
+
+
+def looks_like_report_request(text_lc: str) -> bool:
+    """A report-style question ("which…", "how many…", "list…"), not a buyer describing their problem."""
+    return any(c in text_lc for c in ANALYTICS_CUES)
+
+
+def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Repository, lang: str) -> Reply | None:
+    """Turn the model's classification into a normal, record-based answer (or None to fall back)."""
+    intent = routed.intent
+    if intent == "legal":
+        # Search with the model's English rewrite as well (helps romanised Gujarati/Hindi).
+        query = routed.english or message
+        la = legal_answer(message, lang, search_query=query)
+        return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
+                     suggestions=SUGGESTIONS["start"][lang])
+    if intent == "file_complaint":
+        return _from_flow(start_filing(message, state, repo, lang), lang)
+    if intent == "track_complaint":
+        return _from_flow(start_tracking(message, state, repo, lang), lang)
+    if intent == "check_ad":
+        return _trust(message, repo, lang)
+    if intent in ("project", "possession", "promoter", "complaints"):
+        if not routed.name:
+            return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])
+        cands = find_candidates(repo.s, routed.name.lower(), threshold=90)
+        if intent == "promoter" and any(c.kind == "promoter" for c in cands):
+            cands = [c for c in cands if c.kind == "promoter"]
+        focus = {"possession": "possession", "complaints": "complaints"}.get(intent)
+        if len(cands) == 1:
+            state.entity = {"kind": cands[0].kind, "id": cands[0].id}
+            if intent == "promoter" and cands[0].kind == "project":
+                state.entity = {"kind": "promoter", "id": repo.s.get(Project, cands[0].id).promoter_id}
+            return _answer_entity(state, repo, lang, focus)
+        if len(cands) > 1:
+            state.options, state.pending_focus = _options(repo, cands, lang), focus
+            return Reply(lang, "disambiguate", [_say("disambiguate", lang)], options=state.options)
+        return Reply(lang, "not_found", [_say("not_found", lang, q=routed.name), _say("need_entity", lang)],
+                     suggestions=SUGGESTIONS["start"][lang])
+    if intent == "other":
+        return Reply(lang, "out_of_scope", [_say("out_of_scope", lang)], suggestions=SUGGESTIONS["start"][lang])
+    return None
 
 
 def _focus(u: Understanding) -> str | None:
