@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { HealthResponse, PRODUCT_NAME, PRODUCT_SUBTITLE } from "../types";
 
+export type NavTab = "rera" | "verification" | "narratives" | "evaluation";
+
 interface TopBarProps {
   health: HealthResponse | null;
   healthError: boolean;
   darkMode: boolean;
   onToggleDarkMode: () => void;
-  activeNavTab: "verification" | "narratives" | "evaluation";
-  onSelectNavTab: (tab: "verification" | "narratives" | "evaluation") => void;
+  activeNavTab: NavTab;
+  onSelectNavTab: (tab: NavTab) => void;
   presenterMode: boolean;
   onTogglePresenterMode: () => void;
 }
@@ -99,11 +101,22 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs: Verify · Narratives · Evaluation */}
+        {/* Navigation Tabs: RERA check · Verify · Narratives · Evaluation */}
         <nav
           aria-label="Main navigation"
           className="flex items-center gap-1 rounded-xl border border-warm-border p-1 bg-subtle text-xs"
         >
+          <button
+            type="button"
+            onClick={() => onSelectNavTab("rera")}
+            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+              activeNavTab === "rera"
+                ? "bg-card text-body shadow-xs"
+                : "text-muted hover:text-body"
+            }`}
+          >
+            RERA check
+          </button>
           <button
             type="button"
             onClick={() => onSelectNavTab("verification")}

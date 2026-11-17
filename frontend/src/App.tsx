@@ -14,6 +14,8 @@ import { DocumentViewer } from "./components/DocumentViewer";
 import { Footer } from "./components/Footer";
 import { NarrativesPage } from "./components/NarrativesPage";
 import { EvaluationPage } from "./components/EvaluationPage";
+import { ReraCheckPage } from "./components/ReraCheckPage";
+import type { NavTab } from "./components/TopBar";
 import { ResultPanel } from "./components/ResultPanel";
 import { SampleDrawer } from "./components/SampleDrawer";
 import { StartHub } from "./components/StartHub";
@@ -30,12 +32,13 @@ export const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get("theme") === "dark";
   });
-  const [activeNavTab, setActiveNavTab] = useState<"verification" | "narratives" | "evaluation">(() => {
+  const [activeNavTab, setActiveNavTab] = useState<NavTab>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
+    if (tab === "verification") return "verification";
     if (tab === "narratives") return "narratives";
     if (tab === "evaluation") return "evaluation";
-    return "verification";
+    return "rera";
   });
   const [presenterMode, setPresenterMode] = useState<boolean>(false);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
@@ -379,7 +382,11 @@ export const App: React.FC = () => {
 
       {/* Main Body */}
       <main className="flex-1 w-full flex flex-col">
-        {activeNavTab === "narratives" ? (
+        {activeNavTab === "rera" ? (
+          <div className="w-full flex-1">
+            <ReraCheckPage />
+          </div>
+        ) : activeNavTab === "narratives" ? (
           <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 flex-1">
             <NarrativesPage onBackToVerification={() => setActiveNavTab("verification")} />
           </div>

@@ -21,7 +21,7 @@ from datetime import date
 
 # 3-letter real prefix (e.g. RAA) or the 4-letter MOCK prefix, then 4-6 digit-like chars.
 _CODE_RE = re.compile(r"^(MOCK|[A-Z]{3})([0-9OIlSB]{4,6})$")
-_DATE_RE = re.compile(r"^([0-9OIl]{6})(?:\s|$)")
+_DATE_RE = re.compile(r"^([0-9OIl]{6})(?![0-9A-Za-z])")
 _START_RE = re.compile(r"\b(PR|AG)\s*[/\\|]\s*GJ\s*[/\\|]", re.IGNORECASE)
 _DIGIT_FIXES = str.maketrans({"O": "0", "I": "1", "l": "1", "S": "5", "B": "8"})
 
@@ -49,7 +49,7 @@ def _parse_ddmmyy(token: str) -> date | None:
 def _match_code(segment: str) -> str | None:
     # "RAA 01234" (OCR split) or "RAA01234 CALL NOW" (trailing words, no date)
     for token in (segment.replace(" ", ""), segment.split(" ")[0]):
-        m = _CODE_RE.match(token)
+        m = _CODE_RE.match(token.rstrip(".,:;)!"))
         if m:
             return m.group(1) + m.group(2).translate(_DIGIT_FIXES)
     return None

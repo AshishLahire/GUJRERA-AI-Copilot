@@ -43,6 +43,7 @@ from factcheck.schemas import (
     RetrievalResult,
     VerdictResult,
 )
+from gujrera.api.routes import router as gujrera_router
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEMO_SET_PATH = REPO_ROOT / "data" / "demo" / "demo_set.json"
@@ -929,6 +930,8 @@ def create_app() -> FastAPI:
                 status_code=500, content={"error": f"Audio processing failed: {exc}"}
             )
 
+    # GUJRERA copilot endpoints (/api/gujrera/*)
+    app.include_router(gujrera_router)
 
     return app
 

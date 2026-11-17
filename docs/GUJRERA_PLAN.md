@@ -267,6 +267,13 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Mock data safety: names end in "(Demo)", registration numbers use the `MOCK` code prefix, and every row has `is_mock=1`.
 - Not done: portal scraper (waiting on the portal terms check; use the CSV importer meanwhile), and the RAG index of the Act and Gujarat Rules (needs the source texts).
 
+**Step 2, RERA trust check (2026-11-17): done for text; image upload wired but untested on real ads.**
+- `gujrera/trust/`: rule-based extraction in English, Gujarati and Hindi (`extract.py`); registry checks and verdicts (`checks.py`), reusing Pramaan's payment, urgency, offer and domain forensics; demo/eval cases (`samples.py`); OCR entry point (`service.py`, cloud OCR off by default).
+- Checks: number found, registration valid/lapsed/revoked, promoter match or mismatch, project name, district, advertised possession vs registered completion, delay, pending approvals, promoter complaints and adverse orders, agent registration, booking above 10% (s.13), payment to an account.
+- API: `/api/gujrera/trust/{samples,text,upload}`, mounted on the main backend; `gujrera/api/dev_app.py` serves only these routes when the full Pramaan stack is not installed.
+- Console: "RERA check" tab (now the default), with samples, upload, Gujarati/Hindi/English headline, registry record and checks.
+- Evaluation: `scripts/eval_gujrera_trust.py` → `docs/gujrera_trust_eval.md` (179/179 on template ads, 0 false alarms, 0 dangerous misses). Template ads only: real ads and Gujarati OCR still need testing (step 1b).
+
 ---
 
 ## 11. Risks and mitigations
