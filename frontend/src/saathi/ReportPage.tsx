@@ -3,6 +3,7 @@ import { CalcProject, ProjectReport, fetchProjectReport } from "../api/gujrera";
 import { BrandMark, Icon } from "./Brand";
 import { ProjectPicker } from "./CalculatorPage";
 import { StateChip } from "./OrderTrackerPage";
+import { WatchButton } from "./WatchPage";
 import { useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
@@ -98,6 +99,7 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
             <label htmlFor="report-project" className="block text-xs font-semibold text-body mb-1.5">{tr("calcProject", lang)}<En k="calcProject" className="font-normal text-muted" /></label>
             <ProjectPicker inputId="report-project" value={picked} onChange={(x) => { setPicked(x); if (x) setId(x.id); }} />
           </div>
+          {rep && <WatchButton projectId={rep.project.id} />}
           {rep && (
             <button type="button" onClick={() => window.print()}
               className="inline-flex items-center gap-2 rounded-lg bg-primary-bg text-primary-text px-4 py-2.5 text-sm font-semibold leading-tight">

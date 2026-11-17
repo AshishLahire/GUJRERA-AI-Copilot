@@ -48,6 +48,7 @@ from gujrera.analytics.risk import chat_reply as risk_reply, wants_risk
 from gujrera.enforcement import chat_reply as enforcement_reply, wants_enforcement
 from gujrera.enforcement import citizen_reply as enforcement_citizen_reply
 from gujrera.complaints.triage import chat_reply as triage_reply, wants_triage
+from gujrera.watch import chat_feed as watch_feed, chat_watch as watch_project, wants_feed, wants_watch
 
 SUGGESTIONS = {
     "project": {
@@ -323,6 +324,19 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             return _from_flow(my_complaints(repo, lang), lang)
         out = (start_tracking if wants_tracking(message) else start_filing)(message, state, repo, lang)
         return _from_flow(out, lang)
+
+    # 6a''. Watch a project / what's new on my watched projects (buyers)
+    if wants_feed(text_lc) and not u.candidates:
+        sentences, card = watch_feed(repo, lang)
+        return Reply(lang, "watch_feed", sentences, cards=[card] if card else [])
+    if wants_watch(text_lc) and "complaint_file" not in u.intents:
+        projects = [c for c in u.candidates if c.kind == "project"]
+        pid = projects[0].id if len(projects) == 1 else (
+            state.entity["id"] if not u.candidates and state.entity and state.entity.get("kind") == "project" else None)
+        if pid is not None:
+            state.entity = {"kind": "project", "id": pid}
+            sentences, card = watch_project(repo, pid, lang)
+            return Reply(lang, "watch", sentences, cards=[card] if card else [])
 
     # 6b'. Before-you-buy report for one named project (or the project being discussed)
     if (any(w in text_lc for w in REPORT_WORDS) and "complaint_file" not in u.intents

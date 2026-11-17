@@ -399,6 +399,12 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - API `/qpr/overview`, `/qpr/{project}/{quarter}/draft|check|submit`; page "Quarterly reports" with a check-then-file form; buttons from the promoter dashboard and the chat's compliance card. The demo promoter shortcut is now `dev_002` (three ongoing projects with overdue reports); `dev_001` has none.
 - Tests: `tests/test_gujrera_qpr.py` (4).
 
+**PoC feature 8: project watch alerts for buyers (2026-11-17): done.**
+- `gujrera/watch.py`: a logged-in buyer watches up to 20 projects (`project_watches`). Alerts come from the registry's own dated records, so no background job is needed: quarterly report filed (with the change, red if completion went down) or missed (Section 11), extension order, other orders, an order's deadline passed without compliance, registration ending within 90 days (Section 6) or expired, new complaints in a month (counts only). Each alert cites its record; unread = dated after the buyer last opened their alerts.
+- Delivery: no phone numbers are stored. `Notifier` is the hand-off to GUJRERA's SMS or WhatsApp gateway; `python scripts/send_watch_alerts.py --since <date>` prints what each buyer would receive, in their preferred language. `python scripts/seed_gujrera.py --add-watches` gives the demo buyer `citizen_01` three watched projects.
+- Buyers: "Watch this project" on the before-you-buy report and on chat project cards; "Watched projects" page (alert timeline per project, NEW markers, mark all read, stop watching); a bell with the unread count in the top bar; chat ("watch Mangal Square", "મંગલ સ્ક્વેર પર નજર રાખો", "what's new on my projects?"). Others asking to watch are asked to log in with a buyer account. API `/watch` (list, add, remove, seen, unread).
+- Tests: `tests/test_gujrera_watch.py` (4).
+
 ---
 
 ## 11. Risks and mitigations

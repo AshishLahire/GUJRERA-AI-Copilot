@@ -5,7 +5,7 @@ import { useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
-export type Page = "home" | "ask" | "check" | "calc" | "promoter" | "officer" | "risk" | "enforce" | "report" | "desk" | "orders" | "qpr";
+export type Page = "home" | "ask" | "check" | "calc" | "promoter" | "officer" | "risk" | "enforce" | "report" | "desk" | "orders" | "qpr" | "watch";
 
 const EXAMPLES: Record<"en" | "gu" | "hi", string[]> = {
   gu: ["મંગલ સ્ક્વેર નું પઝેશન ક્યારે મળશે?", "પઝેશનમાં વિલંબ થાય તો શું મને વ્યાજ મળે?", "મારે ફરિયાદ નોંધાવવી છે"],

@@ -346,3 +346,18 @@ class QprSubmission(Base):
     payload_json: Mapped[str] = mapped_column(Text)
     warnings: Mapped[str | None] = mapped_column(Text)
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class ProjectWatch(Base):
+    """A logged-in buyer following a project. Alerts are built from the registry's dated records since
+    `created_on`; `last_seen_on` marks what the buyer has read. No phone number is stored: SMS or WhatsApp
+    delivery is a portal-side hand-off in the PoC (gujrera.watch.Notifier)."""
+
+    __tablename__ = "project_watches"
+    __table_args__ = (UniqueConstraint("user_id", "project_id", name="uq_watch_user_project"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    created_on: Mapped[date] = mapped_column(Date)
+    last_seen_on: Mapped[date] = mapped_column(Date)

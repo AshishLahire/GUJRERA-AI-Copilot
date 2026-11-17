@@ -287,6 +287,20 @@ const STRINGS = {
   qprPrepare: { en: "Prepare quarterly report", gu: "ત્રિમાસિક અહેવાલ તૈયાર કરો", hi: "तिमाही रिपोर्ट तैयार करें" },
   qprCheck: { en: "Check", gu: "ચકાસો", hi: "जाँचें" },
   qprFile: { en: "File report", gu: "અહેવાલ ફાઈલ કરો", hi: "रिपोर्ट दाखिल करें" },
+  navWatch: { en: "Watched projects", gu: "નજર હેઠળના પ્રોજેક્ટ", hi: "निगरानी वाले प्रोजेक्ट" },
+  watchIntro: {
+    en: "Projects you follow, with an alert whenever a quarterly report is filed or missed, the completion date is extended, the registration is ending, an order is passed or complaints come in. Each alert shows the record it comes from.",
+    gu: "તમે અનુસરો છો તે પ્રોજેક્ટ: ત્રિમાસિક અહેવાલ ફાઈલ થાય કે ચૂકી જાય, પૂર્ણતા તારીખ લંબાય, નોંધણી પૂરી થવા આવે, આદેશ થાય કે ફરિયાદો આવે ત્યારે એલર્ટ. દરેક એલર્ટ સાથે તેનો રેકોર્ડ દેખાય છે.",
+    hi: "आप जिन प्रोजेक्ट का अनुसरण करते हैं: तिमाही रिपोर्ट दाखिल हो या छूटे, पूर्णता तारीख बढ़े, पंजीकरण समाप्त होने वाला हो, आदेश हो या शिकायतें आएँ तो अलर्ट। हर अलर्ट के साथ उसका रिकॉर्ड दिखता है।",
+  },
+  loginNeededWatch: {
+    en: "Log in with a buyer account to watch projects and get alerts.",
+    gu: "પ્રોજેક્ટ પર નજર રાખવા અને એલર્ટ મેળવવા ખરીદનાર ખાતાથી લોગિન કરો.",
+    hi: "प्रोजेक्ट पर नज़र रखने और अलर्ट पाने के लिए खरीदार खाते से लॉगिन करें।",
+  },
+  watchOn: { en: "Watch this project", gu: "આ પ્રોજેક્ટ પર નજર રાખો", hi: "इस प्रोजेक्ट पर नज़र रखें" },
+  watchOff: { en: "Watching", gu: "નજર રાખો છો", hi: "नज़र रख रहे हैं" },
+  watchMarkRead: { en: "Mark all as read", gu: "બધા વાંચ્યા તરીકે ચિહ્નિત કરો", hi: "सभी को पढ़ा हुआ चिह्नित करें" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

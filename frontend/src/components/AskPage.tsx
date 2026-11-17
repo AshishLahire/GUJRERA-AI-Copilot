@@ -3,6 +3,7 @@ import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openC
 import { useSaathi } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { StateChip } from "../saathi/OrderTrackerPage";
+import { WatchButton } from "../saathi/WatchPage";
 import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
 
@@ -88,6 +89,7 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
             Before-you-buy report (PDF) →
           </button>
         )}
+        {card.project_id != null && <div className="col-span-2 justify-self-start"><WatchButton projectId={Number(card.project_id)} compact /></div>}
       </div>
     );
   }
@@ -240,6 +242,15 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
             </li>
           ))}
         </ol>
+      </div>
+    );
+  }
+  if (card.type === "watch_feed" || card.type === "watch") {
+    return (
+      <div className="mt-3">
+        <button type="button" onClick={() => navigateTo("watch")} className="px-3 py-1.5 rounded-md bg-primary-bg text-primary-text text-xs font-semibold">
+          Open watched projects →
+        </button>
       </div>
     );
   }

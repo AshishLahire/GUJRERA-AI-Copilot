@@ -602,3 +602,27 @@ export function submitQpr(token: string, projectId: number, quarter: string, dat
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
   });
 }
+
+
+// ------------------------------------------------------------ project watch (buyers)
+export interface WatchEvent { date: string; kind: string; tone: "good" | "warn" | "bad" | "info"; text: string; unread: boolean;
+  citations: { type: string; id: string }[] }
+export interface Watch { project_id: number; name: string; name_gu: string | null; rera_no: string; district: string; status: string;
+  watching_since: string; last_seen_on: string; unread: number; events: WatchEvent[] }
+
+export function fetchWatches(token: string, lang: Lang): Promise<{ watches: Watch[]; unread: number }> {
+  return officerFetch(`${API_BASE}/api/gujrera/watch?lang=${lang}`, token);
+}
+export function fetchUnread(token: string): Promise<{ unread: number }> {
+  return officerFetch(`${API_BASE}/api/gujrera/watch/unread`, token);
+}
+export function watchProject(token: string, projectId: number): Promise<{ watching: boolean; created: boolean }> {
+  return officerFetch(`${API_BASE}/api/gujrera/watch/${projectId}`, token, { method: "POST" });
+}
+export function unwatchProject(token: string, projectId: number): Promise<{ removed: boolean }> {
+  return officerFetch(`${API_BASE}/api/gujrera/watch/${projectId}`, token, { method: "DELETE" });
+}
+export function markWatchSeen(token: string, projectId?: number): Promise<{ marked: number }> {
+  return officerFetch(`${API_BASE}/api/gujrera/watch/seen${projectId != null ? `?project_id=${projectId}` : ""}`, token, { method: "POST" });
+}
+export const WATCH_CHANGED_EVENT = "saathi:watch-changed";

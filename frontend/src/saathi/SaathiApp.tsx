@@ -15,9 +15,10 @@ import { ReportPage } from "./ReportPage";
 import { ComplaintDeskPage } from "./ComplaintDeskPage";
 import { OrderTrackerPage } from "./OrderTrackerPage";
 import { QprPage } from "./QprPage";
+import { WatchBell, WatchPage } from "./WatchPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
@@ -25,6 +26,7 @@ const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "calc", key: "navCalc", icon: "calc" },
   { page: "report", key: "navReport", icon: "doc" },
   { page: "orders", key: "navOrders", icon: "law" },
+  { page: "watch", key: "navWatch", icon: "eye" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
   { page: "qpr", key: "navQpr", icon: "calendar" },
   { page: "officer", key: "navOfficer", icon: "chart" },
@@ -187,6 +189,7 @@ const Shell: React.FC = () => {
               >
                 <Icon name={dark ? "sun" : "moon"} className="w-4 h-4" />
               </button>
+              <WatchBell page={page} />
               <AccountBar />
             </div>
           </div>
@@ -232,6 +235,7 @@ const Shell: React.FC = () => {
           {page === "desk" && <ComplaintDeskPage />}
           {page === "orders" && <OrderTrackerPage />}
           {page === "qpr" && <QprPage />}
+          {page === "watch" && <WatchPage />}
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">

@@ -463,6 +463,41 @@ def qpr_submit(project_id: int, body: QprData, quarter: str = Path_(..., pattern
     return _officer_or_403(submit, repo, project_id, quarter, body.model_dump())
 
 
+@router.get("/watch")
+def watch_list(lang: str = Query("en"), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.watch import my_watches
+
+    return _officer_or_403(my_watches, repo, _lang(lang))
+
+
+@router.get("/watch/unread")
+def watch_unread(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.watch import unread_count
+
+    return {"unread": unread_count(repo)}
+
+
+@router.post("/watch/seen")
+def watch_seen(project_id: int | None = Query(None), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.watch import mark_seen
+
+    return {"marked": _officer_or_403(mark_seen, repo, project_id)}
+
+
+@router.post("/watch/{project_id}")
+def watch_add(project_id: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.watch import add_watch
+
+    return _officer_or_403(add_watch, repo, project_id)
+
+
+@router.delete("/watch/{project_id}")
+def watch_remove(project_id: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.watch import remove_watch
+
+    return {"removed": _officer_or_403(remove_watch, repo, project_id)}
+
+
 @router.get("/orders/track")
 def orders_track(order_no: str | None = Query(None, max_length=40), complaint_ref: str | None = Query(None, max_length=40),
                  project_id: int | None = Query(None), lang: str = Query("en"),
