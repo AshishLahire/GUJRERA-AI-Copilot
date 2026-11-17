@@ -29,7 +29,7 @@ INTENT_WORDS: dict[str, tuple[str, ...]] = {
                    "कब्जा", "कब्ज़ा", "पज़ेशन", "पजेशन", "कब", "पूरा", "kab", "milega"),
     "promoter": ("builder", "developer", "promoter", "બિલ્ડર", "ડેવલપર", "પ્રમોટર", "बिल्डर", "डेवलपर",
                  "प्रमोटर", "track record", "history"),
-    "complaint_file": ("file a complaint", "register a complaint", "lodge", "my complaint", "complaint status",
+    "complaint_file": ("file a complaint", "register a complaint", "lodge", "my complaint", "my complaints", "complaint status",
                        "track my complaint", "track complaint", "complain", "raise a complaint",
                        "ફરિયાદ નોંધ", "મારી ફરિયાદ", "ફરિયાદ કરવી", "ફરિયાદની સ્થિતિ",
                        "शिकायत दर्ज", "मेरी शिकायत", "शिकायत करनी", "शिकायत की स्थिति"),

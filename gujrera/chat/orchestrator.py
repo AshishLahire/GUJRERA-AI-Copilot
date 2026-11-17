@@ -26,10 +26,13 @@ from gujrera.complaints.flow import (
     FlowOut,
     continue_filing,
     continue_tracking,
+    my_complaints,
     start_filing,
     start_tracking,
     wants_tracking,
 )
+from gujrera.selfservice.summary import agent_summary, focus_of, is_self_service, promoter_summary
+from gujrera.selfservice.summary import s as ss
 from gujrera.trust.checks import check_text
 
 SUGGESTIONS = {
@@ -187,12 +190,22 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         state.entity = {"kind": "project", "id": project["id"]}
         return _answer_entity(state, repo, lang, _focus(u))
 
-    # 4. Complaint filing / tracking
+    # 4. Promoter / agent self-service (role-scoped), or a login prompt for private data
+    text_lc = (message or "").lower()
+    if is_self_service(text_lc) and not (repo.p.role == "citizen" and "complaint_file" in u.intents):
+        reply = _self_service(text_lc, u, repo, lang)
+        if reply:
+            return reply
+
+    # 5. Complaint filing / tracking
     if "complaint_file" in u.intents or REF_RE.search(message or ""):
+        if (repo.p.role == "citizen" and repo.p.user_id is not None and not REF_RE.search(message or "")
+                and wants_tracking(message)):
+            return _from_flow(my_complaints(repo, lang), lang)
         out = (start_tracking if wants_tracking(message) else start_filing)(message, state, repo, lang)
         return _from_flow(out, lang)
 
-    # 5. Names
+    # 6. Names
     cands = u.candidates
     if u.districts and len(cands) > 1:
         narrowed = [c for c in cands if c.district in u.districts]
@@ -211,7 +224,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         state.pending_focus = focus
         return Reply(lang, "disambiguate", [_say("disambiguate", lang)], options=state.options)
 
-    # 6. Follow-up about the entity already in the conversation
+    # 7. Follow-up about the entity already in the conversation
     topical = u.intents & {"possession", "promoter", "complaints"}
     if state.entity and topical and len(u.leftover.split()) <= 2:
         if "promoter" in topical and state.entity["kind"] == "project":
@@ -219,7 +232,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             state.entity = {"kind": "promoter", "id": p.promoter_id}
         return _answer_entity(state, repo, lang, focus)
 
-    # 7. Nothing matched
+    # 8. Nothing matched
     if "greeting" in u.intents and not u.leftover:
         return Reply(lang, "greeting", [_say("greeting", lang)], suggestions=SUGGESTIONS["start"][lang])
     if u.leftover and not u.leftover.isdigit() and (u.names_something or u.intents - {"greeting"}):
@@ -240,6 +253,29 @@ def _focus(u: Understanding) -> str | None:
 
 COMPLAINT_KEYS = {"complaints", "no_complaints", "promoter_complaints", "promoter_orders", "promoter_no_orders",
                   "latest_order"}
+
+
+def _self_service(text_lc: str, u: Understanding, repo: Repository, lang: str) -> Reply | None:
+    role = repo.p.role
+    focus = focus_of(text_lc)
+    if role == "developer":
+        other = [c for c in u.candidates if (c.kind == "promoter" and c.id != repo.p.promoter_id) or
+                 (c.kind == "project" and repo.s.get(Project, c.id).promoter_id != repo.p.promoter_id)]
+        if other:
+            return Reply(lang, "access_denied", [Sentence(ss("only_own", lang), [], "ss_only_own")])
+        summary = promoter_summary(repo, lang, focus=focus or None)
+    elif role == "agent":
+        summary = agent_summary(repo, lang)
+    elif role == "officer":
+        return None  # officer analytics is a separate skill
+    else:
+        if focus & {"dues", "notices", "qpr"} and not u.candidates:
+            return Reply(lang, "login_required", [Sentence(ss("login_required", lang), [], "ss_login_required")])
+        return None
+    sentences = summary.sentences
+    if focus and len(sentences) > 1:
+        sentences = sentences[1:]  # skip the greeting for a specific question
+    return Reply(lang, "self_service", sentences, cards=[summary.card], is_mock=summary.is_mock)
 
 
 def _from_flow(out: FlowOut, lang: str) -> Reply:

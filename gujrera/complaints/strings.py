@@ -159,6 +159,11 @@ S: dict[str, dict[str, str]] = {
         "gu": "ઘણા ખોટા કોડ. થોડા સમય પછી ફરી પ્રયાસ કરો.",
         "hi": "बहुत सारे गलत कोड। कृपया बाद में फिर कोशिश करें।",
     },
+    "none_mine": {
+        "en": "There are no complaints filed from your account.",
+        "gu": "તમારા ખાતામાંથી કોઈ ફરિયાદ નોંધાઈ નથી.",
+        "hi": "आपके खाते से कोई शिकायत दर्ज नहीं हुई है।",
+    },
     "unknown_ref": {
         "en": "I couldn't find a complaint with reference {ref}.",
         "gu": "{ref} સંદર્ભ નંબરવાળી ફરિયાદ મળી નથી.",

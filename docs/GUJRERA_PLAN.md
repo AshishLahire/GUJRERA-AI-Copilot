@@ -290,7 +290,17 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Console: review card, receipt card with copy button, status timeline; option buttons show their label and old buttons are disabled.
 - Evaluation: `scripts/eval_gujrera_complaints.py` → `docs/gujrera_complaints_eval.md`: 90 simulated conversations (6 types × 3 languages × 5 projects), 90/90 submitted complete with the right project, category and form, staying in the buyer's language, 8 turns on average. Template stories only.
 - Fix found on the way: a shared word such as "Developers" could carry a fuzzy promoter match; the distinctive first word must now match too (trust check and chat).
-- Next: replace the mock adapter once GUJRERA shares the complaint hand-off format; add logged-in tracking with step 4.
+- Next: replace the mock adapter once GUJRERA shares the complaint hand-off format.
+
+**Step 4, login and promoter/agent self-service (2026-11-17): done for demo accounts.**
+- `gujrera/auth.py`: PBKDF2-SHA256 passwords, HMAC-signed tokens that expire (`GUJRERA_TOKEN_HOURS`) and are refused if the user's role changes, lockout after 5 wrong passwords, the same error for unknown users and wrong passwords. Seeded accounts share `GUJRERA_DEMO_PASSWORD`. GUJRERA's own sign-in (portal SSO or OTP) would replace `authenticate()`; the token carries only user id and role.
+- The token's role flows into the existing `Repository`, so every rule stays enforced in one place. Chat sessions are bound to their user: another user (or logging out) gets a fresh session.
+- `gujrera/selfservice/summary.py`: promoter summary (pending and overdue dues with ₹ totals, notices awaiting a reply, unfiled quarterly reports for ongoing projects with Section 11 cited, next report due date, registrations ending within 180 days with Section 6 cited, pending approvals, open complaints) and agent summary (registration, renewal reminder with Section 9 cited, complaints naming the agent). Gujarati, Hindi and English.
+- Chat: "my dues", "મારી બાકી ચુકવણી", "pending notices", "my compliance summary" answer from the user's own records; asking for another promoter's dues gets "you can only see your own"; asking without login gets a login prompt. Logged-in buyers can list their complaints and track them without a code; complaints they file are linked to their account.
+- API: `POST /auth/login`, `GET /auth/me`, `GET /self-service/summary`; chat reads `Authorization: Bearer`.
+- Console: login panel with demo-account picks (password typed, never stored in the frontend), account bar, compliance summary on login, dues/reports/registrations card.
+- Tests: `tests/test_gujrera_auth.py` (12), including "every dues record a promoter is shown belongs to that promoter".
+- Officers can log in, but officer analytics is step 6.
 
 ---
 

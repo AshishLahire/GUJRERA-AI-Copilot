@@ -36,6 +36,7 @@ class ComplaintDraft:
     unit: str | None = None
     consent: bool = False
     skipped: set[str] = field(default_factory=set)  # optional fields the user chose to skip
+    user_id: int | None = None  # logged-in citizen filing the complaint, if any
 
     @property
     def form(self) -> str:
@@ -103,6 +104,7 @@ class MockComplaintAdapter:
 
         complaint = Complaint(
             ref_no=ref_no, project_id=project.id, promoter_id=project.promoter_id,
+            complainant_user_id=draft.user_id,
             complainant_hash=complainant_hash(draft.mobile), form=draft.form, category=draft.category,
             relief=draft.relief, summary=draft.description[:2000], district=project.district, filed_on=today,
             status="filed", channel="copilot", tracking_code_hash=_code_hash(ref_no, code), is_mock=True,

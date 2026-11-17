@@ -160,6 +160,7 @@ def generate(session: Session, cfg: MockConfig | None = None) -> dict[str, int]:
         for _ in range(rng.choices([1, 2, 3, 4, 5, 6], weights=[3, 4, 3, 2, 1, 1])[0]):
             _make_project(session, ctx, promoter, troubled, agents)
     _make_promoter_dues(session, ctx, promoters)
+    _set_demo_logins(session)
     session.commit()
 
     return {
@@ -182,6 +183,27 @@ def _make_users(session: Session, ctx: _Ctx, promoters: list[Promoter]) -> None:
         session.add(u)
         session.flush()
         ctx.citizen_ids.append(u.id)
+
+
+def _set_demo_logins(session: Session) -> None:
+    """Give every demo account the demo password and a display name.
+
+    One hash is shared by all demo accounts so seeding stays fast; real accounts get their own salt.
+    """
+    from gujrera.auth import hash_password
+    from gujrera.config import get_gujrera_settings
+
+    pw = hash_password(get_gujrera_settings().GUJRERA_DEMO_PASSWORD.get_secret_value())
+    for user in session.scalars(select(User)):
+        user.password_hash = pw
+        if user.promoter_id:
+            user.display_name = session.get(Promoter, user.promoter_id).name
+        elif user.agent_id:
+            user.display_name = session.get(Agent, user.agent_id).name
+        elif user.role == "officer":
+            user.display_name = f"GUJRERA officer ({user.district_scope or 'statewide'})"
+        else:
+            user.display_name = f"Demo buyer {user.username.split('_')[-1]}"
 
 
 def _make_agents(session: Session, ctx: _Ctx) -> list[Agent]:

@@ -1,5 +1,45 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChatReply, Lang, fetchChatStarters, sendChat } from "../api/gujrera";
+import {
+  AuthExpiredError,
+  AuthUser,
+  ChatReply,
+  Lang,
+  fetchChatStarters,
+  fetchMe,
+  sendChat,
+} from "../api/gujrera";
+import { AccountBar } from "./AccountBar";
+
+const TOKEN_KEY = "gujrera.token";
+
+function readToken(): string | null {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeToken(token: string | null): void {
+  try {
+    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    else sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // storage unavailable: the login lasts for this page view only
+  }
+}
+
+const SUMMARY_PROMPT: Record<Lang, string> = {
+  en: "Show my compliance summary",
+  gu: "મારો અનુપાલન સારાંશ બતાવો",
+  hi: "मेरा अनुपालन सारांश दिखाएँ",
+};
+
+const ROLE_SUGGESTIONS: Record<string, string[]> = {
+  developer: ["What are my dues?", "Pending notices for my projects", "My QPR filings", "My registration expiry"],
+  agent: ["My registration status", "My complaints"],
+  citizen: ["My complaints", "File a complaint"],
+};
 
 type Message = { role: "user"; text: string } | { role: "assistant"; reply: ChatReply };
 
@@ -88,6 +128,61 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
             </li>
           ))}
         </ul>
+      </div>
+    );
+  }
+  if (card.type === "self_service") {
+    const dues = (card.dues as { description: string; amount: number | null; due_date: string; overdue: boolean }[]) ?? [];
+    const regs = (card.registrations as { project: string; valid_until: string; days_left: number }[]) ?? [];
+    const qpr = (card.qpr_missing as { project: string; quarters: string[] }[]) ?? [];
+    if (card.role === "agent") {
+      return (
+        <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs grid grid-cols-2 gap-2">
+          <div className="col-span-2 font-mono break-all">{fmt(card.reg_no)}</div>
+          <div><span className="text-muted">Status </span><span className="capitalize">{fmt(card.status)}</span></div>
+          <div><span className="text-muted">Valid until </span>{fmt(card.valid_until)}</div>
+        </div>
+      );
+    }
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs flex flex-col gap-3">
+        {dues.length > 0 && (
+          <div>
+            <div className="font-semibold text-body mb-1">Pending dues</div>
+            <ul className="divide-y divide-warm-border">
+              {dues.map((d, i) => (
+                <li key={i} className="py-1 flex flex-wrap gap-x-2 justify-between">
+                  <span className="text-body">{d.description}</span>
+                  <span className="whitespace-nowrap">
+                    {d.amount ? `₹${d.amount.toLocaleString("en-IN")}` : "—"} · due {d.due_date}
+                    {d.overdue && <span className="ml-1 px-1.5 rounded bg-red-600 text-white">overdue</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {qpr.length > 0 && (
+          <div>
+            <div className="font-semibold text-body mb-1">Quarterly reports not filed</div>
+            {qpr.map((q) => (
+              <div key={q.project} className="text-body">{q.project}: <span className="text-muted">{q.quarters.join(", ")}</span></div>
+            ))}
+          </div>
+        )}
+        {regs.length > 0 && (
+          <div>
+            <div className="font-semibold text-body mb-1">Registrations</div>
+            {regs.map((r) => (
+              <div key={r.project} className="flex justify-between gap-2">
+                <span className="text-body">{r.project}</span>
+                <span className={r.days_left < 0 ? "text-red-700 dark:text-red-300" : r.days_left <= 180 ? "text-amber-700 dark:text-amber-300" : "text-muted"}>
+                  until {r.valid_until} ({r.days_left < 0 ? "ended" : `${r.days_left} days`})
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -181,6 +276,18 @@ export const AskPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const [token, setToken] = useState<string | null>(() => readToken());
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    fetchMe(token)
+      .then((r) => setUser(r.user))
+      .catch(() => {
+        setToken(null);
+        writeToken(null);
+      });
+  }, [token]);
 
   useEffect(() => {
     fetchChatStarters().then((r) => setStarters(r.items)).catch((e: Error) => setError(e.message));
@@ -189,7 +296,7 @@ export const AskPage: React.FC = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  const send = async (text: string, shown?: string) => {
+  const send = async (text: string, shown?: string, as: { token: string | null; sessionId: string | null } = { token, sessionId }) => {
     const message = text.trim();
     if (!message || busy) return;
     setInput("");
@@ -197,13 +304,36 @@ export const AskPage: React.FC = () => {
     setMessages((m) => [...m, { role: "user", text: shown ?? message }]);
     setBusy(true);
     try {
-      const reply = await sendChat(message, sessionId, lang);
+      const reply = await sendChat(message, as.sessionId, lang, as.token);
       setSessionId(reply.session_id);
       setMessages((m) => [...m, { role: "assistant", reply }]);
     } catch (e) {
+      if (e instanceof AuthExpiredError) {
+        logout();
+      }
       setError((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    writeToken(null);
+    setMessages([]);
+    setSessionId(null);
+  };
+
+  const onLogin = (newToken: string, newUser: AuthUser) => {
+    setToken(newToken);
+    setUser(newUser);
+    writeToken(newToken);
+    setMessages([]);
+    setSessionId(null);
+    if (newUser.role === "developer" || newUser.role === "agent") {
+      const l = lang ?? newUser.preferred_lang;
+      void send(SUMMARY_PROMPT[l], undefined, { token: newToken, sessionId: null });
     }
   };
 
@@ -220,6 +350,9 @@ export const AskPage: React.FC = () => {
             Ask about a project, builder or agent in Gujarati, Hindi or English. Every answer cites the registry
             record it comes from, or says it was not found.
           </p>
+        </div>
+        <div className="w-full">
+          <AccountBar user={user} onLogin={onLogin} onLogout={logout} />
         </div>
         <div className="flex gap-1 rounded-lg border border-warm-border p-1 bg-subtle" role="group" aria-label="Answer language">
           {LANG_CHOICES.map((l) => (
@@ -242,7 +375,7 @@ export const AskPage: React.FC = () => {
             <p className="font-heading text-base font-bold text-body">તમારા ઘરનો દરેક જવાબ, તમારી ભાષામાં</p>
             <p className="text-sm text-muted">Try one of these:</p>
             <div className="flex flex-wrap justify-center gap-2">
-              {starters.map((s) => (
+              {[...(user ? (ROLE_SUGGESTIONS[user.role] ?? []).map((text) => ({ lang: "en" as Lang, text })) : []), ...starters].map((s) => (
                 <button
                   key={s.text}
                   type="button"

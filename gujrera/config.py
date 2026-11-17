@@ -38,6 +38,12 @@ class GujreraSettings(BaseSettings):
     # The default is for local development only; set a long random value in any deployment.
     GUJRERA_HASH_SECRET: SecretStr = Field(default=SecretStr("dev-only-change-me"))
 
+    # Login for the prototype's demo accounts. Production would use GUJRERA's own sign-in (SSO/OTP).
+    GUJRERA_AUTH_SECRET: SecretStr = Field(default=SecretStr("dev-only-change-me-too"))
+    GUJRERA_TOKEN_HOURS: float = Field(default=8.0, gt=0)
+    # Password given to every seeded demo account by scripts/seed_gujrera.py.
+    GUJRERA_DEMO_PASSWORD: SecretStr = Field(default=SecretStr("gujrera-demo"))
+
 
 @lru_cache
 def get_gujrera_settings() -> GujreraSettings:

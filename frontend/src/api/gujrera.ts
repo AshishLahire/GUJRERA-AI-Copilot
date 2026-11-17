@@ -115,14 +115,51 @@ export async function checkTrustUpload(file: File): Promise<TrustReport> {
   return parse(await fetch(`${API_BASE}/api/gujrera/trust/upload`, { method: "POST", body: form }));
 }
 
-export async function sendChat(message: string, sessionId: string | null, lang: Lang | null): Promise<ChatReply> {
+export interface AuthUser {
+  username: string;
+  role: "citizen" | "developer" | "agent" | "officer";
+  display_name: string | null;
+  organisation: string | null;
+  district_scope: string | null;
+  preferred_lang: Lang;
+  is_demo: boolean;
+}
+
+export class AuthExpiredError extends Error {}
+
+function authHeaders(token: string | null): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function sendChat(
+  message: string,
+  sessionId: string | null,
+  lang: Lang | null,
+  token: string | null = null
+): Promise<ChatReply> {
+  const res = await fetch(`${API_BASE}/api/gujrera/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ message, session_id: sessionId, lang }),
+  });
+  if (res.status === 401 && token) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
+export async function login(username: string, password: string): Promise<{ token: string; user: AuthUser }> {
   return parse(
-    await fetch(`${API_BASE}/api/gujrera/chat`, {
+    await fetch(`${API_BASE}/api/gujrera/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, session_id: sessionId, lang }),
+      body: JSON.stringify({ username, password }),
     })
   );
+}
+
+export async function fetchMe(token: string): Promise<{ user: AuthUser }> {
+  const res = await fetch(`${API_BASE}/api/gujrera/auth/me`, { headers: authHeaders(token) });
+  if (res.status === 401) throw new AuthExpiredError("Session expired");
+  return parse(res);
 }
 
 export async function fetchChatStarters(): Promise<{ items: { lang: Lang; text: string }[] }> {

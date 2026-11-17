@@ -34,7 +34,7 @@ from gujrera.complaints.rules import (
 )
 from gujrera.complaints.strings import label, s
 from gujrera.db.models import RELIEFS, Project
-from gujrera.db.repository import Repository
+from gujrera.db.repository import AccessDenied, Repository
 from gujrera.i18n import fmt_date, word
 from gujrera.profile.summarise import Sentence
 
@@ -99,6 +99,8 @@ def start_filing(message: str, state: Any, repo: Repository, lang: str) -> FlowO
     flow = FilingState()
     state.complaint = flow
     d = flow.draft
+    if repo.p.role == "citizen" and repo.p.user_id is not None:
+        d.user_id = repo.p.user_id
     if state.entity and state.entity.get("kind") == "project":
         d.project_id = state.entity["id"]
     u = understand(repo.s, message)
@@ -334,7 +336,8 @@ def _submit(state: Any, repo: Repository, lang: str) -> FlowOut:
 def wants_tracking(message: str) -> bool:
     lc = (message or "").lower()
     return bool(REF_RE.search(message or "")) or any(
-        w in lc for w in ("status", "track", "સ્થિતિ", "स्थिति", "ट्रैक", "ટ્રેક"))
+        w in lc for w in ("status", "track", "my complaint", "સ્થિતિ", "મારી ફરિયાદ", "स्थिति", "मेरी शिकायत",
+                          "ट्रैक", "ટ્રેક"))
 
 
 def start_tracking(message: str, state: Any, repo: Repository, lang: str) -> FlowOut:
@@ -353,6 +356,11 @@ def continue_tracking(message: str, state: Any, repo: Repository, lang: str) -> 
         return FlowOut("complaint_tracking", [_say("ask_ref", lang)])
     if t.failures.get(t.ref, 0) >= MAX_CODE_ATTEMPTS:
         return FlowOut("complaint_tracking", [_say("locked", lang)])
+    own = _own_complaint(repo, t.ref)
+    if own is not None:  # logged-in complainant: no code needed
+        state.tracking = None
+        return _status_out(own["ref_no"], own["category"], own["form"], own["filed_on"], own["status"],
+                           None, own["events"], own["source"]["is_mock"], lang)
     has_code = adapter.has_tracking_code(t.ref)
     if has_code is None:
         ref, t.ref = t.ref, None
@@ -371,13 +379,42 @@ def continue_tracking(message: str, state: Any, repo: Repository, lang: str) -> 
             return FlowOut("complaint_tracking", [_say("locked", lang)])
         return FlowOut("complaint_tracking", [_say("bad_code", lang, left=left)])
     state.tracking = None
+    return _status_out(status.ref_no, status.category, status.form, status.filed_on, status.status,
+                       status.project_name, status.events, status.is_mock, lang)
+
+
+def _own_complaint(repo: Repository, ref: str) -> dict[str, Any] | None:
+    if repo.p.role != "citizen" or repo.p.user_id is None:
+        return None
+    try:
+        return repo.complaint_status(ref)
+    except AccessDenied:
+        return None
+
+
+def _status_out(ref: str, category: str, form: str, filed_on, status: str, project_name: str | None,
+                events: list[dict[str, Any]], is_mock: bool, lang: str) -> FlowOut:
     sentence = Sentence(
-        s("status", lang, ref=status.ref_no, category=label(status.category, lang), form=status.form,
-          filed=fmt_date(status.filed_on, lang), status=label(status.status, lang)),
-        [{"type": "complaint", "id": status.ref_no, "is_mock": status.is_mock}], "complaint_status")
-    card = {"type": "complaint_status", "ref_no": status.ref_no, "project_name": status.project_name,
-            "status": status.status, "status_label": label(status.status, lang),
-            "events": [{"at": e["at"], "status": label(e["status"], lang), "note": e["note"]} for e in status.events],
-            "is_mock": status.is_mock}
-    sentences = [sentence] + ([_say("mock_note", lang)] if status.is_mock else [])
+        s("status", lang, ref=ref, category=label(category, lang), form=form,
+          filed=fmt_date(filed_on, lang), status=label(status, lang)),
+        [{"type": "complaint", "id": ref, "is_mock": is_mock}], "complaint_status")
+    card = {"type": "complaint_status", "ref_no": ref, "project_name": project_name,
+            "status": status, "status_label": label(status, lang),
+            "events": [{"at": e["at"], "status": label(e["status"], lang), "note": e["note"]} for e in events],
+            "is_mock": is_mock}
+    sentences = [sentence] + ([_say("mock_note", lang)] if is_mock else [])
     return FlowOut("complaint_status", sentences, cards=[card])
+
+
+def my_complaints(repo: Repository, lang: str) -> FlowOut:
+    """All complaints filed by the logged-in citizen (repository-scoped)."""
+    rows = repo.list_complaints(limit=20)
+    if not rows:
+        return FlowOut("complaint_list", [_say("none_mine", lang)])
+    sentences = [Sentence(
+        s("status", lang, ref=c["ref_no"], category=label(c["category"], lang), form=c["form"],
+          filed=fmt_date(c["filed_on"], lang), status=label(c["status"], lang)),
+        [c["source"]], "complaint_status") for c in rows]
+    if any(c["source"]["is_mock"] for c in rows):
+        sentences.append(_say("mock_note", lang))
+    return FlowOut("complaint_list", sentences)

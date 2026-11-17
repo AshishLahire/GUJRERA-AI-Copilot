@@ -154,6 +154,8 @@ class User(Base):
     agent_id: Mapped[int | None] = mapped_column(ForeignKey("agents.id"))
     district_scope: Mapped[str | None] = mapped_column(String(60))  # officers; None = statewide
     preferred_lang: Mapped[str] = mapped_column(String(5), default="gu")
+    display_name: Mapped[str | None] = mapped_column(String(200))
+    password_hash: Mapped[str | None] = mapped_column(String(200))  # PBKDF2; see gujrera/auth.py
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
