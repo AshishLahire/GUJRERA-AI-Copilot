@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openReport, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
+import { StateChip } from "../saathi/OrderTrackerPage";
 import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
 
@@ -236,6 +237,24 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
             </li>
           ))}
         </ol>
+      </div>
+    );
+  }
+  if (card.type === "orders") {
+    const items = (card.items as Array<{ order_no: string; state: string | null; due_on: string | null; project: string | null; complaint_ref: string | null }>) ?? [];
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
+        <ul className="flex flex-col gap-1.5">
+          {items.map((o) => (
+            <li key={o.order_no} className="flex items-center justify-between gap-3">
+              <span className="truncate"><span className="font-mono">{o.order_no}</span> <span className="text-muted">· {o.project ?? o.complaint_ref ?? ""}{o.due_on ? ` · due ${o.due_on}` : ""}</span></span>
+              <StateChip state={o.state} />
+            </li>
+          ))}
+        </ul>
+        <button type="button" onClick={() => navigateTo(card.officer ? "desk" : "orders")} className="mt-2 px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+          {card.officer ? "Open complaint desk →" : "Open order tracker →"}
+        </button>
       </div>
     );
   }

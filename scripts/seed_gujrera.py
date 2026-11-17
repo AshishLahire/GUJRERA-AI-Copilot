@@ -4,6 +4,7 @@
     python scripts/seed_gujrera.py --csv public.csv     # also import public project records
     python scripts/seed_gujrera.py --no-mock --csv public.csv
     python scripts/seed_gujrera.py --add-ad-reports     # only add the starting set of reported ads
+    python scripts/seed_gujrera.py --add-order-tracking # only add compliance records for complaint orders
 
 The database location comes from GUJRERA_DB_URL (default
 data/gujrera/gujrera.sqlite). The existing database is dropped and rebuilt.
@@ -26,6 +27,7 @@ from sqlalchemy import func, select  # noqa: E402
 from gujrera.db.models import AdReport  # noqa: E402
 from gujrera.db.session import session_factory as Session_  # noqa: E402
 from gujrera.enforcement import ensure_tables, seed_reports  # noqa: E402
+from gujrera.orders import seed_compliance  # noqa: E402
 
 
 def main() -> int:
@@ -34,12 +36,19 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=None, help="mock data seed (default GUJRERA_MOCK_SEED)")
     ap.add_argument("--no-mock", action="store_true", help="skip mock data")
     ap.add_argument("--csv", type=Path, action="append", default=[], help="public projects CSV to import")
+    ap.add_argument("--add-order-tracking", action="store_true",
+                    help="keep the database; only add order compliance records")
     ap.add_argument("--add-ad-reports", action="store_true",
                     help="keep the database; only add the starting set of reported ads (enforcement cases)")
     args = ap.parse_args()
 
     settings = get_gujrera_settings()
     engine = make_engine(args.db_url)
+    if args.add_order_tracking:
+        ensure_tables(engine)
+        with Session_(engine)() as s:
+            print({"order_compliance": seed_compliance(s)})
+        return 0
     if args.add_ad_reports:
         ensure_tables(engine)
         with Session_(engine)() as s:
@@ -61,6 +70,7 @@ def main() -> int:
         with Session() as s:
             for table, n in seed_reports(s).items():
                 print(f"  {table:<18}{n:>6}")
+            print(f"  {'order_compliance':<18}{seed_compliance(s):>6}")
 
     failed = False
     for path in args.csv:

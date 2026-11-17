@@ -263,6 +263,16 @@ const STRINGS = {
   deskGroups: { en: "Group hearings possible", gu: "સાથે સુનાવણી શક્ય", hi: "साथ सुनवाई संभव" },
   deskQueue: { en: "Queue", gu: "યાદી", hi: "सूची" },
   deskBrief: { en: "Hearing brief", gu: "સુનાવણી નોંધ", hi: "सुनवाई नोट" },
+  navOrders: { en: "Order tracker", gu: "આદેશ ટ્રેકર", hi: "आदेश ट्रैकर" },
+  ordIntro: {
+    en: "Won a complaint? See what the GUJRERA order directs the promoter to do, by when, and whether it has been done, in plain language. If it has not, see what you can do next.",
+    gu: "ફરિયાદમાં જીત્યા? GUJRERA નો આદેશ પ્રમોટરને શું અને ક્યારે સુધીમાં કરવા કહે છે, અને તેનું પાલન થયું કે નહીં તે સરળ ભાષામાં જુઓ. ન થયું હોય તો આગળ શું કરી શકો તે જુઓ.",
+    hi: "शिकायत जीती? देखें कि GUJRERA का आदेश प्रमोटर को क्या और कब तक करने को कहता है, और उसका पालन हुआ या नहीं, सरल भाषा में। न हुआ हो तो आगे क्या कर सकते हैं, यह देखें।",
+  },
+  ordSearch: { en: "Order number or complaint reference", gu: "આદેશ નંબર અથવા ફરિયાદ નંબર", hi: "आदेश संख्या या शिकायत संख्या" },
+  ordOrProject: { en: "or a project", gu: "અથવા પ્રોજેક્ટ", hi: "या प्रोजेक्ट" },
+  ordFind: { en: "Find", gu: "શોધો", hi: "खोजें" },
+  ordEnforce: { en: "Orders to enforce", gu: "અમલ કરાવવાના આદેશો", hi: "लागू कराने वाले आदेश" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

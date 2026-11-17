@@ -70,6 +70,8 @@ SUGGESTIONS = {
 
 # Tests replace these with fakes; None means "use the configured self-hosted LLM".
 analytics_generate = None
+ORDER_RE = re.compile(r"\b[A-Z]{2,8}-ORD-\d{4}-\d{5}\b", re.IGNORECASE)
+ORDER_WORDS = ("order", "complied", "comply", "compliance", "આદેશ", "પાલન", "आदेश", "पालन")
 REPORT_WORDS = ("report", "pdf", "before you buy", "before buying", "due diligence", "રિપોર્ટ", "અહેવાલ આપો",
                 "ખરીદતા પહેલાં", "रिपोर्ट", "खरीदने से पहले")
 router_generate = None
@@ -256,6 +258,9 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 4. Officer analytics: standard reports, or LLM-written SQL behind the guard
     text_lc = (message or "").lower()
+    if (repo.p.role == "officer" and any(w in text_lc for w in ORDER_WORDS) and not ORDER_RE.search(message or "")
+            and not REF_RE.search(message or "") and not u.candidates):  # orders to enforce (officers only)
+        return _orders_to_enforce(repo, lang)
     if repo.p.role == "officer" and wants_triage(text_lc) and not u.candidates:  # complaint queue (officers only)
         district = next(iter(u.districts)) if len(u.districts) == 1 else None
         sentences, card = triage_reply(repo, lang, district=district)
@@ -289,6 +294,27 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         la = legal_answer(message, lang, use_llm=False if _EN_PASS.get() is not None else None)
         return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
                      suggestions=SUGGESTIONS["start"][lang])
+
+    # 6a'. Orders: what an order directs and whether it was complied with (orders are public)
+    order_no = ORDER_RE.search(message or "")
+    if order_no or (any(w in text_lc for w in ORDER_WORDS) and (REF_RE.search(message or "") or u.candidates)
+                    and "complaint_file" not in u.intents):
+        if repo.p.role == "officer" and not order_no and not REF_RE.search(message or "") and not u.candidates:
+            return _orders_to_enforce(repo, lang)
+        else:
+            from gujrera.orders import orders_for
+
+            ref = REF_RE.search(message or "")
+            projects = [c for c in u.candidates if c.kind == "project"]
+            rows = (orders_for(repo, order_no=order_no.group(0), lang=lang) if order_no else
+                    orders_for(repo, complaint_ref=ref.group(1), lang=lang) if ref else
+                    orders_for(repo, project_id=projects[0].id, lang=lang) if len(projects) == 1 else [])
+            if rows:
+                sentences = [Sentence(x["text"], x["citations"], "order_line") for r in rows[:4] for x in r["sentences"]]
+                return Reply(lang, "order_status", sentences, cards=[{"type": "orders", "items": rows[:6]}],
+                             is_mock=any(r["is_mock"] for r in rows))
+            if order_no or ref:
+                return Reply(lang, "not_found", [_say("not_found", lang, q=(order_no.group(0) if order_no else ref.group(1)))])
 
     # 6b. Complaint filing / tracking
     if "complaint_file" in u.intents or REF_RE.search(message or ""):
@@ -384,6 +410,23 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if u.intents - {"greeting"} or u.leftover.isdigit():
         return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])
     return Reply(lang, "out_of_scope", [_say("out_of_scope", lang)], suggestions=SUGGESTIONS["start"][lang])
+
+
+def _orders_to_enforce(repo: Repository, lang: str) -> Reply:
+    """Officers: orders not yet complied with (Section 63 penalty, Section 40 recovery)."""
+    from gujrera.orders import to_enforce
+
+    data = to_enforce(repo, lang)
+    k = data["counts"]
+    text = {"en": f"Orders not yet complied with: {k['overdue']} past their deadline, {k['not_complied']} recorded as not complied, "
+                  f"{k['partly_complied']} partly done, {k['recovery']} in recovery (Section 40); {k['pending']} not due yet.",
+            "gu": f"પાલન બાકી આદેશો: {k['overdue']} મુદત વીતી ગઈ, {k['not_complied']} પાલન ન થયાની નોંધ, {k['partly_complied']} આંશિક, "
+                  f"{k['recovery']} વસૂલાતમાં (કલમ 40); {k['pending']} ની મુદત બાકી.",
+            "hi": f"पालन बाकी आदेश: {k['overdue']} समय-सीमा पार, {k['not_complied']} पालन न होने की प्रविष्टि, {k['partly_complied']} आंशिक, "
+                  f"{k['recovery']} वसूली में (धारा 40); {k['pending']} का समय बाकी।"}[lang]
+    return Reply(lang, "orders_to_enforce", [Sentence(text, [{"type": "legal_act", "id": "RERA Act, 2016, Section 63",
+                                                                "is_mock": False}], "orders_enforce")],
+                 cards=[{"type": "orders", "items": data["items"][:6], "officer": True}])
 
 
 def _not_found(q: str, state: ChatState, repo: Repository, lang: str, focus: str | None) -> Reply:

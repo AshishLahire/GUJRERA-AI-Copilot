@@ -384,6 +384,14 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Found and fixed: the new timeline step was saved but missing from the complaint's in-memory events until reload.
 - Tests: `tests/test_gujrera_triage.py` (5).
 
+**PoC feature 6: order tracking in plain language (2026-11-17): done.**
+- Law (checked against the indexed Act): Section 40(1) unpaid interest, penalty or compensation recoverable as an arrear of land revenue; Section 63 daily penalty up to 5% of the project cost for not complying with the Authority's orders; Section 44 appeal within sixty days; Rule 17 refund within 45 days; Section 14(3) defects fixed within 30 days.
+- New table `order_compliance` (one row per complaint order that directs the promoter to do something): direction, deadline, status (pending, complied, partly complied, not complied, recovery), date complied, note. Added to existing databases on start-up; `python scripts/seed_gujrera.py --add-order-tracking` fills it for existing orders (105 records: 60 complied, 27 overdue, 8 partly, 8 in recovery, 2 not due). In the PoC the direction and deadline are read from each order.
+- `gujrera/orders.py`: each order explained in plain Gujarati, Hindi or English (what it directs, by when, whether done) with what the buyer can do if not (Sections 40 and 63); dismissed complaints get the appeal route (Section 44). Orders are public; no amounts or buyer details are stored with them.
+- Buyers: "Order tracker" page (by order number, complaint reference or project), chat ("has the builder complied with the order in DEMO-CMP-…?", "<project> ના આદેશનું પાલન થયું?"), complaint tracking of a disposed complaint, and a compliance badge on orders in the before-you-buy report.
+- Officers: "Orders to enforce" tab on the Complaint desk (oldest overdue first; record complied with date, partly done with what is left, not complied, recovery under Section 40), API `/orders/enforce` and `/orders/{id}/compliance`, chat ("which orders are not complied with?"). District officers see their district; updates are audited.
+- Tests: `tests/test_gujrera_orders.py` (5).
+
 ---
 
 ## 11. Risks and mitigations

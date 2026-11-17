@@ -463,7 +463,8 @@ export interface ProjectReport {
   progress: { quarter: string; percent: number; due_on: string; filed_on: string | null; state: "on_time" | "late" | "missing" | "due" }[];
   approvals: { kind: string; authority: string; status: string; ref: string | null; decided_on: string | null }[];
   complaints: { total: number; open: number; by_category: Record<string, number> };
-  orders: { order_no: string; type: string; issued_on: string; summary: string }[];
+  orders: { order_no: string; type: string; issued_on: string; summary: string;
+            compliance?: { state: string; due_on: string | null; text: string } | null }[];
   promoter: {
     name: string; projects: number | null; delayed: number | null; complaints_total: number | null;
     complaints_open: number | null; adverse_orders: number | null;
@@ -527,6 +528,35 @@ export function fetchBrief(token: string, id: number, lang: Lang): Promise<Compl
 export function updateComplaintStatus(token: string, id: number,
   body: { status: string; note?: string; hearing_on?: string; outcome?: string }): Promise<{ status: string; timeline: { at: string; status: string; note: string | null }[] }> {
   return officerFetch(`${API_BASE}/api/gujrera/complaints/${id}/status`, token, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+}
+
+
+// ------------------------------------------------------------ order tracking
+export interface OrderStatus {
+  order_id: number; order_no: string; issued_on: string; order_type: string; complaint_ref: string | null;
+  outcome: string | null; project: string | null; project_id: number | null; district: string | null; promoter: string;
+  direction: string | null; due_on: string | null;
+  state: "complied" | "partly_complied" | "pending" | "overdue" | "not_complied" | "recovery" | "dismissed" | null;
+  complied_on: string | null;
+  sentences: { text: string; citations: { type: string; id: string }[] }[];
+}
+
+export async function trackOrders(q: { order_no?: string; complaint_ref?: string; project_id?: number }, lang: Lang): Promise<{ items: OrderStatus[] }> {
+  const qs = new URLSearchParams({ lang });
+  if (q.order_no) qs.set("order_no", q.order_no);
+  if (q.complaint_ref) qs.set("complaint_ref", q.complaint_ref);
+  if (q.project_id != null) qs.set("project_id", String(q.project_id));
+  return parse(await fetch(`${API_BASE}/api/gujrera/orders/track?${qs}`));
+}
+
+export function fetchOrdersToEnforce(token: string, lang: Lang): Promise<{ counts: Record<string, number>; items: OrderStatus[] }> {
+  return officerFetch(`${API_BASE}/api/gujrera/orders/enforce?lang=${lang}`, token);
+}
+
+export function updateCompliance(token: string, orderId: number, body: { status: string; complied_on?: string; note?: string }): Promise<OrderStatus> {
+  return officerFetch(`${API_BASE}/api/gujrera/orders/${orderId}/compliance`, token, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
 }

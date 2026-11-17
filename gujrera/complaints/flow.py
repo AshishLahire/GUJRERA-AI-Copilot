@@ -360,7 +360,7 @@ def continue_tracking(message: str, state: Any, repo: Repository, lang: str) -> 
     if own is not None:  # logged-in complainant: no code needed
         state.tracking = None
         return _status_out(own["ref_no"], own["category"], own["form"], own["filed_on"], own["status"],
-                           None, own["events"], own["source"]["is_mock"], lang)
+                           None, own["events"], own["source"]["is_mock"], lang, session=repo.s)
     has_code = adapter.has_tracking_code(t.ref)
     if has_code is None:
         ref, t.ref = t.ref, None
@@ -380,7 +380,7 @@ def continue_tracking(message: str, state: Any, repo: Repository, lang: str) -> 
         return FlowOut("complaint_tracking", [_say("bad_code", lang, left=left)])
     state.tracking = None
     return _status_out(status.ref_no, status.category, status.form, status.filed_on, status.status,
-                       status.project_name, status.events, status.is_mock, lang)
+                       status.project_name, status.events, status.is_mock, lang, session=repo.s)
 
 
 def _own_complaint(repo: Repository, ref: str) -> dict[str, Any] | None:
@@ -393,7 +393,7 @@ def _own_complaint(repo: Repository, ref: str) -> dict[str, Any] | None:
 
 
 def _status_out(ref: str, category: str, form: str, filed_on, status: str, project_name: str | None,
-                events: list[dict[str, Any]], is_mock: bool, lang: str) -> FlowOut:
+                events: list[dict[str, Any]], is_mock: bool, lang: str, session: Any = None) -> FlowOut:
     sentence = Sentence(
         s("status", lang, ref=ref, category=label(category, lang), form=form,
           filed=fmt_date(filed_on, lang), status=label(status, lang)),
@@ -402,7 +402,16 @@ def _status_out(ref: str, category: str, form: str, filed_on, status: str, proje
             "status": status, "status_label": label(status, lang),
             "events": [{"at": e["at"], "status": label(e["status"], lang), "note": e["note"]} for e in events],
             "is_mock": is_mock}
-    sentences = [sentence] + ([_say("mock_note", lang)] if is_mock else [])
+    order_lines = []
+    if session is not None and status == "disposed":  # what the order directs and whether it was done
+        from sqlalchemy import select as _select
+
+        from gujrera.db.models import Complaint as _Complaint
+        from gujrera.orders import sentences_for_complaint
+
+        cid = session.scalar(_select(_Complaint.id).where(_Complaint.ref_no == ref))
+        order_lines = sentences_for_complaint(session, cid, lang) if cid else []
+    sentences = [sentence] + order_lines + ([_say("mock_note", lang)] if is_mock else [])
     return FlowOut("complaint_status", sentences, cards=[card])
 
 

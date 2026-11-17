@@ -248,6 +248,10 @@ def build_report(repo: Repository, project_id: int, lang: str = "en", *, as_of: 
     rights = [{"key": k, "text": _t(k, lang), "citations": [_act(s)]}
               for k, s in (("r13", "13"), ("r19", "19"), ("r14", "14"), ("r14_3", "14"), ("r18", "18"))]
 
+    from gujrera.orders import orders_for
+
+    compliance = {x["order_no"]: {"state": x["state"], "due_on": x["due_on"], "text": " ".join(t["text"] for t in x["sentences"][1:2])}
+                  for x in orders_for(repo, project_id=project_id, lang=lang, as_of=today) if x["state"]}
     worst = BAD if any(g["tone"] == BAD for g in glance) else WARN if any(g["tone"] == WARN for g in glance) else GOOD
     repo._audit("project_report", {"project_id": project_id})
     return {
@@ -274,7 +278,8 @@ def build_report(repo: Repository, project_id: int, lang: str = "en", *, as_of: 
                       for a in approvals],
         "complaints": {"total": complaints["total"], "open": complaints["open"], "by_category": complaints["by_category"]},
         "orders": [{"order_no": o["order_no"], "type": ORDER_WORD.get(o["order_type"], {}).get(lang, o["order_type"]),
-                    "issued_on": str(o["issued_on"]), "summary": o["summary"]} for o in orders],
+                    "issued_on": str(o["issued_on"]), "summary": o["summary"],
+                    "compliance": compliance.get(o["order_no"])} for o in orders],
         "promoter": {"name": p["promoter_name"], "projects": card.get("projects"), "delayed": card.get("delayed_projects"),
                      "complaints_total": card.get("complaints_total"), "complaints_open": card.get("complaints_open"),
                      "adverse_orders": card.get("adverse_orders"),

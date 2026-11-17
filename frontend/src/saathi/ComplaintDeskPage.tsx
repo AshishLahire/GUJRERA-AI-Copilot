@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AuthExpiredError, ComplaintBrief, TriageResponse, fetchBrief, fetchTriage, updateComplaintStatus } from "../api/gujrera";
+import { AuthExpiredError, ComplaintBrief, OrderStatus, TriageResponse, fetchBrief, fetchOrdersToEnforce, fetchTriage, updateComplaintStatus, updateCompliance } from "../api/gujrera";
+import { OrderCard } from "./OrderTrackerPage";
 import { Icon } from "./Brand";
 import { useSaathi } from "./context";
 import { En } from "./En";
@@ -192,12 +193,62 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
   );
 };
 
+const ORDER_STATUSES: [string, string][] = [["complied", "Complied"], ["partly_complied", "Partly done"], ["not_complied", "Not complied"],
+  ["recovery", "Recovery started (Section 40)"], ["pending", "Pending"]];
+
+const OrderAction: React.FC<{ o: OrderStatus; onChanged: () => void }> = ({ o, onChanged }) => {
+  const { token } = useSaathi();
+  const [status, setStatus] = useState("");
+  const [date, setDate] = useState("");
+  const [note, setNote] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const save = async () => {
+    if (!token || !status) return;
+    setMsg(null);
+    try {
+      await updateCompliance(token, o.order_id, { status, complied_on: date || undefined, note: note || undefined });
+      setStatus(""); setDate(""); setNote("");
+      onChanged();
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  };
+  return (
+    <div className="p-5 flex flex-col gap-4">
+      <ul><OrderCard o={o} /></ul>
+      <div className="rounded-lg border border-warm-border p-4 grid gap-3">
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="text-xs text-muted">Compliance
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5">
+              <option value="">—</option>
+              {ORDER_STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          {status === "complied" && (
+            <label className="text-xs text-muted">Complied on
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5" />
+            </label>
+          )}
+        </div>
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={status === "partly_complied" ? "What is done and what is left (required)" : "Note (optional)"}
+          className="rounded-md border border-warm-border bg-card text-body text-sm px-3 py-2" />
+        <div className="flex items-center gap-3">
+          <button type="button" disabled={!status} onClick={() => void save()} className="px-4 py-2 rounded-lg bg-primary-bg text-primary-text text-sm font-semibold disabled:opacity-40">Update</button>
+          {msg && <span role="alert" className="text-xs text-red-700 dark:text-red-300">{msg}</span>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const ComplaintDeskPage: React.FC = () => {
   const { user, token, lang, logout } = useSaathi();
   const allowed = user?.role === "officer";
   const [data, setData] = useState<TriageResponse | null>(null);
   const [category, setCategory] = useState("");
-  const [tab, setTab] = useState<"queue" | "groups">("queue");
+  const [tab, setTab] = useState<"queue" | "groups" | "orders">("queue");
+  const [orders, setOrders] = useState<{ counts: Record<string, number>; items: OrderStatus[] } | null>(null);
+  const [orderSel, setOrderSel] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -208,6 +259,12 @@ export const ComplaintDeskPage: React.FC = () => {
       .catch((e) => { if (e instanceof AuthExpiredError) logout(); setError((e as Error).message); });
   }, [allowed, token, lang, category, logout]);
   useEffect(load, [load]);
+  const loadOrders = useCallback(() => {
+    if (!allowed || !token) return;
+    fetchOrdersToEnforce(token, lang).then((d) => { setOrders(d); setOrderSel((s) => s ?? d.items[0]?.order_id ?? null); })
+      .catch((e) => { if (e instanceof AuthExpiredError) logout(); setError((e as Error).message); });
+  }, [allowed, token, lang, logout]);
+  useEffect(() => { if (tab === "orders") loadOrders(); }, [tab, loadOrders]);
 
   const s = data?.summary;
   const byRef = new Map((data?.items ?? []).map((i) => [i.ref_no, i.id]));
@@ -235,10 +292,10 @@ export const ComplaintDeskPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-3 print:hidden">
             <div className="flex rounded-lg border border-warm-border p-0.5" role="tablist">
-              {(["queue", "groups"] as const).map((t) => (
+              {(["queue", "groups", "orders"] as const).map((t) => (
                 <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold ${tab === t ? "bg-subtle text-body ring-1 ring-warm-strong" : "text-muted hover:text-body"}`}>
-                  {t === "queue" ? `${tr("deskQueue", "en")} (${data!.items.length})` : `${tr("deskGroups", "en")} (${data!.groups.length})`}
+                  {t === "queue" ? `${tr("deskQueue", "en")} (${data!.items.length})` : t === "groups" ? `${tr("deskGroups", "en")} (${data!.groups.length})` : `${tr("ordEnforce", "en")}${orders ? ` (${orders.items.length})` : ""}`}
                 </button>
               ))}
             </div>
@@ -252,7 +309,26 @@ export const ComplaintDeskPage: React.FC = () => {
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start">
             <div className="rounded-xl border border-warm-border bg-card overflow-hidden print:hidden">
-              {tab === "queue" ? (
+              {tab === "orders" ? (
+                <ul className="divide-y divide-warm-border max-h-[70vh] overflow-auto">
+                  {(orders?.items ?? []).map((o) => (
+                    <li key={o.order_id}>
+                      <button type="button" onClick={() => setOrderSel(o.order_id)}
+                        className={`relative w-full text-left px-4 py-3 hover:bg-subtle ${orderSel === o.order_id ? "bg-subtle" : ""}`}>
+                        {orderSel === o.order_id && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand" />}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-body font-mono">{o.order_no}</div>
+                            <div className="text-[11px] text-muted truncate">{o.project ?? "—"} · {o.promoter} · due {o.due_on}</div>
+                          </div>
+                          <span className="text-[11px] font-semibold whitespace-nowrap">{o.state?.replace(/_/g, " ")}</span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                  {orders && orders.items.length === 0 && <li className="px-4 py-6 text-sm text-muted text-center">No orders waiting for compliance.</li>}
+                </ul>
+              ) : tab === "queue" ? (
                 <ul className="divide-y divide-warm-border max-h-[70vh] overflow-auto">
                   {data!.items.map((i) => (
                     <li key={i.id}>
@@ -292,7 +368,11 @@ export const ComplaintDeskPage: React.FC = () => {
               )}
             </div>
             <div className="rounded-xl border border-warm-border bg-card lg:sticky lg:top-20 print:border-0">
-              {selected ? <Brief id={selected} onChanged={load} /> : <div className="p-6 text-sm text-muted">Select a complaint.</div>}
+              {tab === "orders"
+                ? (orders?.items.find((o) => o.order_id === orderSel)
+                  ? <OrderAction o={orders!.items.find((o) => o.order_id === orderSel)!} onChanged={loadOrders} />
+                  : <div className="p-6 text-sm text-muted">Select an order.</div>)
+                : selected ? <Brief id={selected} onChanged={load} /> : <div className="p-6 text-sm text-muted">Select a complaint.</div>}
             </div>
           </div>
         </>

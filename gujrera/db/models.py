@@ -308,3 +308,24 @@ class AdReport(Base):
     text_hash: Mapped[str] = mapped_column(String(64), index=True)  # same ad reported twice is one report
     reporter_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class OrderCompliance(Base):
+    """Whether the promoter has done what an order directs (refund, interest, repairs ...), by when.
+
+    status: pending (deadline not passed, or passed and nothing recorded: shown as overdue), complied,
+    partly_complied, not_complied (reported by the buyer or found by the officer), recovery (recovery as
+    arrears of land revenue started, Section 40).
+    """
+
+    __tablename__ = "order_compliance"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), unique=True, index=True)
+    direction: Mapped[str] = mapped_column(String(40))  # see gujrera.orders.DIRECTIONS
+    due_on: Mapped[date] = mapped_column(Date, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    complied_on: Mapped[date | None] = mapped_column(Date)
+    updated_on: Mapped[date] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(String(300))
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False)

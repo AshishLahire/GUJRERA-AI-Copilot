@@ -100,6 +100,12 @@ class ComplaintStatusUpdate(BaseModel):
     outcome: str | None = None
 
 
+class ComplianceUpdate(BaseModel):
+    status: str
+    complied_on: date | None = None
+    note: str | None = None
+
+
 class InterestRequest(BaseModel):
     project_id: int
     mode: str = "stay"  # stay | withdraw
@@ -409,6 +415,35 @@ def enforcement_case_update(case_id: int, body: CaseUpdate, repo: Repository = D
     if case is None:
         raise HTTPException(404, "Case not found.")
     return case
+
+
+@router.get("/orders/track")
+def orders_track(order_no: str | None = Query(None, max_length=40), complaint_ref: str | None = Query(None, max_length=40),
+                 project_id: int | None = Query(None), lang: str = Query("en"),
+                 repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    """Public: what complaint orders direct and whether they were complied with."""
+    from gujrera.orders import orders_for
+
+    if not (order_no or complaint_ref or project_id is not None):
+        raise HTTPException(400, "Give an order number, a complaint reference or a project.")
+    return {"items": orders_for(repo, order_no=order_no, complaint_ref=complaint_ref, project_id=project_id, lang=_lang(lang))}
+
+
+@router.get("/orders/enforce")
+def orders_enforce(lang: str = Query("en"), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.orders import to_enforce
+
+    return _officer_or_403(to_enforce, repo, _lang(lang))
+
+
+@router.post("/orders/{order_id}/compliance")
+def orders_compliance(order_id: int, body: ComplianceUpdate, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.orders import update
+
+    out = _officer_or_403(update, repo, order_id, body.status, complied_on=body.complied_on, note=body.note)
+    if out is None:
+        raise HTTPException(404, "Order not found.")
+    return out
 
 
 @router.get("/complaints/triage")

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CalcProject, ProjectReport, fetchProjectReport } from "../api/gujrera";
 import { BrandMark, Icon } from "./Brand";
 import { ProjectPicker } from "./CalculatorPage";
+import { StateChip } from "./OrderTrackerPage";
 import { useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
@@ -262,7 +263,11 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
               <H k="repOrders" />
               <ul className="text-sm flex flex-col gap-1.5">
                 {rep.orders.map((o) => (
-                  <li key={o.order_no}><span className="font-mono text-xs">{o.order_no}</span> · {o.type} · {fmt(o.issued_on)}<div className="text-xs text-muted">{o.summary}</div></li>
+                  <li key={o.order_no}>
+                    <span className="font-mono text-xs">{o.order_no}</span> · {o.type} · {fmt(o.issued_on)}
+                    {o.compliance && <span className="ml-2"><StateChip state={o.compliance.state} /></span>}
+                    <div className="text-xs text-muted">{o.summary}{o.compliance?.text ? ` ${o.compliance.text}` : ""}</div>
+                  </li>
                 ))}
               </ul>
             </section>
