@@ -23,6 +23,7 @@ from gujrera.analytics.engine import answer as analytics_answer
 from gujrera.analytics.engine import s as analytics_text
 from gujrera.analytics.reports import looks_like_analytics, match_report
 from gujrera.chat.understand import Candidate, Understanding, understand
+from gujrera.legal.answer import answer as legal_answer
 from gujrera.complaints.flow import (
     CODE_RE,
     REF_RE,
@@ -211,7 +212,13 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         if reply:
             return reply
 
-    # 6. Complaint filing / tracking
+    # 6. Questions about the law: RAG over the RERA Act, Gujarat Rules and orders
+    if "legal" in u.intents and not u.candidates and not u.project_numbers and "complaint_file" not in u.intents:
+        la = legal_answer(message, lang)
+        return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
+                     suggestions=SUGGESTIONS["start"][lang])
+
+    # 6b. Complaint filing / tracking
     if "complaint_file" in u.intents or REF_RE.search(message or ""):
         if (repo.p.role == "citizen" and repo.p.user_id is not None and not REF_RE.search(message or "")
                 and wants_tracking(message)):

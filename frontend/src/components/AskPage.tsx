@@ -138,6 +138,29 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
       </div>
     );
   }
+  if (card.type === "legal") {
+    const hits = (card.hits as { label: string; title: string; excerpt: string; page: number | null }[]) ?? [];
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-body">Provisions used</span>
+          <span className="px-2 py-0.5 rounded-full border border-warm-border text-[10px] text-muted">
+            {card.summary_by === "llm" ? "AI summary, checked against these provisions" : "Quoted from the law"}
+          </span>
+        </div>
+        {hits.map((h) => (
+          <details key={h.label} className="rounded-md border border-warm-border bg-card px-2.5 py-1.5">
+            <summary className="cursor-pointer">
+              <span className="font-semibold text-body">{h.label}</span>
+              <span className="text-muted"> · {h.title}{h.page ? ` · p. ${h.page}` : ""}</span>
+            </summary>
+            <p className="mt-1 text-muted whitespace-pre-wrap">{h.excerpt}</p>
+          </details>
+        ))}
+        <p className="text-muted">Source: RERA Act, 2016 and Gujarat RERA General Rules, 2017 (GUJRERA website). The Act copy is a scan read by OCR; check the official text before relying on it.</p>
+      </div>
+    );
+  }
   if (card.type === "analytics") {
     return <AnalyticsCard card={card as unknown as AnalyticsCardData} />;
   }

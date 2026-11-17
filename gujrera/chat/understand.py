@@ -36,6 +36,12 @@ INTENT_WORDS: dict[str, tuple[str, ...]] = {
     "complaints": ("complaint", "complaints", "ફરિયાદ", "शिकायत"),
     "trust": ("genuine", "fake", "real or", "legit", "verify", "is this", "scam", "fraud", "check this",
               "સાચું", "સાચો", "નકલી", "ખોટું", "असली", "नकली", "फर्जी", "सही है"),
+    "legal": ("section", "rule", "rules", "rera act", "the act", "law", "legal", "legally", "my rights",
+              "rights of", "entitled", "allowed to", "can the builder", "can a builder", "can the promoter",
+              "can a promoter", "is it legal", "what does rera", "rera say", "obligation", "can i get",
+              "am i entitled", "if the builder", "if the promoter", "what can i do",
+              "કલમ", "નિયમ", "કાયદો", "કાયદા", "અધિકાર", "મને મળે", "મળી શકે", "લઈ શકે", "કરી શકે",
+              "धारा", "नियम", "कानून", "अधिकार", "हक", "मिल सकता", "मिलेगा क्या", "सकता है", "क्या मुझे"),
     "agent": ("agent", "broker", "એજન્ટ", "દલાલ", "एजेंट", "दलाल"),
     "greeting": ("hello", "hi", "namaste", "namaskar", "help", "નમસ્તે", "મદદ", "नमस्ते", "मदद"),
 }

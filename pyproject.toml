@@ -36,6 +36,13 @@ dev = [
 ui = [
     "streamlit>=1.32",
 ]
+# GUJRERA legal RAG and OCR: multilingual-e5 embeddings and Tesseract (install the Tesseract program
+# with Gujarati, Hindi and English data separately).
+gujrera-ai = [
+    "sentence-transformers>=2.7",
+    "numpy>=1.26",
+    "pytesseract>=0.3.10",
+]
 
 [tool.setuptools.packages.find]
 include = ["factcheck*", "gujrera*"]

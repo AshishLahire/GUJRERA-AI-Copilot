@@ -68,3 +68,6 @@ frontend/dist/
 
 
 .venv.*/
+# Official legal texts downloaded for RAG (re-fetch with scripts/build_gujrera_legal_index.py)
+data/gujrera/legal/
+data/gujrera/legal_index/

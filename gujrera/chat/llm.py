@@ -13,13 +13,15 @@ so only a local Ollama endpoint is supported.
 from __future__ import annotations
 
 import re
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import httpx
 
 from factcheck.lang.normalize import normalize_digits
 from gujrera.config import get_gujrera_settings
-from gujrera.chat.orchestrator import Reply
+
+if TYPE_CHECKING:  # avoid a circular import with the orchestrator
+    from gujrera.chat.orchestrator import Reply
 
 LANG_NAMES = {"en": "English", "gu": "Gujarati", "hi": "Hindi"}
 _MARK = re.compile(r"\[(\d+)\]")

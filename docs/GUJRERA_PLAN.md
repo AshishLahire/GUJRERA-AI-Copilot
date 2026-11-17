@@ -310,6 +310,13 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Console: analytics card with chart, table, CSV download (formula-safe) and the SQL.
 - Evaluation (`docs/gujrera_analytics_eval.md`): 27/27 questions routed correctly in three languages, 0 wrong reports, 30/30 attacks blocked, district scope held 126/126, report p95 3.5 ms. LLM path: correct SQL for "average delay by project type" in about 30 s with the installed thinking model; a non-thinking SQL model is needed for interactive speed.
 
+**Legal RAG (2026-11-17): done.**
+- Sources: RERA Act 2016 and Gujarat RERA General Rules 2017, downloaded from the GUJRERA website into `data/gujrera/legal/` (not committed). The Act copy there is a scan, read with Tesseract OCR; 82 of 92 section headings were recovered, the rest are indexed under the preceding section. The Rules' Annexure A (model agreement for sale) is indexed separately. RERA orders come from the database.
+- `gujrera/legal/`: section splitter, multilingual-e5 + keyword (BM25) search with rank fusion, exact lookup for "Section 18" / "કલમ 18" / "धारा 18" / "Rule 16", a Gujarati/Hindi→English RERA glossary for queries, and an off-topic guard.
+- Answers: which provision applies (in the user's language), an English summary from `qwen2.5:7b-instruct` kept only if every sentence is cited and no number is new (otherwise the provision is quoted), and a "not legal advice" line. The 7B model's Gujarati/Hindi output was unusable, so summaries stay English until IndicTrans2 is added.
+- Evaluation (`docs/gujrera_legal_eval.md`): right provision in the top 3 for 25/25 questions (22 ranked first) in three languages; 7/7 off-topic questions answered "not found"; 21/25 LLM summaries passed the guard, 3.7 s average on an RTX 3070 Ti.
+- Models: `qwen2.5:7b-instruct` is now the default for chat rephrasing, legal summaries and officer SQL.
+
 ---
 
 ## 11. Risks and mitigations
