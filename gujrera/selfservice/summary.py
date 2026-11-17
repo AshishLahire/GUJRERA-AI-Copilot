@@ -9,6 +9,8 @@ Gujarat Rules before the pilot.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
@@ -159,8 +161,16 @@ def fmt_inr(amount: float) -> str:
     return ",".join(groups) + "," + tail
 
 
+def _word_in(word: str, text_lc: str) -> bool:
+    """English words match whole words only ("owe" must not match "towers"); Indic words as substrings,
+    since they take suffixes ("ચુકવણીઓ")."""
+    if word.isascii():
+        return re.search(rf"(?<![a-z]){re.escape(word.strip())}(?![a-z])", text_lc) is not None
+    return word in text_lc
+
+
 def focus_of(text_lc: str) -> set[str]:
-    return {f for f, words in FOCUS_WORDS.items() if any(w in text_lc for w in words)}
+    return {f for f, words in FOCUS_WORDS.items() if any(_word_in(w, text_lc) for w in words)}
 
 
 PRIVATE_WORDS = ("dues", "outstanding", "what do i owe", "બાકી ચુકવણી", "बकाया")
@@ -172,8 +182,8 @@ SUMMARY_WORDS = ("compliance", "summary", "dashboard", "what is pending", "what'
 
 def is_self_service(text_lc: str) -> bool:
     """A question about the asker's own compliance ("my dues", "pending notices", "my compliance summary")."""
-    own = any(w in text_lc for w in (*SELF_WORDS, *PRIVATE_WORDS))
-    return own and (bool(focus_of(text_lc)) or any(w in text_lc for w in SUMMARY_WORDS))
+    own = any(_word_in(w, text_lc) for w in (*SELF_WORDS, *PRIVATE_WORDS))
+    return own and (bool(focus_of(text_lc)) or any(_word_in(w, text_lc) for w in SUMMARY_WORDS))
 
 
 @dataclass

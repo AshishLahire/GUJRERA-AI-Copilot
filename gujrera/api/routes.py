@@ -27,6 +27,7 @@ for multi-instance deployment.
 from __future__ import annotations
 
 import threading
+from contextlib import asynccontextmanager
 import time
 import uuid
 from collections import OrderedDict
@@ -106,6 +107,19 @@ class _Sessions:
 
 SESSIONS = _Sessions()
 
+# Sync endpoints run in a thread pool (40 threads by default). A question that waits on the LLM holds
+# its thread while it queues for the GPU, so with the default a few slow questions starve fast ones.
+API_THREADS = 200
+
+
+@asynccontextmanager
+async def lifespan(_app):  # noqa: ANN001
+    """Pass to FastAPI(lifespan=...) in any app that mounts this router."""
+    import anyio.to_thread
+
+    anyio.to_thread.current_default_thread_limiter().total_tokens = API_THREADS
+    yield
+
 
 @lru_cache
 def _engine() -> Engine:
@@ -121,8 +135,20 @@ def get_session() -> Iterator[Session]:
         session.commit()  # keeps the audit log
 
 
+def _commit_now(session: Session):
+    """Audit sink: write the row in its own short transaction on the same database."""
+    engine = session.get_bind()
+
+    def sink(row) -> None:  # noqa: ANN001
+        with Session(engine) as s:
+            s.add(row)
+            s.commit()
+
+    return sink
+
+
 def citizen_repo(session: Session = Depends(get_session)) -> Repository:
-    return Repository(session, Principal.anonymous())
+    return Repository(session, Principal.anonymous(), audit_sink=_commit_now(session))
 
 
 def _bearer(authorization: str | None) -> str | None:
@@ -144,7 +170,7 @@ def current_user(session: Session = Depends(get_session),
 
 
 def user_repo(session: Session = Depends(get_session), user: User | None = Depends(current_user)) -> Repository:
-    return Repository(session, principal_for(user))
+    return Repository(session, principal_for(user), audit_sink=_commit_now(session))
 
 
 def _user_dict(session: Session, user: User) -> dict[str, Any]:
@@ -190,7 +216,7 @@ def login(body: LoginRequest, session: Session = Depends(get_session)) -> dict[s
         user = authenticate(session, body.username, body.password)
     except LoginError as exc:
         raise HTTPException(429 if exc.locked else 401, str(exc)) from None
-    Repository(session, principal_for(user))._audit("login", {"username": user.username})
+    Repository(session, principal_for(user), audit_sink=_commit_now(session))._audit("login", {"username": user.username})
     return {"token": issue_token(user), "user": _user_dict(session, user)}
 
 

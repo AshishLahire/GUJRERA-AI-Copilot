@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 from rapidfuzz import fuzz, process
 from sqlalchemy import Select, select, text
@@ -77,14 +77,23 @@ def _row(obj: Any, source_type: str, source_id: str, exclude: tuple[str, ...] = 
 
 
 class Repository:
-    def __init__(self, session: Session, principal: Principal):
+    def __init__(self, session: Session, principal: Principal,
+                 audit_sink: Callable[[AuditLog], None] | None = None):
+        """``audit_sink`` writes each audit row somewhere other than this session. The API uses it to
+        commit audit rows at once, so a request that then waits on the LLM does not hold the
+        database write lock. Without it, rows are added to this session (committed with it)."""
         self.s = session
         self.p = principal
+        self._audit_sink = audit_sink
 
     # ------------------------------------------------------------------ audit
     def _audit(self, action: str, detail: dict[str, Any]) -> None:
-        self.s.add(AuditLog(at=datetime.now(timezone.utc).replace(tzinfo=None), user_id=self.p.user_id,
-                            role=self.p.role, action=action, detail=json.dumps(detail, default=str)))
+        row = AuditLog(at=datetime.now(timezone.utc).replace(tzinfo=None), user_id=self.p.user_id,
+                       role=self.p.role, action=action, detail=json.dumps(detail, default=str))
+        if self._audit_sink is not None:
+            self._audit_sink(row)
+            return
+        self.s.add(row)
         self.s.flush()
 
     # ---------------------------------------------------------- public data

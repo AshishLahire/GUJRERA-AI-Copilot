@@ -13,7 +13,7 @@ from gujrera.api.routes import get_session, router
 from gujrera.chat.gold import build_gold
 from gujrera.chat.llm import guard, make_rephraser
 from gujrera.chat.orchestrator import ChatState, respond
-from gujrera.chat.understand import detect_language
+from gujrera.chat.understand import detect_language, sound_key, suggest_names
 from gujrera.db.models import Project, Promoter
 from gujrera.db.repository import Principal, Repository
 from gujrera.db.session import init_db, make_engine, session_factory
@@ -283,3 +283,28 @@ def test_did_you_mean_offers_close_names_but_never_answers(repo):
     choice = next(o["n"] for o in out["options"] if o["id"] == p.id)
     out = ask(repo, state, str(choice))
     assert out["intent"] == "possession" and out["sources"][0]["id"] == p.rera_no
+
+
+def test_sound_key_lines_up_speech_spellings():
+    assert sound_key("Mongol arcade") == sound_key("Mangal Arcade")
+    assert sound_key("Gerner") == sound_key("Girnar")
+    assert sound_key("sovarna") == sound_key("Suvarna")
+    assert sound_key("Angon, Vihar") == sound_key("Aangan Vihar")
+    assert sound_key("મંગલ") == ""  # Latin script only
+
+
+def test_misheard_name_is_offered_not_answered(repo):
+    """Speech-to-text writes Gujarati names as they sound; the right name is offered, never auto-answered."""
+    p = next(x for x in repo.s.scalars(select(Project)) if x.name.lower().startswith("mangal "))
+    heard = "mongol " + p.name.split(" ", 1)[1].lower()
+    out = ask(repo, ChatState(), f"When will I get possession of my flat in {heard}?")
+    assert out["intent"] == "did_you_mean" and not out["sources"]
+    assert any(o["kind"] == "project" and o["id"] == p.id for o in out["options"])
+    assert not suggest_names(repo.s, "blue lagoon residency")
+
+
+def test_english_focus_words_match_whole_words_only():
+    from gujrera.selfservice.summary import focus_of
+
+    assert "dues" not in focus_of("possession of my flat in mangal towers")  # "owe" inside "towers"
+    assert "dues" in focus_of("what do i owe") and "dues" in focus_of("મારી બાકી ચુકવણીઓ")

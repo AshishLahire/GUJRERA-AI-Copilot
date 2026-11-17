@@ -43,6 +43,7 @@ from factcheck.schemas import (
     RetrievalResult,
     VerdictResult,
 )
+from gujrera.api.routes import lifespan as gujrera_lifespan
 from gujrera.api.routes import router as gujrera_router
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -466,6 +467,7 @@ def create_app() -> FastAPI:
         title="GujRERA Saathi API",
         description="Multilingual document & claim verification backend",
         version="0.1.0",
+        lifespan=gujrera_lifespan,
     )
 
     app.add_middleware(

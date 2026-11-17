@@ -220,7 +220,13 @@ def _model():
 
         name = get_gujrera_settings().GUJRERA_EMBEDDING_MODEL
         try:
-            _MODEL = SentenceTransformer(name, local_files_only=True)
+            # transformers 5 asks huggingface.co whether the model is a Mistral model while loading the
+            # tokenizer, even with local_files_only (is_base_mistral -> model_info). Without a network
+            # that crashes the load, so answer "no tags" locally: e5 is not a Mistral model.
+            from unittest import mock
+
+            with mock.patch("huggingface_hub.model_info", lambda *a, **k: mock.Mock(tags=None)):
+                _MODEL = SentenceTransformer(name, local_files_only=True)
         except Exception:  # noqa: BLE001 - not cached yet
             _MODEL = SentenceTransformer(name)
     return _MODEL

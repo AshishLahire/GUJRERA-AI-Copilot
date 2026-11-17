@@ -1,0 +1,31 @@
+id,lang,kind,text,expect_intent,expect_type,expect_id
+gu_01,gu,possession,અક્ષર વિહાર માં મારા ફ્લેટનું પઝેશન ક્યારે મળશે?,possession,project,PR/GJ/SURAT/OLPAD/SUDA/MOCK00004/140523|project:4|4
+gu_02,gu,possession,ગિરનાર ઓર્કિડ માં મારા ફ્લેટનું પઝેશન ક્યારે મળશે?,possession,project,PR/GJ/SURAT/OLPAD/SUDA/MOCK00005/290224|project:5|5
+gu_03,gu,possession,સર્જન ટાવર્સ માં મારા ફ્લેટનું પઝેશન ક્યારે મળશે?,possession,project,PR/GJ/SURAT/OLPAD/SUDA/MOCK00008/150925|project:8|8
+gu_04,gu,promoter,બિલ્ડર કેસર બિલ્ડર્સ વિશે જણાવો,promoter_profile,promoter,1|promoter:1
+gu_05,gu,promoter,બિલ્ડર આંગણ ડેવલપર્સ વિશે જણાવો,promoter_profile,promoter,2|promoter:2
+gu_06,gu,project,મંગલ સ્ક્વેર ની માહિતી આપો,project_profile|possession,project,PR/GJ/SURAT/SURAT CITY/SUDA/MOCK00009/240723|project:9|9
+gu_07,gu,project,આંગણ આર્કેડ ની માહિતી આપો,project_profile|possession,project,PR/GJ/BHAVNAGAR/BHAVNAGAR/BADA/MOCK00011/100326|project:11|11
+gu_08,gu,complaints,પ્રથમ ઓર્કિડ સામે કેટલી ફરિયાદો છે?,complaints|project_profile,project,PR/GJ/RAJKOT/RAJKOT/RUDA/MOCK00013/241125|project:13|13
+gu_09,gu,complaints,આંગણ એવન્યુ સામે કેટલી ફરિયાદો છે?,complaints|project_profile,project,PR/GJ/RAJKOT/RAJKOT/RUDA/MOCK00014/100924|project:14|14
+gu_10,gu,legal,રેરા કાયદાની કલમ 18 શું કહે છે?,legal,legal_act,Section 18
+hi_01,hi,possession,Utsav Residency में मेरे फ्लैट का पज़ेशन कब मिलेगा?,possession,project,PR/GJ/SURAT/SURAT CITY/SUDA/MOCK00016/301224|project:16|16
+hi_02,hi,possession,Vasant Plaza में मेरे फ्लैट का पज़ेशन कब मिलेगा?,possession,project,PR/GJ/SURAT/OLPAD/SUDA/MOCK00017/070523|project:17|17
+hi_03,hi,possession,Utsav Square में मेरे फ्लैट का पज़ेशन कब मिलेगा?,possession,project,PR/GJ/SURAT/CHORYASI/SUDA/MOCK00018/110725|project:18|18
+hi_04,hi,promoter,बिल्डर Prakash Builders के बारे में बताइए,promoter_profile,promoter,3|promoter:3
+hi_05,hi,promoter,बिल्डर Tapi Developers के बारे में बताइए,promoter_profile,promoter,4|promoter:4
+hi_06,hi,project,Aangan Enclave की जानकारी दीजिए,project_profile|possession,project,PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/MOCK00019/280923|project:19|19
+hi_07,hi,project,Girnar Residency की जानकारी दीजिए,project_profile|possession,project,PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/MOCK00020/190825|project:20|20
+hi_08,hi,complaints,Girnar Greens के खिलाफ कितनी शिकायतें हैं?,complaints|project_profile,project,PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/MOCK00025/080126|project:25|25
+hi_09,hi,complaints,Utsav Plaza के खिलाफ कितनी शिकायतें हैं?,complaints|project_profile,project,PR/GJ/VADODARA/VADODARA/VUDA/MOCK00027/310325|project:27|27
+hi_10,hi,legal,रेरा कानून की धारा 18 क्या कहती है?,legal,legal_act,Section 18
+en_01,en,possession,When will I get possession of my flat in Aangan Vihar?,possession,project,PR/GJ/VADODARA/VADODARA/VUDA/MOCK00028/130822|project:28|28
+en_02,en,possession,When will I get possession of my flat in Sarjan Homes?,possession,project,PR/GJ/AHMEDABAD/SANAND/AUDA/MOCK00032/190525|project:32|32
+en_03,en,possession,When will I get possession of my flat in Mangal Arcade?,possession,project,PR/GJ/RAJKOT/RAJKOT/RUDA/MOCK00033/040624|project:33|33
+en_04,en,promoter,Tell me about the builder Suvarna Builders,promoter_profile,promoter,5|promoter:5
+en_05,en,promoter,Tell me about the builder Girnar Infra,promoter_profile,promoter,6|promoter:6
+en_06,en,project,Give me the details of Navrang Elite,project_profile|possession,project,PR/GJ/BHAVNAGAR/BHAVNAGAR/BADA/MOCK00037/290325|project:37|37
+en_07,en,project,Give me the details of Aangan Homes,project_profile|possession,project,PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/MOCK00039/040122|project:39|39
+en_08,en,complaints,How many complaints are there against Utsav Arcade?,complaints|project_profile,project,PR/GJ/VADODARA/VADODARA/VUDA/MOCK00041/041223|project:41|41
+en_09,en,complaints,How many complaints are there against Utsav Vihar?,complaints|project_profile,project,PR/GJ/VADODARA/VADODARA/VUDA/MOCK00042/291224|project:42|42
+en_10,en,legal,What does section eighteen of the RERA Act say about refunds?,legal,legal_act,Section 18

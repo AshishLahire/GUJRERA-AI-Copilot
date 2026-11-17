@@ -13,9 +13,9 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from gujrera.api.routes import router
+from gujrera.api.routes import lifespan, router
 
-app = FastAPI(title="GujRERA Saathi API (dev)", version="0.1.0")
+app = FastAPI(title="GujRERA Saathi API (dev)", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],

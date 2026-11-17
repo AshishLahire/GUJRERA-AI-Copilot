@@ -339,6 +339,13 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - New civic design (white and deep blue, saffron accent) in `frontend/src/saathi/`: header with Gujarati/Hindi/English switch, login and theme toggle; home page (ask box, four tasks, role cards, trust points); Ask Saathi; Check an ad; promoter compliance dashboard; officer analytics workspace; footer stating it is a demo and not an official GUJRERA service.
 - Pramaan's original screens (Verify, Narratives, Evaluation) are no longer reachable from the UI; the code is kept.
 
+**Evaluation gaps closed for the GUJRERA meeting (2026-11-17).** One-page summary: `docs/gujrera_eval.md`.
+- Access control (`scripts/eval_gujrera_access.py`): 31 cross-tenant attempts through the real API in three languages (other promoters' dues, analytics without the officer role, other districts, other buyers' complaints, session reuse, forged and expired tokens); all blocked, no leaks.
+- Offline (`scripts/check_gujrera_offline.py`): every demo flow with outside network blocked inside Python and the local LLM on. Found and fixed: the e5 embedding model (law answers) crashed without internet because transformers 5 asks huggingface.co about Mistral models even with `local_files_only`; Whisper also tried the Hub first. Both now load from the local copy.
+- Load (`scripts/load_test_gujrera.py`): a real server with 100 users. The first run failed (165 errors): SQLite "database is locked", a 40-thread pool held by LLM questions, and a 15-connection pool. Fixed: audit rows commit in their own short transaction (`Repository(audit_sink=...)`), SQLite WAL with a 30 s wait, a 200-thread pool (`routes.lifespan`), a larger SQLite pool.
+- Voice (`scripts/eval_gujrera_voice.py`): 30-prompt recording sheet (`docs/gujrera_voice_recording_sheet.md`), WER/CER and task success. Only computer-voice English clips so far; real gu/hi/en recordings are needed. Whisper writes Gujarati names as they sound ("Mongol arcade"), so "Did you mean …?" now also compares consonant skeletons (`sound_key`) for Latin script.
+- Fixed on the way: self-service focus words matched inside other words ("owe" in "Towers"), so a misheard "… Towers" project got "please log in to see your dues".
+
 ---
 
 ## 11. Risks and mitigations

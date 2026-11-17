@@ -55,11 +55,11 @@ def get_whisper_model() -> WhisperModel:
         with _model_lock:
             if _whisper_model is None:
                 cfg = get_settings()
-                _whisper_model = WhisperModel(
-                    cfg.WHISPER_MODEL,
-                    device=cfg.WHISPER_DEVICE,
-                    compute_type=cfg.WHISPER_COMPUTE_TYPE,
-                )
+                kwargs = dict(device=cfg.WHISPER_DEVICE, compute_type=cfg.WHISPER_COMPUTE_TYPE)
+                try:  # cached copy first, so an offline (on-premise) machine never calls the Hub
+                    _whisper_model = WhisperModel(cfg.WHISPER_MODEL, local_files_only=True, **kwargs)
+                except Exception:  # noqa: BLE001 - not downloaded yet
+                    _whisper_model = WhisperModel(cfg.WHISPER_MODEL, **kwargs)
     return _whisper_model
 
 

@@ -25,11 +25,19 @@ def make_engine(url: str | None = None) -> Engine:
     parsed = make_url(url)
     if parsed.get_backend_name() == "sqlite" and parsed.database not in (None, "", ":memory:"):
         Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(url)
+    file_sqlite = parsed.get_backend_name() == "sqlite" and parsed.database not in (None, "", ":memory:")
+    # Wait up to 30 s for another writer instead of failing after 5 s (many users at once).
+    # SQLite connections are cheap; a request waiting on the LLM keeps its connection, so allow many.
+    engine = (create_engine(url, connect_args={"timeout": 30}, pool_size=20, max_overflow=200, pool_timeout=60)
+              if file_sqlite else create_engine(url))
     if parsed.get_backend_name() == "sqlite":
         @event.listens_for(engine, "connect")
         def _fk_on(dbapi_conn, _record):  # noqa: ANN001
             dbapi_conn.execute("PRAGMA foreign_keys = ON")
+            if file_sqlite:
+                # WAL: readers never block the writer and the writer never blocks readers.
+                dbapi_conn.execute("PRAGMA journal_mode = WAL")
+                dbapi_conn.execute("PRAGMA synchronous = NORMAL")
     return engine
 
 

@@ -151,18 +151,66 @@ def find_candidates(session: Session, text_lc: str, threshold: float = FUZZY_THR
     return sorted(found, key=lambda c: (-c.score, c.kind, c.id))
 
 
+_SOUND_RULES = [(r"ph", "f"), (r"[qc]k|ck|q", "k"), (r"c(?=[eiy])", "s"), (r"c", "k"), (r"g(?=[eiy])", "j"),
+                (r"z", "j"), (r"v", "w"), (r"x", "ks"), (r"h", ""), (r"[aeiouy]", ""), (r"(.)\1+", r"\1")]
+
+
+def sound_key(text: str) -> str:
+    """Consonant skeleton of romanised words, so speech-to-text spellings of Gujarati names line up:
+    "Mongol arcade" / "Mangal Arcade" -> "mngl rkd", "Gerner" / "Girnar" -> "jrnr", "sovarna" / "Suvarna"
+    -> "swrn". Only for Latin script; returns "" otherwise."""
+    words = re.findall(r"[a-z]+", text.lower())
+    out = []
+    for w in words:
+        for pat, rep in _SOUND_RULES:
+            w = re.sub(pat, rep, w)
+        if w:
+            out.append(w)
+    return " ".join(out)
+
+
+def _sound_score(query: str, name: str) -> float:
+    """Best sound-alike match of the name against same-length word windows of the query."""
+    n = sound_key(name)
+    words = sound_key(query).split()
+    if len(n.replace(" ", "")) < 4 or not words:
+        return 0.0
+    k = len(n.split())
+    first = n.split()[0]
+    best = 0.0
+    for size in {max(1, k - 1), k, k + 1}:
+        for i in range(max(1, len(words) - size + 1)):
+            window = words[i:i + size]
+            # The first word is the distinctive one ("Aangan" in "Aangan Residency"); it must start with the
+            # same sound, so "lagoon residency" is not offered "Aangan Residency".
+            if window[0][0] != first[0]:
+                continue
+            best = max(best, fuzz.ratio(" ".join(window), n))
+    return best
+
+
+SOUND_THRESHOLD = 86
+
+
 def suggest_names(session: Session, query: str, min_score: float = 85, limit: int = 3) -> list[Candidate]:
-    """Registry names close to an unmatched name, for "did you mean ...?" (never answered automatically)."""
+    """Registry names close to an unmatched name, for "did you mean ...?" (never answered automatically).
+    Spelling distance catches typos; for Latin script a sound-alike comparison also catches names that
+    speech-to-text wrote the way they sound ("Mongol arcade" for Mangal Arcade)."""
     q = _core(query)
     if len(q) < 5:
         return []
+    latin = re.search(r"[a-z]", q) is not None
     out: list[Candidate] = []
     for p in session.scalars(select(Project)):
         score = max(fuzz.ratio(q, p.name.lower()), fuzz.ratio(q, (p.name_gu or "").lower()))
+        if latin and score < min_score and _sound_score(q, p.name) >= SOUND_THRESHOLD:
+            score = min_score
         if score >= min_score:
             out.append(Candidate("project", p.id, p.name, float(score), p.district))
     for p in session.scalars(select(Promoter)):
         score = max(fuzz.ratio(q, _core(p.name)), fuzz.ratio(q, _core(p.name_gu)))
+        if latin and score < min_score and _sound_score(q, _core(p.name)) >= SOUND_THRESHOLD:
+            score = min_score
         if score >= min_score:
             out.append(Candidate("promoter", p.id, p.name, float(score), p.district))
     return sorted(out, key=lambda c: -c.score)[:limit]

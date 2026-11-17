@@ -71,3 +71,6 @@ frontend/dist/
 # Official legal texts downloaded for RAG (re-fetch with scripts/build_gujrera_legal_index.py)
 data/gujrera/legal/
 data/gujrera/legal_index/
+
+# Voice evaluation recordings are personal data: keep them out of git (prompts.csv is committed)
+data/eval/gujrera_voice/clips/
