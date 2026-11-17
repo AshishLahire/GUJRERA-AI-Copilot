@@ -10,26 +10,33 @@ import { AnalyticsCard, AnalyticsCardData } from "../components/AnalyticsCard";
 import { AccountBar } from "../components/AccountBar";
 import { Icon } from "./Brand";
 import { useSaathi } from "./context";
-import { tr } from "./strings";
+import { En } from "./En";
+import { StringKey, tr } from "./strings";
 
-const LoginPrompt: React.FC<{ text: string }> = ({ text }) => (
+const LoginPrompt: React.FC<{ k: StringKey }> = ({ k }) => {
+  const { lang } = useSaathi();
+  return (
   <div className="rounded-2xl border border-warm-border bg-card p-8 flex flex-col items-center text-center gap-4">
-    <span className="w-12 h-12 rounded-full bg-brand-soft text-brand flex items-center justify-center">
+    <span className="w-12 h-12 rounded-full bg-brand-soft text-brand-strong flex items-center justify-center">
       <Icon name="lock" className="w-6 h-6" />
     </span>
-    <p className="text-body max-w-md">{text}</p>
+    <p className="text-body max-w-md">{tr(k, lang)}<En k={k} className="mt-1 text-muted" /></p>
     <AccountBar />
   </div>
-);
+  );
+};
 
-const Stat: React.FC<{ label: string; value: string | number; tone?: "warn" | "bad" | "ok" }> = ({ label, value, tone }) => (
+const Stat: React.FC<{ k: StringKey; value: string | number; tone?: "warn" | "bad" | "ok" }> = ({ k, value, tone }) => {
+  const { lang } = useSaathi();
+  return (
   <div className="rounded-xl border border-warm-border bg-card p-4">
-    <div className="text-xs text-muted">{label}</div>
+    <div className="text-xs text-muted">{tr(k, lang)}<En k={k} /></div>
     <div className={`mt-1 font-heading text-2xl font-bold ${
       tone === "bad" ? "text-red-700 dark:text-red-300" : tone === "warn" ? "text-amber-700 dark:text-amber-300" : "text-body"
     }`}>{value}</div>
   </div>
-);
+  );
+};
 
 type Due = { description: string; amount: number | null; due_date: string; overdue: boolean };
 type Reg = { project: string; rera_no: string; valid_until: string; days_left: number };
@@ -54,10 +61,10 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
   return (
     <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-body">{tr("dashTitle", lang)}</h1>
+        <h1 className="font-heading text-2xl font-bold text-body">{tr("dashTitle", lang)}<En k="dashTitle" className="text-muted" /></h1>
         {allowed && <p className="text-sm text-muted mt-1">{user?.display_name}{data?.is_mock ? " · demo data" : ""}</p>}
       </div>
-      {!allowed && <LoginPrompt text={tr("loginNeededPromoter", lang)} />}
+      {!allowed && <LoginPrompt k="loginNeededPromoter" />}
       {error && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 text-red-900 p-4 text-sm">{error}</div>}
       {allowed && data && data.card.role === "developer" && (() => {
         const dues = (data.card.dues as Due[]) ?? [];
@@ -70,14 +77,14 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
         return (
           <>
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-              <Stat label={tr("statDues", lang)} value={`₹${total.toLocaleString("en-IN")}`} tone={total ? "warn" : "ok"} />
-              <Stat label={tr("statOverdue", lang)} value={overdue} tone={overdue ? "bad" : "ok"} />
-              <Stat label={tr("statNotices", lang)} value={notices.length} tone={notices.length ? "warn" : "ok"} />
-              <Stat label={tr("statEnding", lang)} value={ending} tone={ending ? "warn" : "ok"} />
+              <Stat k="statDues" value={`₹${total.toLocaleString("en-IN")}`} tone={total ? "warn" : "ok"} />
+              <Stat k="statOverdue" value={overdue} tone={overdue ? "bad" : "ok"} />
+              <Stat k="statNotices" value={notices.length} tone={notices.length ? "warn" : "ok"} />
+              <Stat k="statEnding" value={ending} tone={ending ? "warn" : "ok"} />
             </div>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
               <section className="rounded-2xl border border-warm-border bg-card p-5">
-                <h2 className="font-heading font-bold text-body mb-3">{tr("attention", lang)}</h2>
+                <h2 className="font-heading font-bold text-body mb-3">{tr("attention", lang)}<En k="attention" className="text-muted" /></h2>
                 <ul className="flex flex-col gap-2.5">
                   {data.sentences.slice(1).map((s, i) => (
                     <li key={i} className="flex gap-2 text-sm text-body leading-relaxed">
@@ -88,15 +95,16 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
                 <button
                   type="button"
                   onClick={() => onAsk({ en: "What are my dues?", gu: "મારી બાકી ચુકવણી", hi: "मेरे बकाया क्या हैं?" }[lang])}
-                  className="mt-4 px-4 py-2 rounded-lg bg-brand text-white dark:text-[#0B1424] text-sm font-semibold"
+                  className="mt-4 px-4 py-2 rounded-lg bg-brand text-on-brand text-sm font-semibold"
                 >
                   {tr("dashAsk", lang)}
+                  <En k="dashAsk" />
                 </button>
               </section>
               <section className="flex flex-col gap-4">
                 {dues.length > 0 && (
                   <div className="rounded-2xl border border-warm-border bg-card p-5">
-                    <h2 className="font-heading font-bold text-body mb-2">{tr("statDues", lang)}</h2>
+                    <h2 className="font-heading font-bold text-body mb-2">{tr("statDues", lang)}<En k="statDues" className="text-muted" /></h2>
                     <ul className="divide-y divide-warm-border text-sm">
                       {dues.map((d, i) => (
                         <li key={i} className="py-2 flex justify-between gap-3">
@@ -114,13 +122,13 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
                 )}
                 {qpr.length > 0 && (
                   <div className="rounded-2xl border border-warm-border bg-card p-5 text-sm">
-                    <h2 className="font-heading font-bold text-body mb-2">{tr("qprNotFiled", lang)}</h2>
+                    <h2 className="font-heading font-bold text-body mb-2">{tr("qprNotFiled", lang)}<En k="qprNotFiled" className="text-muted" /></h2>
                     {qpr.map((q) => <div key={q.project}><b>{q.project}</b>: <span className="text-muted">{q.quarters.join(", ")}</span></div>)}
                   </div>
                 )}
                 {regs.length > 0 && (
                   <div className="rounded-2xl border border-warm-border bg-card p-5 text-sm">
-                    <h2 className="font-heading font-bold text-body mb-2">{tr("registrations", lang)}</h2>
+                    <h2 className="font-heading font-bold text-body mb-2">{tr("registrations", lang)}<En k="registrations" className="text-muted" /></h2>
                     {regs.map((r) => (
                       <div key={r.rera_no} className="flex justify-between gap-2 py-1">
                         <span>{r.project}</span>
@@ -185,14 +193,14 @@ export const OfficerPage: React.FC = () => {
   return (
     <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-body">{tr("analyticsTitle", lang)}</h1>
+        <h1 className="font-heading text-2xl font-bold text-body">{tr("analyticsTitle", lang)}<En k="analyticsTitle" className="text-muted" /></h1>
         {allowed && (
           <p className="text-sm text-muted mt-1">
             {user?.display_name} · read-only queries on reporting views, every query logged
           </p>
         )}
       </div>
-      {!allowed && <LoginPrompt text={tr("loginNeededOfficer", lang)} />}
+      {!allowed && <LoginPrompt k="loginNeededOfficer" />}
       {allowed && (
         <>
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void run(q); }}>
@@ -204,12 +212,12 @@ export const OfficerPage: React.FC = () => {
               className="flex-1 min-w-0 rounded-xl border border-warm-border bg-card text-body px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <button type="submit" disabled={busy || !q.trim()}
-              className="px-5 rounded-xl bg-brand text-white dark:text-[#0B1424] font-semibold disabled:opacity-50">
-              {busy ? "…" : tr("run", lang)}
+              className="px-5 rounded-xl bg-brand text-on-brand font-semibold disabled:opacity-50">
+              {busy ? "…" : <>{tr("run", lang)}<En k="run" /></>}
             </button>
           </form>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">{tr("reports", lang)}</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">{tr("reports", lang)}<En k="reports" className="normal-case tracking-normal" /></div>
             <div className="flex flex-wrap gap-2">
               {REPORTS.map((r) => (
                 <button key={r} type="button" onClick={() => void run(r)} disabled={busy}

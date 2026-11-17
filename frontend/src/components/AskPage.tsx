@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
+import { En } from "../saathi/En";
 import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
 
@@ -409,7 +410,7 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
     <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-heading text-xl font-bold text-body">{tr("navAsk", uiLang)}</h2>
+          <h2 className="font-heading text-xl font-bold text-body">{tr("navAsk", uiLang)}<En k="navAsk" className="text-muted" /></h2>
           <p className="text-sm text-muted">{tr("askIntro", uiLang)}</p>
         </div>
         <div className="flex gap-1 rounded-lg border border-warm-border p-1 bg-subtle" role="group" aria-label="Answer language">

@@ -7,6 +7,7 @@ import { BrandMark, Icon } from "./Brand";
 import { SaathiProvider, useSaathi } from "./context";
 import { HomePage, Page } from "./HomePage";
 import { OfficerPage, PromoterPage } from "./RolePages";
+import { En } from "./En";
 import { tr } from "./strings";
 
 const PAGES: Page[] = ["home", "ask", "check", "promoter", "officer"];
@@ -67,7 +68,7 @@ const Shell: React.FC = () => {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-card px-3 py-2 rounded z-50">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-warm-border">
+      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b-2 border-brand">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <button type="button" onClick={() => setPage("home")} className="flex items-center gap-2.5 shrink-0" aria-label={tr("brand", "en")}>
             <BrandMark />
@@ -83,11 +84,12 @@ const Shell: React.FC = () => {
                 type="button"
                 onClick={() => setPage(n.page)}
                 aria-current={page === n.page ? "page" : undefined}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap ${
-                  page === n.page ? "bg-brand-soft text-brand" : "text-muted hover:text-body hover:bg-subtle"
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap leading-tight ${
+                  page === n.page ? "bg-brand text-on-brand" : "text-muted hover:text-body hover:bg-subtle"
                 }`}
               >
                 {tr(n.key, lang)}
+                <En k={n.key} className="text-[10px]" />
               </button>
             ))}
           </nav>
@@ -99,7 +101,7 @@ const Shell: React.FC = () => {
                   type="button"
                   onClick={() => setLang(l.id)}
                   aria-pressed={lang === l.id}
-                  className={`px-2 py-1 rounded-md text-xs font-semibold ${lang === l.id ? "bg-card text-brand shadow-sm" : "text-muted"}`}
+                  className={`px-2 py-1 rounded-md text-xs font-semibold ${lang === l.id ? "bg-card text-brand-strong shadow-sm" : "text-muted"}`}
                 >
                   {l.label}
                 </button>
@@ -124,11 +126,12 @@ const Shell: React.FC = () => {
                 type="button"
                 onClick={() => setPage(n.page)}
                 aria-current={page === n.page ? "page" : undefined}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${
-                  page === n.page ? "bg-brand-soft text-brand" : "text-muted"
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap leading-tight ${
+                  page === n.page ? "bg-brand text-on-brand" : "text-muted"
                 }`}
               >
                 {tr(n.key, lang)}
+                <En k={n.key} className="text-[9px]" />
               </button>
             ))}
           </div>

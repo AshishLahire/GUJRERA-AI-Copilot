@@ -59,6 +59,7 @@ export default {
           strong: "var(--brand-strong)",
           soft: "var(--brand-soft)",
         },
+        "on-brand": "var(--on-brand)",
       },
       borderRadius: {
         card: "12px",

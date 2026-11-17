@@ -4,9 +4,9 @@ import React from "react";
 export const BrandMark: React.FC<{ className?: string }> = ({ className = "w-9 h-9" }) => (
   <svg className={className} viewBox="0 0 40 40" aria-hidden="true">
     <rect width="40" height="40" rx="10" fill="var(--brand)" />
-    <path d="M9 19 20 10l11 9v11a1.5 1.5 0 0 1-1.5 1.5h-19A1.5 1.5 0 0 1 9 30z" fill="none" stroke="#fff"
+    <path d="M9 19 20 10l11 9v11a1.5 1.5 0 0 1-1.5 1.5h-19A1.5 1.5 0 0 1 9 30z" fill="none" stroke="#1F1A0A"
       strokeWidth="2.4" strokeLinejoin="round" />
-    <path d="m15.5 23 3.2 3.2 6-6.4" fill="none" stroke="#FFA43A" strokeWidth="2.8" strokeLinecap="round"
+    <path d="m15.5 23 3.2 3.2 6-6.4" fill="none" stroke="#1F1A0A" strokeWidth="2.8" strokeLinecap="round"
       strokeLinejoin="round" />
   </svg>
 );
