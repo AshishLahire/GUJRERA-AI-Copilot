@@ -219,6 +219,53 @@ def self_service_summary(lang: str = Query("gu"), repo: Repository = Depends(use
     }
 
 
+VOICE_DIR = REPO_ROOT / "data" / "raw" / "gujrera_voice"
+VOICE_EXTENSIONS = {".webm", ".ogg", ".opus", ".wav", ".m4a", ".mp3", ".mp4"}
+MAX_VOICE_BYTES = 10 * 1024 * 1024
+MAX_VOICE_SECONDS = 60
+WEAK_VOICE_LANGS = {"gu", "kn", "te", "ml", "bn"}  # Whisper small is unreliable here (deck: ~64% WER on Gujarati)
+
+
+@router.post("/voice/transcribe")
+async def voice_transcribe(file: UploadFile = File(...), lang: str | None = Form(default=None)) -> dict[str, Any]:
+    """Speech to text for the chat box (Whisper small, self-hosted). The audio is deleted after reading.
+    The text is returned for the user to check and send; it is not sent to the chat automatically."""
+    from factcheck.ingest.audio import transcribe_audio  # loads faster-whisper lazily
+
+    ext = Path(file.filename or "voice.webm").suffix.lower() or ".webm"
+    if ext not in VOICE_EXTENSIONS:
+        raise HTTPException(400, "Unsupported audio type.")
+    if lang is not None and lang not in LANGS:
+        raise HTTPException(400, f"lang must be one of {', '.join(LANGS)}")
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "The recording is empty.")
+    if len(data) > MAX_VOICE_BYTES:
+        raise HTTPException(400, "Recording exceeds 10 MB.")
+    VOICE_DIR.mkdir(parents=True, exist_ok=True)
+    path = VOICE_DIR / f"{uuid.uuid4().hex}{ext}"
+    path.write_bytes(data)
+    try:
+        result = transcribe_audio(path, language=lang, engine="whisper", use_cache=False)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    except Exception as exc:  # noqa: BLE001 - undecodable audio
+        raise HTTPException(400, f"Could not read the recording: {str(exc).splitlines()[0][:150]}") from None
+    finally:
+        path.unlink(missing_ok=True)
+    if result.get("duration_sec", 0) > MAX_VOICE_SECONDS:
+        raise HTTPException(400, f"Please keep voice questions under {MAX_VOICE_SECONDS} seconds.")
+    detected = result.get("language")
+    return {
+        "text": (result.get("text") or "").strip(),
+        "language": detected,
+        "duration_sec": result.get("duration_sec"),
+        "engine": result.get("engine"),
+        "low_quality": detected in WEAK_VOICE_LANGS,
+        "notes": result.get("notes", []),
+    }
+
+
 @router.post("/analytics/query")
 def analytics_query(body: AnalyticsRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
     if repo.p.role != "officer":

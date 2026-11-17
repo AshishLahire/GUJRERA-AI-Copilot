@@ -165,3 +165,19 @@ export async function fetchMe(token: string): Promise<{ user: AuthUser }> {
 export async function fetchChatStarters(): Promise<{ items: { lang: Lang; text: string }[] }> {
   return parse(await fetch(`${API_BASE}/api/gujrera/chat/starters`));
 }
+
+export interface VoiceResult {
+  text: string;
+  language: string | null;
+  duration_sec: number | null;
+  low_quality: boolean;
+  notes: string[];
+}
+
+export async function transcribeVoice(audio: Blob, lang: Lang | null): Promise<VoiceResult> {
+  const form = new FormData();
+  const ext = audio.type.includes("mp4") ? "mp4" : audio.type.includes("ogg") ? "ogg" : "webm";
+  form.append("file", audio, `voice.${ext}`);
+  if (lang) form.append("lang", lang);
+  return parse(await fetch(`${API_BASE}/api/gujrera/voice/transcribe`, { method: "POST", body: form }));
+}

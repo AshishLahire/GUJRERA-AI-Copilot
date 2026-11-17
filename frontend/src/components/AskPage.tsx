@@ -7,6 +7,7 @@ import {
   fetchChatStarters,
   fetchMe,
   sendChat,
+  transcribeVoice,
 } from "../api/gujrera";
 import { AccountBar } from "./AccountBar";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
@@ -307,6 +308,60 @@ export const AskPage: React.FC = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [starters, setStarters] = useState<{ lang: Lang; text: string }[]>([]);
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const stopTimer = useRef<number | null>(null);
+
+  const stopRecording = () => {
+    if (stopTimer.current) window.clearTimeout(stopTimer.current);
+    recorderRef.current?.stop();
+  };
+
+  const startRecording = async () => {
+    setError(null);
+    setVoiceNote(null);
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setError("Microphone permission was not given. You can type your question instead.");
+      return;
+    }
+    const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find(
+      (t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)
+    );
+    const recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      setRecording(false);
+      const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+      if (!blob.size) return;
+      setTranscribing(true);
+      try {
+        const res = await transcribeVoice(blob, lang);
+        setInput(res.text);
+        setVoiceNote(
+          !res.text
+            ? "No speech was recognised. Please try again or type your question."
+            : res.low_quality
+            ? "Voice recognition for this language is limited in the prototype. Please check the text before sending."
+            : "Check the text, then press Send."
+        );
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setTranscribing(false);
+      }
+    };
+    recorderRef.current = recorder;
+    recorder.start();
+    setRecording(true);
+    stopTimer.current = window.setTimeout(() => recorder.state === "recording" && recorder.stop(), 60_000);
+  };
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const [token, setToken] = useState<string | null>(() => readToken());
@@ -497,9 +552,32 @@ export const AskPage: React.FC = () => {
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
+          setVoiceNote(null);
           send(input);
         }}
       >
+        <button
+          type="button"
+          onClick={recording ? stopRecording : startRecording}
+          disabled={busy || transcribing}
+          aria-label={recording ? "Stop recording" : "Ask by voice"}
+          title={recording ? "Stop recording" : "Ask by voice (up to 60 seconds)"}
+          className={`shrink-0 w-10 h-10 rounded-lg border flex items-center justify-center disabled:opacity-50 ${
+            recording ? "bg-red-600 border-red-600 text-white animate-pulse" : "border-warm-border bg-card text-body hover:bg-subtle"
+          }`}
+        >
+          {transcribing ? (
+            <span className="text-xs">…</span>
+          ) : (
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              {recording ? (
+                <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm6-3a6 6 0 0 1-12 0m6 6v3" />
+              )}
+            </svg>
+          )}
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -515,6 +593,11 @@ export const AskPage: React.FC = () => {
           Send
         </button>
       </form>
+      {(recording || voiceNote) && (
+        <p className={`text-[11px] -mt-2 ${recording ? "text-red-700 dark:text-red-300" : "text-muted"}`} role="status">
+          {recording ? "Listening… tap the button again to stop." : voiceNote}
+        </p>
+      )}
       <p className="text-[11px] text-muted">
         Prototype on demo data. Answers are built only from registry records. Complaints go to a mock GUJRERA
         workflow until the real one is connected.

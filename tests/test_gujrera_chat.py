@@ -110,7 +110,7 @@ def test_typo_is_forgiven_but_unknown_name_is_not_found(repo):
     typo = p.name[:-2] + p.name[-1]  # drop one letter
     assert ask(repo, ChatState(), f"Tell me about {typo}")["intent"] == "project_profile"
     out = ask(repo, ChatState(), "Tell me about Quasar Heights")
-    assert out["intent"] == "not_found" and "quasar heights" in out["text"].lower()
+    assert out["intent"] in ("not_found", "did_you_mean") and "quasar heights" in out["text"].lower()
 
 
 @pytest.mark.parametrize("message,intent", [
@@ -219,7 +219,8 @@ def test_api_chat_keeps_session(client, Session):
 def test_api_starters_resolve(client):
     for item in client.get("/api/gujrera/chat/starters").json()["items"]:
         out = client.post("/api/gujrera/chat", json={"message": item["text"]}).json()
-        assert out["intent"] in ("possession", "promoter_profile", "not_found", "disambiguate", "complaint_filing")
+        assert out["intent"] in ("possession", "promoter_profile", "not_found", "did_you_mean", "disambiguate",
+                                 "complaint_filing")
 
 
 def test_api_profiles_and_errors(client):
@@ -268,3 +269,17 @@ def test_router_only_classifies_facts_come_from_records(repo, monkeypatch):
 
     monkeypatch.setattr(orch, "router_generate", boom)
     assert ask(repo, ChatState(), "tell me something fun")["intent"] == "out_of_scope"
+
+
+def test_did_you_mean_offers_close_names_but_never_answers(repo):
+    p = _unique_project(repo)
+    garbled = p.name[0] + ("u" if p.name[1] != "u" else "a") + p.name[2:]  # one-letter slip, as from voice
+    state = ChatState()
+    out = ask(repo, state, f"When will I get possession of {garbled}?")
+    if out["intent"] == "possession":  # the typo was close enough to match directly
+        return
+    assert out["intent"] == "did_you_mean" and not out["sources"]
+    assert any(o["id"] == p.id for o in out["options"])
+    choice = next(o["n"] for o in out["options"] if o["id"] == p.id)
+    out = ask(repo, state, str(choice))
+    assert out["intent"] == "possession" and out["sources"][0]["id"] == p.rera_no

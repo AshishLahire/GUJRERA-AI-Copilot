@@ -25,7 +25,7 @@ from gujrera.analytics.reports import looks_like_analytics, match_report
 from gujrera.analytics.reports import ANALYTICS_CUES
 from gujrera.chat.llm_router import Routed
 from gujrera.chat.llm_router import route as llm_route
-from gujrera.chat.understand import Candidate, Understanding, find_candidates, understand
+from gujrera.chat.understand import Candidate, Understanding, find_candidates, suggest_names, understand
 from gujrera.legal.answer import answer as legal_answer
 from gujrera.complaints.flow import (
     CODE_RE,
@@ -272,11 +272,20 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if "greeting" in u.intents and not u.leftover:
         return Reply(lang, "greeting", [_say("greeting", lang)], suggestions=SUGGESTIONS["start"][lang])
     if u.leftover and not u.leftover.isdigit() and (u.names_something or u.intents - {"greeting"}):
-        return Reply(lang, "not_found", [_say("not_found", lang, q=u.leftover), _say("need_entity", lang)],
-                     suggestions=SUGGESTIONS["start"][lang])
+        return _not_found(u.leftover, state, repo, lang, _focus(u))
     if u.intents - {"greeting"} or u.leftover.isdigit():
         return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])
     return Reply(lang, "out_of_scope", [_say("out_of_scope", lang)], suggestions=SUGGESTIONS["start"][lang])
+
+
+def _not_found(q: str, state: ChatState, repo: Repository, lang: str, focus: str | None) -> Reply:
+    """Not found; but if a registry name is close (a typo or a voice-recognition slip), offer it."""
+    close = suggest_names(repo.s, q)
+    if close:
+        state.options, state.pending_focus = _options(repo, close, lang), focus
+        return Reply(lang, "did_you_mean", [_say("did_you_mean", lang, q=q)], options=state.options)
+    return Reply(lang, "not_found", [_say("not_found", lang, q=q), _say("need_entity", lang)],
+                 suggestions=SUGGESTIONS["start"][lang])
 
 
 def looks_like_report_request(text_lc: str) -> bool:
@@ -314,8 +323,7 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
         if len(cands) > 1:
             state.options, state.pending_focus = _options(repo, cands, lang), focus
             return Reply(lang, "disambiguate", [_say("disambiguate", lang)], options=state.options)
-        return Reply(lang, "not_found", [_say("not_found", lang, q=routed.name), _say("need_entity", lang)],
-                     suggestions=SUGGESTIONS["start"][lang])
+        return _not_found(routed.name, state, repo, lang, focus)
     if intent == "other":
         return Reply(lang, "out_of_scope", [_say("out_of_scope", lang)], suggestions=SUGGESTIONS["start"][lang])
     return None

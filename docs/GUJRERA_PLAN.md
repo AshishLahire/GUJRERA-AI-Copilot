@@ -322,6 +322,12 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Everyday English is mapped to the Act's words ("percent" → "per cent", "builder" → "promoter") and the English rewrite is used for legal search, which fixed romanised Gujarati and "20 percent before agreement" (→ Section 13).
 - Chat evaluation with the fallback on: 300/300; 259 questions understood by rules (p95 48 ms), 41 by the LLM (p95 3.5 s). Unit tests never call a real model (`tests/conftest.py`).
 
+**Voice input (2026-11-17): done with Whisper small; IndicConformer later.**
+- `POST /api/gujrera/voice/transcribe`: self-hosted faster-whisper small via Pramaan's `transcribe_audio`; up to 60 s and 10 MB; the recording is deleted after reading. Gujarati (and other weak languages) are flagged `low_quality`.
+- Ask tab: mic button (MediaRecorder, auto-stop at 60 s). The transcript goes into the text box for the user to check before sending; a warning shows for Gujarati.
+- "Did you mean …?": when a name is not found but a registry name is close (a typo or a voice slip such as "Mungal Square"), the chat offers it as a choice instead of answering.
+- IndicConformer is not usable yet: its Hugging Face cache entry is empty (gated model, needs login and PyTorch setup).
+
 ---
 
 ## 11. Risks and mitigations

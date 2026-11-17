@@ -152,6 +152,11 @@ T: dict[str, dict[str, str]] = {
         "gu": "મને ઉપલબ્ધ GUJRERA રેકોર્ડમાં \"{q}\" મળ્યું નથી.",
         "hi": "मुझे उपलब्ध GUJRERA रिकॉर्ड में \"{q}\" नहीं मिला।",
     },
+    "did_you_mean": {
+        "en": "I couldn't find \"{q}\". Did you mean one of these?",
+        "gu": "\"{q}\" મળ્યું નથી. શું તમે આમાંથી કોઈ વિશે પૂછો છો?",
+        "hi": "\"{q}\" नहीं मिला। क्या आपका मतलब इनमें से कोई है?",
+    },
     "need_entity": {
         "en": "Please tell me the project name, promoter name or RERA registration number.",
         "gu": "કૃપા કરીને પ્રોજેક્ટનું નામ, પ્રમોટરનું નામ અથવા RERA નોંધણી નંબર જણાવો.",

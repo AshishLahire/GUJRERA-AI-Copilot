@@ -151,6 +151,23 @@ def find_candidates(session: Session, text_lc: str, threshold: float = FUZZY_THR
     return sorted(found, key=lambda c: (-c.score, c.kind, c.id))
 
 
+def suggest_names(session: Session, query: str, min_score: float = 85, limit: int = 3) -> list[Candidate]:
+    """Registry names close to an unmatched name, for "did you mean ...?" (never answered automatically)."""
+    q = _core(query)
+    if len(q) < 5:
+        return []
+    out: list[Candidate] = []
+    for p in session.scalars(select(Project)):
+        score = max(fuzz.ratio(q, p.name.lower()), fuzz.ratio(q, (p.name_gu or "").lower()))
+        if score >= min_score:
+            out.append(Candidate("project", p.id, p.name, float(score), p.district))
+    for p in session.scalars(select(Promoter)):
+        score = max(fuzz.ratio(q, _core(p.name)), fuzz.ratio(q, _core(p.name_gu)))
+        if score >= min_score:
+            out.append(Candidate("promoter", p.id, p.name, float(score), p.district))
+    return sorted(out, key=lambda c: -c.score)[:limit]
+
+
 def _leftover(text_lc: str, intents: set[str]) -> str:
     cleaned = text_lc
     for intent in intents:

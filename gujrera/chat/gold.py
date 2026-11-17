@@ -104,7 +104,8 @@ def build_gold(session: Session, seed: int = 300) -> list[GoldQuestion]:
         for i in range(COUNTS["not_found"]):
             fake = FAKE_NAMES[lang][i % len(FAKE_NAMES[lang])]
             template = rng.choice(Q["possession"][lang] + Q["project"][lang])
-            add("not_found", template.format(p=fake), ("not_found",), [])
+            # A suggestion ("did you mean …?") is also correct: it is offered, never answered automatically.
+            add("not_found", template.format(p=fake), ("not_found", "did_you_mean"), [])
         for q in OUT_OF_SCOPE[lang][: COUNTS["out_of_scope"]]:
             add("out_of_scope", q, ("out_of_scope",), [])
     return out
