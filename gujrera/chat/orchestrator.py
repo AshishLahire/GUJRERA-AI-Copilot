@@ -47,6 +47,7 @@ from gujrera.tools.interest import chat_estimate, wants_calculation
 from gujrera.analytics.risk import chat_reply as risk_reply, wants_risk
 from gujrera.enforcement import chat_reply as enforcement_reply, wants_enforcement
 from gujrera.enforcement import citizen_reply as enforcement_citizen_reply
+from gujrera.complaints.triage import chat_reply as triage_reply, wants_triage
 
 SUGGESTIONS = {
     "project": {
@@ -255,6 +256,10 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 4. Officer analytics: standard reports, or LLM-written SQL behind the guard
     text_lc = (message or "").lower()
+    if repo.p.role == "officer" and wants_triage(text_lc) and not u.candidates:  # complaint queue (officers only)
+        district = next(iter(u.districts)) if len(u.districts) == 1 else None
+        sentences, card = triage_reply(repo, lang, district=district)
+        return Reply(lang, "complaint_triage", sentences, cards=[card])
     if repo.p.role == "officer" and wants_enforcement(text_lc):  # citizen ad reports (officers only)
         district = next(iter(u.districts)) if len(u.districts) == 1 else None
         sentences, card = enforcement_reply(repo, lang, district=district)

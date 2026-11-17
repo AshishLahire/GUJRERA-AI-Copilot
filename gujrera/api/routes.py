@@ -93,6 +93,13 @@ class CaseUpdate(BaseModel):
     note: str | None = None
 
 
+class ComplaintStatusUpdate(BaseModel):
+    status: str
+    note: str | None = None
+    hearing_on: date | None = None
+    outcome: str | None = None
+
+
 class InterestRequest(BaseModel):
     project_id: int
     mode: str = "stay"  # stay | withdraw
@@ -402,6 +409,37 @@ def enforcement_case_update(case_id: int, body: CaseUpdate, repo: Repository = D
     if case is None:
         raise HTTPException(404, "Case not found.")
     return case
+
+
+@router.get("/complaints/triage")
+def complaints_triage(lang: str = Query("en"), district: str | None = Query(None, max_length=60),
+                      category: str | None = Query(None, max_length=40),
+                      repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.complaints.triage import triage
+
+    return _officer_or_403(triage, repo, _lang(lang), district=district, category=category)
+
+
+@router.get("/complaints/{complaint_id}/brief")
+def complaint_brief(complaint_id: int, lang: str = Query("en"), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.complaints.triage import brief
+
+    out = _officer_or_403(brief, repo, complaint_id, _lang(lang))
+    if out is None:
+        raise HTTPException(404, "Complaint not found.")
+    return out
+
+
+@router.post("/complaints/{complaint_id}/status")
+def complaint_status_update(complaint_id: int, body: ComplaintStatusUpdate,
+                            repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.complaints.triage import update_status
+
+    out = _officer_or_403(update_status, repo, complaint_id, body.status, note=body.note,
+                          hearing_on=body.hearing_on, outcome=body.outcome)
+    if out is None:
+        raise HTTPException(404, "Complaint not found.")
+    return out
 
 
 @router.get("/risk/projects")

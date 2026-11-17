@@ -246,6 +246,23 @@ const STRINGS = {
   repGood: { en: "No major red flags found in the registry", gu: "રજિસ્ટ્રીમાં મોટા જોખમ સંકેત મળ્યા નથી", hi: "रजिस्ट्री में कोई बड़ा खतरे का संकेत नहीं मिला" },
   repWarn: { en: "Some points to check before you pay", gu: "ચૂકવતા પહેલાં કેટલીક બાબતો તપાસો", hi: "भुगतान से पहले कुछ बातें जाँचें" },
   repBad: { en: "Serious points to check before you pay", gu: "ચૂકવતા પહેલાં ગંભીર બાબતો તપાસો", hi: "भुगतान से पहले गंभीर बातें जाँचें" },
+  navDesk: { en: "Complaint desk", gu: "ફરિયાદ ડેસ્ક", hi: "शिकायत डेस्क" },
+  deskIntro: {
+    en: "Open complaints ranked by the 60-day disposal period (Section 29(4)) and other reasons shown with each one, with a hearing brief for every complaint: the project's registry facts, the relevant sections, how similar complaints were decided, and points to put to the promoter.",
+    gu: "60 દિવસની નિકાલ મુદત (કલમ 29(4)) અને દરેક સાથે દર્શાવેલાં કારણો મુજબ ક્રમમાં ખુલ્લી ફરિયાદો, અને દરેક ફરિયાદ માટે સુનાવણી નોંધ: પ્રોજેક્ટની રજિસ્ટ્રી વિગતો, સંબંધિત કલમો, સમાન ફરિયાદોના નિર્ણયો અને પ્રમોટરને પૂછવાના મુદ્દા.",
+    hi: "60 दिन की निपटान अवधि (धारा 29(4)) और हर एक के साथ दिखाए कारणों के अनुसार क्रम में खुली शिकायतें, और हर शिकायत के लिए सुनवाई नोट: प्रोजेक्ट की रजिस्ट्री जानकारी, संबंधित धाराएँ, समान शिकायतों के फैसले और प्रमोटर से पूछने के बिंदु।",
+  },
+  loginNeededDesk: {
+    en: "Log in with a GUJRERA officer account to see the complaint desk.",
+    gu: "ફરિયાદ ડેસ્ક જોવા GUJRERA અધિકારી ખાતાથી લોગિન કરો.",
+    hi: "शिकायत डेस्क देखने के लिए GUJRERA अधिकारी खाते से लॉगिन करें।",
+  },
+  deskOpen: { en: "Open complaints", gu: "ખુલ્લી ફરિયાદો", hi: "खुली शिकायतें" },
+  deskOverdue: { en: "Past 60 days", gu: "60 દિવસ વીતી ગયા", hi: "60 दिन पार" },
+  deskDue: { en: "Due in 15 days", gu: "15 દિવસમાં બાકી", hi: "15 दिनों में देय" },
+  deskGroups: { en: "Group hearings possible", gu: "સાથે સુનાવણી શક્ય", hi: "साथ सुनवाई संभव" },
+  deskQueue: { en: "Queue", gu: "યાદી", hi: "सूची" },
+  deskBrief: { en: "Hearing brief", gu: "સુનાવણી નોંધ", hi: "सुनवाई नोट" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

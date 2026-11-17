@@ -239,6 +239,24 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
       </div>
     );
   }
+  if (card.type === "triage") {
+    const items = (card.items as Array<{ ref_no: string; category: string; age_days: number; band: string; project: string | null }>) ?? [];
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
+        <ul className="flex flex-col gap-1">
+          {items.map((i) => (
+            <li key={i.ref_no} className="flex items-center justify-between gap-3">
+              <span className="truncate"><span className="font-mono">{i.ref_no}</span> <span className="text-muted">· {i.category.replace(/_/g, " ")} · {i.project ?? ""}</span></span>
+              <span className="font-semibold whitespace-nowrap">{i.age_days} days · {i.band}</span>
+            </li>
+          ))}
+        </ul>
+        <button type="button" onClick={() => navigateTo("desk")} className="mt-2 px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+          Open complaint desk →
+        </button>
+      </div>
+    );
+  }
   if (card.type === "report") {
     const tone: Record<string, string> = { good: "No major red flags", warn: "Some points to check", bad: "Serious points to check" };
     return (

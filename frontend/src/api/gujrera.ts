@@ -482,3 +482,51 @@ export const OPEN_REPORT_EVENT = "saathi:open-report";
 export function openReport(projectId: number): void {
   window.dispatchEvent(new CustomEvent<number>(OPEN_REPORT_EVENT, { detail: projectId }));
 }
+
+
+// ------------------------------------------------------------ complaint desk (officers)
+export interface TriageItem {
+  id: number; ref_no: string; filed_on: string; age_days: number; days_left: number; due_by: string; status: string;
+  form: string; category: string; relief: string | null; summary: string; district: string; channel: string;
+  project_id: number | null; project: string | null; rera_no: string | null; promoter: string | null;
+  forum: "authority" | "adjudicating_officer"; sections: string[]; score: number; band: "urgent" | "high" | "normal";
+  reasons: { code: string; points: number; text: string }[]; group_size: number;
+}
+export interface TriageResponse {
+  summary: { open: number; overdue: number; due_15: number; urgent: number; groups: number;
+             by_status: Record<string, number>; by_category: Record<string, number> };
+  items: TriageItem[];
+  groups: { project_id: number; project: string; district: string; complaints: string[]; categories: Record<string, number>; oldest_days: number }[];
+  district_scope: string | null;
+  as_of: string;
+}
+export interface ComplaintBrief {
+  complaint: { id: number; ref_no: string; form: string; category: string; relief: string | null; summary: string; status: string;
+               filed_on: string; district: string; channel: string; age_days: number; days_left: number; due_by: string; due_by_text: string };
+  forum: string; forum_law: string;
+  sections: { section: string; title: string }[];
+  timeline: { at: string; status: string; note: string | null }[];
+  project: null | { glance: { key: string; tone: "good" | "warn" | "bad"; text: string }[];
+                    project: { name: string; rera_no: string; promoter: string; district: string };
+                    progress_last: { quarter: string; percent: number } | null;
+                    orders: { order_no: string; type: string; issued_on: string; summary: string }[] };
+  risk: null | { score: number; band: string; signals: string[] };
+  precedents: { category_outcomes: Record<string, number>; category_decided: number;
+                related: { ref_no: string; category: string; outcome: string; closed_on: string | null; same_project: boolean; summary: string }[] };
+  other_open: { id: number; ref_no: string; category: string; filed_on: string }[];
+  points_to_put: string[];
+}
+
+export function fetchTriage(token: string, lang: Lang, filters: { district?: string; category?: string }): Promise<TriageResponse> {
+  const qs = new URLSearchParams({ lang, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) as Record<string, string> });
+  return officerFetch(`${API_BASE}/api/gujrera/complaints/triage?${qs}`, token);
+}
+export function fetchBrief(token: string, id: number, lang: Lang): Promise<ComplaintBrief> {
+  return officerFetch(`${API_BASE}/api/gujrera/complaints/${id}/brief?lang=${lang}`, token);
+}
+export function updateComplaintStatus(token: string, id: number,
+  body: { status: string; note?: string; hearing_on?: string; outcome?: string }): Promise<{ status: string; timeline: { at: string; status: string; note: string | null }[] }> {
+  return officerFetch(`${API_BASE}/api/gujrera/complaints/${id}/status`, token, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+}

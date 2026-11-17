@@ -12,9 +12,10 @@ import { OfficerPage, PromoterPage } from "./RolePages";
 import { RiskPage } from "./RiskPage";
 import { EnforcementPage } from "./EnforcementPage";
 import { ReportPage } from "./ReportPage";
+import { ComplaintDeskPage } from "./ComplaintDeskPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
@@ -23,6 +24,7 @@ const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "report", key: "navReport", icon: "doc" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
   { page: "officer", key: "navOfficer", icon: "chart" },
+  { page: "desk", key: "navDesk", icon: "complaint" },
   { page: "risk", key: "navRisk", icon: "alert" },
   { page: "enforce", key: "navEnforce", icon: "flag" },
 ];
@@ -223,6 +225,7 @@ const Shell: React.FC = () => {
           {page === "risk" && <RiskPage />}
           {page === "enforce" && <EnforcementPage />}
           {page === "report" && <ReportPage projectId={reportId} />}
+          {page === "desk" && <ComplaintDeskPage />}
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">

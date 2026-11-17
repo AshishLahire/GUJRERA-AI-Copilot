@@ -375,6 +375,15 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Found and fixed on the way: Tailwind opacity modifiers (e.g. `bg-card/95`, `bg-brand/60`, `ring-brand/30`, about 70 uses) generated no CSS because theme colours are CSS variables; the sticky header was see-through. Theme colours are now functions using `color-mix`, so all of them work.
 - Tests: `tests/test_gujrera_report.py` (4).
 
+**PoC feature 5: complaint triage and hearing briefs for officers (2026-11-17): done.**
+- Law: the Authority disposes of a complaint within sixty days of receipt or records its reasons (Section 29(4)); the adjudicating officer likewise for compensation (Section 71(2)). Checked against the indexed Act. Of 131 open complaints, 104 are past the sixty days.
+- `gujrera/complaints/triage.py`: open complaints ranked by named reasons with points (past the sixty days, more if long past; 15 or 30 days left; not taken up for scrutiny; other open complaints on the same project; project on the risk watchlist; delay complaints on projects long past their date). Urgent at 70 (overdue and another reason), high at 55. Group hearings: projects with several open complaints.
+- Hearing brief per complaint: the complaint and relief sought; the sections that decide its category (18/19 delay and refund, 14 defects and plan changes, 13 agreements, 12 advertisements, 10 agents, 71/72 compensation before the adjudicating officer); the project's registry facts (from the before-you-buy report) and risk signals; how complaints of this category were decided (allowed, partly allowed, settled, dismissed) and related decided complaints on the same project or promoter; other open complaints on the project; points to put to the promoter; the timeline.
+- Status updates (scrutiny, hearing with a date, order reserved, disposed with an outcome, withdrawn) follow allowed steps, are ComplaintEvents (so the buyer's tracking shows them) and are audited. Officers only; district officers see their district.
+- API `/complaints/triage`, `/complaints/{id}/brief`, `/complaints/{id}/status`; chat for officers ("which complaints are overdue?", "કઈ ફરિયાદો પહેલા લેવી?"); dashboard page "Complaint desk" (figures, queue with reasons, group hearings, brief with print, status form).
+- Found and fixed: the new timeline step was saved but missing from the complaint's in-memory events until reload.
+- Tests: `tests/test_gujrera_triage.py` (5).
+
 ---
 
 ## 11. Risks and mitigations
