@@ -37,11 +37,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
+from datetime import date
+
 from pydantic import BaseModel
 from sqlalchemy import Engine, func, inspect, select
 from sqlalchemy.orm import Session
 
 from gujrera.auth import LoginError, authenticate, issue_token, principal_for, read_token
+from gujrera.tools.interest import Payment, calculate, default_rate, explain, possession_end, promised_date
 from gujrera.chat.orchestrator import ChatState, respond, respond_with_english
 from gujrera.config import get_gujrera_settings
 from gujrera.db.models import Agent, Complaint, Project, Promoter, User
@@ -71,6 +74,21 @@ class LoginRequest(BaseModel):
 
 class AnalyticsRequest(BaseModel):
     question: str
+    lang: str = "en"
+
+
+class PaymentIn(BaseModel):
+    amount: float
+    paid_on: date | None = None
+
+
+class InterestRequest(BaseModel):
+    project_id: int
+    mode: str = "stay"  # stay | withdraw
+    payments: list[PaymentIn]
+    possession_on: date | None = None  # stay: the day possession was given (default: actual completion or today)
+    promised_on: date | None = None  # the possession date in the buyer's agreement, if it differs
+    rate: float | None = None  # agreement rate; default is SBI MCLR + 2% (Rule 16)
     lang: str = "en"
 
 
@@ -353,6 +371,60 @@ def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
         "complaints_by_status": complaints,
         "projects_by_district": [{"district": d, "count": n} for d, n in districts],
         "is_mock": bool(session.scalar(select(func.count()).select_from(Project).where(Project.is_mock))),
+    }
+
+
+@router.get("/calc/projects")
+def calc_projects(q: str = Query("", max_length=120), repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    """Projects for the calculator's picker: by RERA number or by (English or Gujarati) name."""
+    q = q.strip()
+    if len(q) < 2:
+        return {"items": []}
+    exact = repo.get_project(q)
+    rows = [exact] if exact else repo.search_projects(q, limit=12, min_score=60)
+
+    def prefix_hit(r: dict[str, Any]) -> bool:  # every typed word starts a word of the name ("mangal sq")
+        typed = q.lower().split()
+        return any(all(any(w.startswith(t) for w in (name or "").lower().split()) for t in typed)
+                   for name in (r["name"], r.get("name_gu")))
+
+    rows = sorted(rows, key=lambda r: (not prefix_hit(r), -r.get("match_score", 100)))[:8]
+    return {"items": [{"id": r["id"], "name": r["name"], "name_gu": r.get("name_gu"), "rera_no": r["rera_no"],
+                       "district": r["district"], "status": r["status"],
+                       "promised": str(r["proposed_completion"])} for r in rows]}
+
+
+@router.get("/calc/rate")
+def calc_rate() -> dict[str, Any]:
+    return default_rate()
+
+
+@router.post("/calc/interest")
+def calc_interest(body: InterestRequest, repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    """Delay interest (stay) or refund with interest (withdraw): RERA Act s.18, Gujarat Rules r.16-17."""
+    lang = _lang(body.lang)
+    project = repo.get_project_by_id(body.project_id)
+    if project is None:
+        raise HTTPException(404, "Project not found.")
+    if len(body.payments) > 50:
+        raise HTTPException(400, "Enter at most 50 payments.")
+    promised = body.promised_on or promised_date(project)
+    until = body.possession_on or possession_end(project)
+    try:
+        calc = calculate([Payment(p.amount, p.paid_on) for p in body.payments], promised,
+                         mode=body.mode, until=until, rate_pct=body.rate)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    sentences = explain(calc, project, lang)
+    if body.promised_on:  # the buyer's own date, not the registry's
+        sentences = sentences[1:]
+    return {
+        "project": {"id": project["id"], "name": project["name"], "name_gu": project.get("name_gu"),
+                    "rera_no": project["rera_no"], "status": project["status"],
+                    "registered_promised": str(project["proposed_completion"])},
+        "result": calc.to_dict(),
+        "sentences": [{"text": x.text, "citations": x.citations} for x in sentences],
+        "is_mock": bool(project.get("is_mock")),
     }
 
 

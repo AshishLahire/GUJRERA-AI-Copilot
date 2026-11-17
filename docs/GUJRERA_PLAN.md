@@ -346,6 +346,14 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Voice (`scripts/eval_gujrera_voice.py`): 30-prompt recording sheet (`docs/gujrera_voice_recording_sheet.md`), WER/CER and task success. Only computer-voice English clips so far; real gu/hi/en recordings are needed. Whisper writes Gujarati names as they sound ("Mongol arcade"), so "Did you mean …?" now also compares consonant skeletons (`sound_key`) for Latin script.
 - Fixed on the way: self-service focus words matched inside other words ("owe" in "Towers"), so a misheard "… Towers" project got "please log in to see your dues".
 
+**PoC feature 1: delay interest and refund calculator (2026-11-17): done.**
+- Law: RERA Act s.18(1) (interest for every month of delay if the buyer stays; refund with interest if they withdraw); Gujarat RERA General Rules r.16 (agreement rate, else SBI MCLR + 2%; interest from each payment date) and r.17 (refund within 45 days). Checked against the indexed rule texts.
+- Rate: SBI 3-year MCLR 8.95% from 15 Nov 2026 (sbi.bank.in), so 10.95% a year by default; settings `GUJRERA_SBI_MCLR` and `GUJRERA_SBI_MCLR_AS_OF` to update. The buyer can enter their agreement rate and their agreement's possession date instead.
+- `gujrera/tools/interest.py`: simple interest by days, amounts read from text ("40 lakh", "૩૫ લાખ", "1.2 करोड़"), cited sentences in gu/hi/en.
+- Chat: "how much interest for the delay in X, I paid 40 lakh" (with a project) gives an estimate and a card that opens the calculator prefilled; the same question without a project is a law question (Section 18). Refunds need payment dates, so the chat sends those to the calculator.
+- API: `GET /calc/projects`, `GET /calc/rate`, `POST /calc/interest`. Dashboard: "Interest calculator" page (stay or withdraw, several payments, breakdown table, sources, "file a complaint" and print).
+- Tests: `tests/test_gujrera_interest.py` (16), including hand-checked figures.
+
 ---
 
 ## 11. Risks and mitigations

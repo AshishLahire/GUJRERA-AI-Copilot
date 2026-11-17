@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Lang } from "../api/gujrera";
+import { CalcSeed, Lang, OPEN_CALC_EVENT } from "../api/gujrera";
 import { AccountBar } from "../components/AccountBar";
 import { AskPage } from "../components/AskPage";
 import { ReraCheckPage } from "../components/ReraCheckPage";
 import { BrandMark, Icon } from "./Brand";
+import { CalculatorPage } from "./CalculatorPage";
 import { SaathiProvider, useSaathi } from "./context";
 import { En } from "./En";
 import { HomePage, Page } from "./HomePage";
 import { OfficerPage, PromoterPage } from "./RolePages";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "promoter", "officer"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
   { page: "check", key: "navCheck", icon: "shield" },
+  { page: "calc", key: "navCalc", icon: "calc" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
   { page: "officer", key: "navOfficer", icon: "chart" },
 ];
@@ -46,7 +48,18 @@ const Shell: React.FC = () => {
   const [dark, setDark] = useState<boolean>(initialDark);
   // A question from the overview page; the counter remounts the chat so each one starts fresh.
   const [askSeed, setAskSeed] = useState<{ q: string; n: number } | null>(null);
+  const [calcSeed, setCalcSeed] = useState<{ seed: CalcSeed; n: number } | null>(null);
   const current = NAV.find((n) => n.page === page) ?? NAV[0];
+
+  useEffect(() => {
+    const open = (e: Event) => {
+      const seed = (e as CustomEvent<CalcSeed>).detail;
+      setCalcSeed((s) => ({ seed, n: (s?.n ?? 0) + 1 }));
+      setPage("calc");
+    };
+    window.addEventListener(OPEN_CALC_EVENT, open);
+    return () => window.removeEventListener(OPEN_CALC_EVENT, open);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -182,6 +195,7 @@ const Shell: React.FC = () => {
           <div hidden={page !== "check"}>
             <ReraCheckPage />
           </div>
+          {page === "calc" && <CalculatorPage key={calcSeed?.n ?? 0} seed={calcSeed?.seed ?? null} onAsk={ask} />}
           {page === "promoter" && <PromoterPage onAsk={ask} />}
           {page === "officer" && <OfficerPage />}
         </main>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, sendChat, transcribeVoice } from "../api/gujrera";
+import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, openCalculator, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
 import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
@@ -229,6 +229,26 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
             </li>
           ))}
         </ol>
+      </div>
+    );
+  }
+  if (card.type === "interest") {
+    const amount = card.amount as number | null;
+    const interest = card.interest as number | null;
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div><span className="text-muted">Delay </span><span className="font-semibold">{Number(card.delay_days) > 0 ? `${card.delay_days} days` : "None yet"}</span></div>
+        <div><span className="text-muted">Rate </span><span className="font-semibold">{String(card.rate_pct)}% a year</span></div>
+        {amount != null && interest != null && (
+          <div><span className="text-muted">Interest so far </span><span className="font-semibold">₹{interest.toLocaleString("en-IN")}</span></div>
+        )}
+        <button
+          type="button"
+          onClick={() => openCalculator({ projectId: Number(card.project_id), projectName: String(card.project), mode: card.mode === "withdraw" ? "withdraw" : "stay", amount })}
+          className="ml-auto px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold"
+        >
+          Open calculator →
+        </button>
       </div>
     );
   }

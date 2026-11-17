@@ -5,7 +5,7 @@ import { useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
-export type Page = "home" | "ask" | "check" | "promoter" | "officer";
+export type Page = "home" | "ask" | "check" | "calc" | "promoter" | "officer";
 
 const EXAMPLES: Record<"en" | "gu" | "hi", string[]> = {
   gu: ["મંગલ સ્ક્વેર નું પઝેશન ક્યારે મળશે?", "પઝેશનમાં વિલંબ થાય તો શું મને વ્યાજ મળે?", "મારે ફરિયાદ નોંધાવવી છે"],
@@ -92,6 +92,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
       prompt: { en: "I want to file a complaint", gu: "મારે ફરિયાદ નોંધાવવી છે", hi: "मुझे शिकायत दर्ज करनी है" }[lang],
     },
     { icon: "law", key: "tileRightsTitle", body: "tileRightsBody", page: "ask" },
+    { icon: "calc", key: "navCalc", body: "calcIntro", page: "calc" },
   ];
   const ongoing = data?.projects_by_status.ongoing ?? null;
 
@@ -200,7 +201,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
           {tr("quickActions", lang)}
           <En k="quickActions" className="text-muted" />
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {actions.map((a) => (
             <button
               key={a.key}
@@ -218,7 +219,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
                 {tr(a.key, lang)}
                 <En k={a.key} className="font-normal text-muted" />
               </span>
-              <span className="block mt-1 text-xs text-muted leading-relaxed">{tr(a.body, lang)}</span>
+              <span className="block mt-1 text-xs text-muted leading-relaxed line-clamp-3">{tr(a.body, lang)}</span>
             </button>
           ))}
         </div>

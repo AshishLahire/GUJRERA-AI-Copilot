@@ -43,6 +43,7 @@ from gujrera.complaints.flow import (
 from gujrera.selfservice.summary import agent_summary, focus_of, is_self_service, promoter_summary
 from gujrera.selfservice.summary import s as ss
 from gujrera.trust.checks import check_text
+from gujrera.tools.interest import chat_estimate, wants_calculation
 
 SUGGESTIONS = {
     "project": {
@@ -274,6 +275,21 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             return _from_flow(my_complaints(repo, lang), lang)
         out = (start_tracking if wants_tracking(message) else start_filing)(message, state, repo, lang)
         return _from_flow(out, lang)
+
+    # 6c. Delay interest / refund estimate for one named project (or the project being discussed)
+    if wants_calculation(text_lc) and "complaint_file" not in u.intents:
+        projects = [c for c in u.candidates if c.kind == "project"]
+        pid = None
+        if len(projects) == 1:
+            pid = projects[0].id
+        elif not u.candidates and state.entity and state.entity.get("kind") == "project":
+            pid = state.entity["id"]
+        project = repo.get_project_by_id(pid) if pid is not None else None
+        if project:
+            state.entity = {"kind": "project", "id": project["id"]}
+            sentences, card = chat_estimate(message, project, lang)
+            return Reply(lang, "interest_estimate", sentences, cards=[card], is_mock=card["is_mock"],
+                         suggestions=SUGGESTIONS["start"][lang])
 
     # 7. Names
     cands = u.candidates

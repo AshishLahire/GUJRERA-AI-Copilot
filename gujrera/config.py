@@ -50,6 +50,10 @@ class GujreraSettings(BaseSettings):
     GUJRERA_EMBEDDING_MODEL: str = Field(default="intfloat/multilingual-e5-small")
     # Let the LLM summarise retrieved provisions (kept only if the citation guard passes).
     GUJRERA_RAG_LLM: bool = Field(default=True)
+    # Delay interest calculator: Gujarat RERA Rules, Rule 16(2) rate = SBI MCLR + 2% when the agreement names
+    # no rate. SBI's highest (3-year) MCLR from sbi.bank.in; update both when SBI revises it.
+    GUJRERA_SBI_MCLR: float = Field(default=8.95, gt=0)
+    GUJRERA_SBI_MCLR_AS_OF: str = Field(default="2026-11-15")
     GUJRERA_TESSERACT_CMD: str = Field(default="C:/Program Files/Tesseract-OCR/tesseract.exe")
 
     # Login for the prototype's demo accounts. Production would use GUJRERA's own sign-in (SSO/OTP).

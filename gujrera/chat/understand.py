@@ -40,6 +40,9 @@ INTENT_WORDS: dict[str, tuple[str, ...]] = {
               "rights of", "entitled", "allowed to", "can the builder", "can a builder", "can the promoter",
               "can a promoter", "is it legal", "what does rera", "rera say", "obligation", "can i get",
               "am i entitled", "if the builder", "if the promoter", "what can i do",
+              # interest / refund for delay: a law question (Section 18) unless a project is named,
+              # in which case the chat calculates it instead
+              "interest for", "get interest", "refund", "money back", "વ્યાજ", "રિફંડ", "ब्याज", "रिफंड",
               "કલમ", "નિયમ", "કાયદો", "કાયદા", "અધિકાર", "મને મળે", "મળી શકે", "લઈ શકે", "કરી શકે",
               "धारा", "नियम", "कानून", "अधिकार", "हक", "मिल सकता", "मिलेगा क्या", "सकता है", "क्या मुझे"),
     "agent": ("agent", "broker", "એજન્ટ", "દલાલ", "एजेंट", "दलाल"),

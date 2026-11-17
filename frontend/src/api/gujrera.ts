@@ -238,3 +238,80 @@ export async function runAnalytics(token: string, question: string, lang: Lang):
   if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
   return parse(res);
 }
+
+
+// ------------------------------------------------------------ interest calculator
+export interface CalcProject {
+  id: number;
+  name: string;
+  name_gu: string | null;
+  rera_no: string;
+  district: string;
+  status: string;
+  promised: string;
+}
+
+export interface CalcRate {
+  mclr: number;
+  mclr_as_of: string;
+  rate: number;
+}
+
+export interface CalcResult {
+  project: { id: number; name: string; name_gu: string | null; rera_no: string; status: string; registered_promised: string };
+  result: {
+    mode: "stay" | "withdraw";
+    rate_pct: number;
+    rate_source: "agreement" | "sbi_mclr";
+    promised: string;
+    until: string;
+    delay_days: number;
+    principal: number;
+    interest: number;
+    total: number;
+    refund_due_by: string | null;
+    rows: { amount: number; from: string; to: string; days: number; interest: number }[];
+  };
+  sentences: { text: string; citations: { type: string; id: string }[] }[];
+  is_mock: boolean;
+}
+
+export interface CalcRequest {
+  project_id: number;
+  mode: "stay" | "withdraw";
+  payments: { amount: number; paid_on: string | null }[];
+  possession_on?: string | null;
+  promised_on?: string | null;
+  rate?: number | null;
+  lang: Lang;
+}
+
+export async function searchCalcProjects(q: string): Promise<{ items: CalcProject[] }> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/calc/projects?q=${encodeURIComponent(q)}`));
+}
+
+export async function fetchCalcRate(): Promise<CalcRate> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/calc/rate`));
+}
+
+export async function calculateInterest(body: CalcRequest): Promise<CalcResult> {
+  return parse(
+    await fetch(`${API_BASE}/api/gujrera/calc/interest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+/** Ask the shell to open the calculator, optionally prefilled (used by chat cards). */
+export interface CalcSeed {
+  projectId: number;
+  projectName: string;
+  mode: "stay" | "withdraw";
+  amount: number | null;
+}
+export const OPEN_CALC_EVENT = "saathi:open-calculator";
+export function openCalculator(seed: CalcSeed): void {
+  window.dispatchEvent(new CustomEvent<CalcSeed>(OPEN_CALC_EVENT, { detail: seed }));
+}
