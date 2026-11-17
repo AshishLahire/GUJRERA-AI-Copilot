@@ -15,6 +15,7 @@ import { Footer } from "./components/Footer";
 import { NarrativesPage } from "./components/NarrativesPage";
 import { EvaluationPage } from "./components/EvaluationPage";
 import { ReraCheckPage } from "./components/ReraCheckPage";
+import { AskPage } from "./components/AskPage";
 import type { NavTab } from "./components/TopBar";
 import { ResultPanel } from "./components/ResultPanel";
 import { SampleDrawer } from "./components/SampleDrawer";
@@ -35,6 +36,7 @@ export const App: React.FC = () => {
   const [activeNavTab, setActiveNavTab] = useState<NavTab>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
+    if (tab === "ask") return "ask";
     if (tab === "verification") return "verification";
     if (tab === "narratives") return "narratives";
     if (tab === "evaluation") return "evaluation";
@@ -382,7 +384,11 @@ export const App: React.FC = () => {
 
       {/* Main Body */}
       <main className="flex-1 w-full flex flex-col">
-        {activeNavTab === "rera" ? (
+        {activeNavTab === "ask" ? (
+          <div className="w-full flex-1">
+            <AskPage />
+          </div>
+        ) : activeNavTab === "rera" ? (
           <div className="w-full flex-1">
             <ReraCheckPage />
           </div>

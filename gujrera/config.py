@@ -27,6 +27,13 @@ class GujreraSettings(BaseSettings):
     # Upper bound on rows returned by any analytics query.
     GUJRERA_MAX_ROWS: int = Field(default=500, gt=0)
 
+    # Optional: let a self-hosted LLM (Ollama) rephrase template answers. The answer is kept only
+    # if every sentence keeps a citation and no new number appears; otherwise the template is used.
+    GUJRERA_LLM_PHRASING: bool = Field(default=False)
+    GUJRERA_LLM_MODEL: str = Field(default="qwen3-vl:4b")
+    GUJRERA_LLM_BASE_URL: str = Field(default="http://localhost:11434")
+    GUJRERA_LLM_TIMEOUT_SECONDS: float = Field(default=20.0, gt=0)
+
 
 @lru_cache
 def get_gujrera_settings() -> GujreraSettings:

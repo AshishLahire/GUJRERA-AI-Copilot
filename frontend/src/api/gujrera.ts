@@ -56,6 +56,31 @@ export interface TrustSample {
   expected: string[];
 }
 
+export interface ChatSource extends RecordSource {
+  n: number;
+}
+
+export interface ChatOption {
+  n: number;
+  kind: string;
+  id: number;
+  label: string;
+}
+
+export interface ChatReply {
+  session_id: string;
+  lang: Lang;
+  intent: string;
+  text: string;
+  sentences: { text: string; refs: number[] }[];
+  sources: ChatSource[];
+  cards: Array<Record<string, unknown> & { type: string }>;
+  options: ChatOption[];
+  suggestions: string[];
+  is_mock: boolean;
+  phrased_by: "template" | "llm";
+}
+
 async function parse<T>(res: Response): Promise<T> {
   let payload: unknown = null;
   try {
@@ -88,4 +113,18 @@ export async function checkTrustUpload(file: File): Promise<TrustReport> {
   const form = new FormData();
   form.append("file", file);
   return parse(await fetch(`${API_BASE}/api/gujrera/trust/upload`, { method: "POST", body: form }));
+}
+
+export async function sendChat(message: string, sessionId: string | null, lang: Lang | null): Promise<ChatReply> {
+  return parse(
+    await fetch(`${API_BASE}/api/gujrera/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, session_id: sessionId, lang }),
+    })
+  );
+}
+
+export async function fetchChatStarters(): Promise<{ items: { lang: Lang; text: string }[] }> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/chat/starters`));
 }

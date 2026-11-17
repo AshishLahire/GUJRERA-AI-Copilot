@@ -274,6 +274,15 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Console: "RERA check" tab (now the default), with samples, upload, Gujarati/Hindi/English headline, registry record and checks.
 - Evaluation: `scripts/eval_gujrera_trust.py` → `docs/gujrera_trust_eval.md` (179/179 on template ads, 0 false alarms, 0 dangerous misses). Template ads only: real ads and Gujarati OCR still need testing (step 1b).
 
+**Step 3, profiles and chat (2026-11-17): done for the citizen role; IndicTrans2 not started.**
+- `gujrera/profile/summarise.py`: project, promoter and agent profiles. Every sentence is a Gujarati/Hindi/English template (`gujrera/i18n.py`) filled from registry values and carries its source records.
+- `gujrera/chat/`: language detection (scripts plus romanised Gujarati/Hindi), keyword intents, registry name matching (exact, or fuzzy ≥ 94 for typos), conversation memory for follow-ups, "which one did you mean?" for duplicate names, and fixed replies for not found, out of scope and greetings. A pasted ad goes to the trust check. Complaint requests get an honest "not available yet".
+- Optional local-LLM rephrasing (`gujrera/chat/llm.py`, `GUJRERA_LLM_PHRASING=false` by default): output is kept only if every sentence keeps a citation and no new number appears. With the installed `qwen3-vl:4b` it took about 22 s and its output failed the guard, so the template answer was used; a faster Gujarati-capable model is needed before turning it on.
+- API: `POST /api/gujrera/chat`, `GET /api/gujrera/chat/starters`, `GET /api/gujrera/profile/{project,promoter}/{id}`. Chat state is in memory (single process).
+- Console: "Ask" tab with citation markers, sources list, project/promoter/trust cards, choice buttons and follow-up suggestions.
+- Evaluation: `scripts/eval_gujrera_chat.py` → `docs/gujrera_chat_eval.md`: 300 template questions (100 per language), 300/300 pass, 0 unknown names answered as found, p95 latency about 50 ms on CPU. These are generated from templates the router was tuned on; real user questions must be collected in the pilot.
+- Not done: IndicTrans2 (answers use native templates instead, so translation is only needed for free-form text such as order summaries, which are shown in English).
+
 ---
 
 ## 11. Risks and mitigations

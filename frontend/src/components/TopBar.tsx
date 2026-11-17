@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { HealthResponse, PRODUCT_NAME, PRODUCT_SUBTITLE } from "../types";
 
-export type NavTab = "rera" | "verification" | "narratives" | "evaluation";
+export type NavTab = "ask" | "rera" | "verification" | "narratives" | "evaluation";
 
 interface TopBarProps {
   health: HealthResponse | null;
@@ -95,21 +95,32 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {PRODUCT_NAME}
               </span>
             </div>
-            <p className="text-[11px] text-muted leading-tight hidden sm:block">
+            <p className="text-[11px] text-muted leading-tight hidden xl:block">
               {PRODUCT_SUBTITLE}
             </p>
           </div>
         </div>
 
-        {/* Navigation Tabs: RERA check · Verify · Narratives · Evaluation */}
+        {/* Navigation Tabs: Ask · RERA check · Verify · Narratives · Evaluation */}
         <nav
           aria-label="Main navigation"
-          className="flex items-center gap-1 rounded-xl border border-warm-border p-1 bg-subtle text-xs"
+          className="flex items-center gap-1 rounded-xl border border-warm-border p-1 bg-subtle text-xs min-w-0 overflow-x-auto [scrollbar-width:none]"
         >
           <button
             type="button"
+            onClick={() => onSelectNavTab("ask")}
+            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+              activeNavTab === "ask"
+                ? "bg-card text-body shadow-xs"
+                : "text-muted hover:text-body"
+            }`}
+          >
+            Ask
+          </button>
+          <button
+            type="button"
             onClick={() => onSelectNavTab("rera")}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
               activeNavTab === "rera"
                 ? "bg-card text-body shadow-xs"
                 : "text-muted hover:text-body"
@@ -120,7 +131,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onSelectNavTab("verification")}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
               activeNavTab === "verification"
                 ? "bg-card text-body shadow-xs"
                 : "text-muted hover:text-body"
@@ -131,7 +142,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onSelectNavTab("narratives")}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
               activeNavTab === "narratives"
                 ? "bg-card text-body shadow-xs"
                 : "text-muted hover:text-body"
@@ -142,7 +153,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             type="button"
             onClick={() => onSelectNavTab("evaluation")}
-            className={`px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
+            className={`shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-lg font-semibold transition-all ${
               activeNavTab === "evaluation"
                 ? "bg-card text-body shadow-xs"
                 : "text-muted hover:text-body"
@@ -159,7 +170,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             type="button"
             onClick={onTogglePresenterMode}
             title={presenterMode ? "Presenter mode ON: Technical tabs hidden" : "Enable presenter mode"}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+            className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               presenterMode
                 ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/70 dark:text-amber-200 dark:border-amber-700 shadow-xs"
                 : "bg-card text-muted hover:text-body border-warm-border hover:bg-subtle"
@@ -176,7 +187,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Fully Offline Badge when OFFLINE_MODE is on */}
           {health?.offline_mode ? (
             <div
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 shadow-xs"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 shadow-xs"
               role="status"
               aria-label="Fully offline mode active"
               data-testid="fully-offline-badge"

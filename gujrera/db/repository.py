@@ -176,6 +176,27 @@ class Repository:
         return [_row(a, "agent", a.reg_no) | {"match_score": score}
                 for a, score in self._fuzzy(query, candidates, lambda a: (a.name, a.name_gu), limit, min_score)]
 
+    def complaint_counts(self, *, promoter_id: int | None = None,
+                         project_id: int | None = None) -> dict[str, Any]:
+        """Public aggregate counts (no complaint records or complainant data)."""
+        stmt = select(Complaint.status, Complaint.category, Complaint.is_mock)
+        if promoter_id is not None:
+            stmt = stmt.where(Complaint.promoter_id == promoter_id)
+        if project_id is not None:
+            stmt = stmt.where(Complaint.project_id == project_id)
+        rows = self.s.execute(stmt).all()
+        by_category: dict[str, int] = {}
+        for _, cat, _mock in rows:
+            by_category[cat] = by_category.get(cat, 0) + 1
+        return {
+            "total": len(rows),
+            "open": sum(1 for st, _, _m in rows if st in OPEN_COMPLAINT_STATUSES),
+            "by_category": dict(sorted(by_category.items(), key=lambda kv: -kv[1])),
+            "source": {"type": "complaint_stats",
+                       "id": f"project:{project_id}" if project_id is not None else f"promoter:{promoter_id}",
+                       "is_mock": any(m for _, _, m in rows)},
+        }
+
     # -------------------------------------------------------- scoped: complaints
     def _complaint_scope(self, stmt: Select) -> Select:
         p = self.p

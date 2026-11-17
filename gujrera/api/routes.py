@@ -1,31 +1,45 @@
 """HTTP endpoints for the GUJRERA copilot, mounted on the Pramaan FastAPI app.
 
+Chat and profiles:
+    POST /api/gujrera/chat                 {"message": "...", "session_id"?: "...", "lang"?: "gu|hi|en"}
+    GET  /api/gujrera/profile/project/{id}?lang=gu
+    GET  /api/gujrera/profile/promoter/{id}?lang=gu
+
 Trust check:
     GET  /api/gujrera/health
     GET  /api/gujrera/trust/samples        demo ads built from the registry
     POST /api/gujrera/trust/text           {"text": "..."}
     POST /api/gujrera/trust/upload         multipart: file (PNG/JPG/PDF)
 
-The trust check only reads public registry data, so it runs as an anonymous
-citizen. Uploaded files are deleted after reading.
+These endpoints only read public registry data, so they run as an anonymous
+citizen. Uploaded files are deleted after reading. Chat state lives in memory
+for the prototype (one process); a shared store (Redis/Postgres) replaces it
+for multi-instance deployment.
 """
 
 from __future__ import annotations
 
+import threading
+import time
 import uuid
+from collections import OrderedDict
 from collections.abc import Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import Engine, func, inspect, select
 from sqlalchemy.orm import Session
 
+from gujrera.chat.orchestrator import ChatState, respond
+from gujrera.config import get_gujrera_settings
 from gujrera.db.models import Project
 from gujrera.db.repository import Principal, Repository
 from gujrera.db.session import make_engine, session_factory
+from gujrera.i18n import LANGS
+from gujrera.profile.summarise import Profile, project_profile, promoter_profile
 from gujrera.trust.checks import check_text
 from gujrera.trust.samples import demo_samples
 
@@ -38,6 +52,38 @@ ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".pdf"}
 
 class TrustTextRequest(BaseModel):
     text: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str | None = None
+    lang: str | None = None
+
+
+class _Sessions:
+    """Small in-memory LRU of chat states with a time-to-live."""
+
+    def __init__(self, max_items: int = 2000, ttl_seconds: int = 3600):
+        self._items: OrderedDict[str, tuple[float, ChatState]] = OrderedDict()
+        self._lock = threading.Lock()
+        self.max_items, self.ttl = max_items, ttl_seconds
+
+    def get(self, session_id: str | None) -> tuple[str, ChatState]:
+        now = time.time()
+        with self._lock:
+            for key in [k for k, (ts, _) in self._items.items() if now - ts > self.ttl]:
+                del self._items[key]
+            if session_id and session_id in self._items:
+                _, state = self._items.pop(session_id)
+            else:
+                session_id, state = uuid.uuid4().hex, ChatState()
+            self._items[session_id] = (now, state)
+            while len(self._items) > self.max_items:
+                self._items.popitem(last=False)
+            return session_id, state
+
+
+SESSIONS = _Sessions()
 
 
 @lru_cache
@@ -66,6 +112,68 @@ def health(session: Session = Depends(get_session)) -> dict[str, Any]:
     total = session.scalar(select(func.count()).select_from(Project))
     mock = session.scalar(select(func.count()).select_from(Project).where(Project.is_mock.is_(True)))
     return {"status": "ok", "projects": total, "mock_projects": mock}
+
+
+def _profile_dict(prof: Profile | None) -> dict[str, Any]:
+    if prof is None:
+        raise HTTPException(404, "Not found in the GUJRERA records available to this copilot.")
+    return {
+        "kind": prof.kind, "id": prof.entity_id, "title": prof.title, "card": prof.card,
+        "sentences": [{"text": s.text, "citations": s.citations} for s in prof.sentences],
+        "is_mock": prof.is_mock,
+    }
+
+
+def _lang(lang: str) -> str:
+    if lang not in LANGS:
+        raise HTTPException(400, f"lang must be one of {', '.join(LANGS)}")
+    return lang
+
+
+@router.post("/chat")
+def chat(body: ChatRequest, repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    message = (body.message or "").strip()
+    if not message:
+        raise HTTPException(400, "Please type a question.")
+    if len(message) > MAX_TEXT_CHARS:
+        raise HTTPException(400, f"Message exceeds the {MAX_TEXT_CHARS:,}-character limit.")
+    lang = _lang(body.lang) if body.lang else None
+    session_id, state = SESSIONS.get(body.session_id)
+    rephrase = None
+    if get_gujrera_settings().GUJRERA_LLM_PHRASING:
+        from gujrera.chat.llm import make_rephraser
+
+        rephrase = make_rephraser()
+    reply = respond(message, state, repo, lang=lang, rephrase=rephrase)
+    return {"session_id": session_id, **reply.to_dict()}
+
+
+@router.get("/chat/starters")
+def chat_starters(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Example questions built from registry names, so demo prompts always resolve."""
+    projects = session.scalars(select(Project).where(Project.status == "ongoing").order_by(Project.id).limit(2)).all()
+    items: list[dict[str, str]] = []
+    if projects:
+        a = projects[0]
+        items.append({"lang": "gu", "text": f"{a.name_gu or a.name} નું પઝેશન ક્યારે મળશે?"})
+        items.append({"lang": "en", "text": f"Tell me about the builder of {a.name}"})
+    if len(projects) > 1:
+        b = projects[1]
+        items.append({"lang": "hi", "text": f"{b.name} का पज़ेशन कब मिलेगा?"})
+    items.append({"lang": "en", "text": "Is PR/GJ/SURAT/OLPAD/SUDA/RAA99999/010122 registered?"})
+    return {"items": items, "is_mock": True}
+
+
+@router.get("/profile/project/{project_id}")
+def project_profile_endpoint(project_id: int, lang: str = Query("gu"),
+                             repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    return _profile_dict(project_profile(repo, project_id, _lang(lang)))
+
+
+@router.get("/profile/promoter/{promoter_id}")
+def promoter_profile_endpoint(promoter_id: int, lang: str = Query("gu"),
+                              repo: Repository = Depends(citizen_repo)) -> dict[str, Any]:
+    return _profile_dict(promoter_profile(repo, promoter_id, _lang(lang)))
 
 
 @router.get("/trust/samples")

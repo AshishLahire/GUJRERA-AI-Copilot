@@ -59,6 +59,8 @@ PROMOTER_SUFFIXES = [
 PROJECT_SUFFIXES = [
     ("Residency", "રેસિડેન્સી"), ("Heights", "હાઇટ્સ"), ("Greens", "ગ્રીન્સ"),
     ("Arcade", "આર્કેડ"), ("Avenue", "એવન્યુ"), ("Park", "પાર્ક"), ("Enclave", "એન્ક્લેવ"),
+    ("Towers", "ટાવર્સ"), ("Square", "સ્ક્વેર"), ("Plaza", "પ્લાઝા"), ("Vihar", "વિહાર"),
+    ("Homes", "હોમ્સ"), ("Elite", "એલિટ"), ("Orchid", "ઓર્કિડ"),
 ]
 FIRST_NAMES = [
     ("Rakesh", "રાકેશ"), ("Nilesh", "નિલેશ"), ("Hetal", "હેતલ"), ("Jignesh", "જિજ્ઞેશ"),
@@ -103,6 +105,7 @@ class _Ctx:
     order_seq: int = 0
     complaint_seq: int = 0
     citizen_ids: list[int] = field(default_factory=list)
+    used_project_names: set[str] = field(default_factory=set)
 
 
 def _days(rng: random.Random, lo: int, hi: int) -> timedelta:
@@ -218,7 +221,12 @@ def _make_project(session: Session, ctx: _Ctx, promoter: Promoter, troubled: boo
     else:
         district, district_gu, talukas = _pick_district(rng)
     taluka, auth = rng.choice(talukas)
-    stem, suf = rng.choice(STEMS), rng.choice(PROJECT_SUFFIXES)
+    # Mostly unique project names (real registries do have duplicates; the chat handles those).
+    for _ in range(20):
+        stem, suf = rng.choice(STEMS), rng.choice(PROJECT_SUFFIXES)
+        if f"{stem[0]} {suf[0]}" not in ctx.used_project_names:
+            break
+    ctx.used_project_names.add(f"{stem[0]} {suf[0]}")
     ptype = rng.choices(["residential", "commercial", "mixed", "plotted"], weights=[6, 2, 1, 1])[0]
     units = rng.randint(20, 600)
 
