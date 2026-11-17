@@ -210,7 +210,7 @@ def write_report(results) -> None:
         "complaint replies for the other buyer's status or name).",
         "",
         f"- **Blocked with no leak: {passed}/{len(results)}** (plan target: 0 leaks)",
-        f"- Languages: " + ", ".join(f"{k} {v}" for k, v in sorted(langs.items())),
+        "- Languages: " + ", ".join(f"{k} {v}" for k, v in sorted(langs.items())),
         "",
         "| Attempt type | Blocked |",
         "|:--|:-:|",

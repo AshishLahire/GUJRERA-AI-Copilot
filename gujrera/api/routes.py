@@ -46,7 +46,7 @@ from sqlalchemy.orm import Session
 
 from gujrera.auth import LoginError, authenticate, issue_token, principal_for, read_token
 from gujrera.tools.interest import Payment, calculate, default_rate, explain, possession_end, promised_date
-from gujrera.chat.orchestrator import ChatState, respond, respond_with_english
+from gujrera.chat.orchestrator import ChatState, respond_with_english
 from gujrera.config import get_gujrera_settings
 from gujrera.db.models import Agent, Complaint, Project, Promoter, User
 from gujrera.db.repository import AccessDenied, Principal, Repository

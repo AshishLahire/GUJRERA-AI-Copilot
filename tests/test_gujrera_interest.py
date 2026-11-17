@@ -16,7 +16,7 @@ from gujrera.db.models import Project
 from gujrera.db.repository import Principal, Repository
 from gujrera.db.session import init_db, make_engine, session_factory
 from gujrera.ingest.mock_generator import MockConfig, generate
-from gujrera.tools.interest import STAY, WITHDRAW, Payment, calculate, default_rate, fmt_inr, parse_amount
+from gujrera.tools.interest import WITHDRAW, Payment, calculate, default_rate, fmt_inr, parse_amount
 
 
 # ------------------------------------------------------------------ arithmetic

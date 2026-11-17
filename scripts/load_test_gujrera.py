@@ -24,7 +24,6 @@ import asyncio
 import os
 import random
 import socket
-import statistics
 import subprocess
 import sys
 import tempfile

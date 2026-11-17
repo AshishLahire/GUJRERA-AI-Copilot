@@ -138,14 +138,25 @@ def _score(variant: str, text_lc: str) -> float:
 FUZZY_THRESHOLD = 94
 
 
+# Gujarati and Devanagari Unicode blocks are parallel (U+0A80.. and U+0900..): a Gujarati name maps letter for
+# letter to Hindi script (મંગલ સ્ક્વેર -> मंगल स्क्वेर), so names typed in Hindi match the registry's Gujarati names.
+_GU_START, _GU_END, _GU_TO_DEVA = 0x0A80, 0x0AFF, 0x0A80 - 0x0900
+
+
+def gu_to_deva(text: str | None) -> str:
+    return "".join(chr(ord(ch) - _GU_TO_DEVA) if _GU_START <= ord(ch) <= _GU_END else ch for ch in (text or ""))
+
+
 def find_candidates(session: Session, text_lc: str, threshold: float = FUZZY_THRESHOLD) -> list[Candidate]:
     found: list[Candidate] = []
     for p in session.scalars(select(Promoter)):
-        score = max(_score(_core(p.name), text_lc), _score(_core(p.name_gu), text_lc))
+        score = max(_score(_core(p.name), text_lc), _score(_core(p.name_gu), text_lc),
+                    _score(gu_to_deva(_core(p.name_gu)), text_lc))
         if score >= threshold:
             found.append(Candidate("promoter", p.id, p.name, score, p.district))
     for p in session.scalars(select(Project)):
-        score = max(_score(p.name.lower(), text_lc), _score((p.name_gu or "").lower(), text_lc))
+        score = max(_score(p.name.lower(), text_lc), _score((p.name_gu or "").lower(), text_lc),
+                    _score(gu_to_deva(p.name_gu).lower(), text_lc))
         if score >= threshold:
             found.append(Candidate("project", p.id, p.name, score, p.district))
     if found:
@@ -205,13 +216,14 @@ def suggest_names(session: Session, query: str, min_score: float = 85, limit: in
     latin = re.search(r"[a-z]", q) is not None
     out: list[Candidate] = []
     for p in session.scalars(select(Project)):
-        score = max(fuzz.ratio(q, p.name.lower()), fuzz.ratio(q, (p.name_gu or "").lower()))
+        score = max(fuzz.ratio(q, p.name.lower()), fuzz.ratio(q, (p.name_gu or "").lower()),
+                    fuzz.ratio(q, gu_to_deva(p.name_gu)))
         if latin and score < min_score and _sound_score(q, p.name) >= SOUND_THRESHOLD:
             score = min_score
         if score >= min_score:
             out.append(Candidate("project", p.id, p.name, float(score), p.district))
     for p in session.scalars(select(Promoter)):
-        score = max(fuzz.ratio(q, _core(p.name)), fuzz.ratio(q, _core(p.name_gu)))
+        score = max(fuzz.ratio(q, _core(p.name)), fuzz.ratio(q, _core(p.name_gu)), fuzz.ratio(q, gu_to_deva(_core(p.name_gu))))
         if latin and score < min_score and _sound_score(q, _core(p.name)) >= SOUND_THRESHOLD:
             score = min_score
         if score >= min_score:

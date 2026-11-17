@@ -51,6 +51,8 @@ from gujrera.complaints.triage import chat_reply as triage_reply, wants_triage
 from gujrera.watch import chat_feed as watch_feed, chat_watch as watch_project, wants_feed, wants_watch
 from gujrera.tools.agreement import chat_reply as agreement_reply, looks_like_agreement
 from gujrera.tools.agreement import wants_check as wants_agreement_check
+from gujrera.chat.basics import DELAY_WORDS as DISTRICT_DELAY_WORDS
+from gujrera.chat.basics import about_rera, asks_about_rera, district_list, says_thanks, thanks, wants_district_list
 
 SUGGESTIONS = {
     "project": {
@@ -245,6 +247,24 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if wants_agreement_check((message or "").lower()):
         sentences, card = agreement_reply(message, repo, lang, run=False)
         return Reply(lang, "agreement_check", sentences, cards=[card])
+
+    # 1c. Small talk and basics: what RERA is, thanks, "pending complaints", projects in a district
+    if asks_about_rera(message or "") and not u.candidates and not u.project_numbers:
+        return Reply(lang, "about_rera", about_rera(lang), suggestions=SUGGESTIONS["start"][lang])
+    if says_thanks(message or "") and not u.candidates:
+        return Reply(lang, "thanks", thanks(lang), suggestions=SUGGESTIONS["start"][lang])
+    msg_lc = (message or "").lower()
+    if (repo.p.role == "citizen" and any(w in msg_lc for w in ("complaint", "ફરિયાદ", "शिकायत"))
+            and any(w in msg_lc for w in ("pending", "my ", "open", "status", "મારી", "બાકી", "मेरी", "लंबित"))
+            and not REF_RE.search(message or "") and not u.candidates and "complaint_file" not in u.intents):
+        if repo.p.user_id is not None:
+            return _from_flow(my_complaints(repo, lang), lang)
+        return _from_flow(start_tracking(message, state, repo, lang), lang)
+    if (len(u.districts) == 1 and not u.candidates and not u.project_numbers and wants_district_list(msg_lc)
+            and repo.p.role != "officer" and not (u.intents - {"greeting"}) and not wants_enforcement(msg_lc)):
+        sentences, card = district_list(repo, next(iter(u.districts)), lang,
+                                        delayed=any(w in msg_lc for w in DISTRICT_DELAY_WORDS))
+        return Reply(lang, "district_projects", sentences, cards=[card])
 
     # 2. Pasted ad, or an explicit "is this genuine?" with a registration number → trust check
     if u.project_numbers and ("trust" in u.intents or u.looks_like_ad):
