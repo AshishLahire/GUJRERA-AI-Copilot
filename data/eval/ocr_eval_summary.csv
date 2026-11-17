@@ -1,0 +1,8 @@
+section,group,count,ref_exact_match_rate,subject_exact_match_rate,mean_cer,mean_word_recall,mean_time_ms
+synthetic,all,5,0.0,0.0,,,4061.04
+whatsapp_variants_page1,crop,1,,,1.0,0.0,4039.44
+whatsapp_variants_page1,overlay,1,,,1.0,0.0,4039.07
+whatsapp_variants_page1,rephoto,1,,,1.0,0.0,4034.63
+whatsapp_variants_page1,screenshot,1,,,1.0,0.0,4032.76
+whatsapp_variants_page1,wa_compress,1,,,1.0,0.0,4017.88
+fake_notices,saved_for_review,5,,,,,4030.13

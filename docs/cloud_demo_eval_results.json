@@ -1,0 +1,211 @@
+[
+  {
+    "id": "FN-TG-01595",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "likely_forged",
+    "verdict_on_title": "\u274c LIKELY FAKE DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "FN-TG-01746",
+    "label": "fake",
+    "verdict_off": "suspicious_unverified",
+    "verdict_off_title": "\u26a0\ufe0f SUSPICIOUS DOCUMENT",
+    "verdict_on": "suspicious_unverified",
+    "verdict_on_title": "\u26a0\ufe0f SUSPICIOUS DOCUMENT",
+    "fields_ref": [
+      "GOI/MHA/2026/S-202"
+    ]
+  },
+  {
+    "id": "FN-TG-00988",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "debunked",
+    "verdict_on_title": "\u274c FAKE DOCUMENT",
+    "fields_ref": [
+      "J2/7/2024-25",
+      "PMKY7010346HW"
+    ]
+  },
+  {
+    "id": "FN-TG-01999",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "unverified",
+    "verdict_on_title": "\u2754 UNVERIFIED DOCUMENT",
+    "fields_ref": [
+      "RBE No. 101/2026"
+    ]
+  },
+  {
+    "id": "OFF-4A2E01CE80__screenshot",
+    "label": "genuine",
+    "verdict_off": "matches_official",
+    "verdict_off_title": "\u2705 GENUINE DOCUMENT",
+    "verdict_on": "matches_official",
+    "verdict_on_title": "\u2705 GENUINE DOCUMENT",
+    "fields_ref": [
+      "Acad-64/2026",
+      "No. Acad-65/2026",
+      "Acad-65/2026"
+    ]
+  },
+  {
+    "id": "FN-PDF-0002",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "debunked",
+    "verdict_on_title": "\u274c FAKE DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "FN-TG-00130",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "debunked",
+    "verdict_on_title": "\u274c FAKE DOCUMENT",
+    "fields_ref": [
+      "MV7541GA"
+    ]
+  },
+  {
+    "id": "FN-TG-01540",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "suspicious_unverified",
+    "verdict_on_title": "\u26a0\ufe0f SUSPICIOUS DOCUMENT",
+    "fields_ref": [
+      "No.68/03",
+      "68/03"
+    ]
+  },
+  {
+    "id": "FN-TG-01896",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "suspicious_unverified",
+    "verdict_on_title": "\u26a0\ufe0f SUSPICIOUS DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "FN-TG-00902",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "debunked",
+    "verdict_on_title": "\u274c FAKE DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "FN-TG-01749",
+    "label": "fake",
+    "verdict_off": "debunked",
+    "verdict_off_title": "\u274c FAKE DOCUMENT",
+    "verdict_on": "debunked",
+    "verdict_on_title": "\u274c FAKE DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "FN-TG-00427",
+    "label": "fake",
+    "verdict_off": "unverified",
+    "verdict_off_title": "\u2754 UNVERIFIED DOCUMENT",
+    "verdict_on": "unverified",
+    "verdict_on_title": "\u2754 UNVERIFIED DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "FN-TG-00385",
+    "label": "fake",
+    "verdict_off": "unverified",
+    "verdict_off_title": "\u2754 UNVERIFIED DOCUMENT",
+    "verdict_on": "unverified",
+    "verdict_on_title": "\u2754 UNVERIFIED DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "OFF-51452FA980__wa_compress",
+    "label": "genuine",
+    "verdict_off": "matches_official",
+    "verdict_off_title": "\u2705 GENUINE DOCUMENT",
+    "verdict_on": "matches_official",
+    "verdict_on_title": "\u2705 GENUINE DOCUMENT",
+    "fields_ref": [
+      "Acad-67/2026"
+    ]
+  },
+  {
+    "id": "OFF-F04C328766__rephoto",
+    "label": "genuine",
+    "verdict_off": "matches_official",
+    "verdict_off_title": "\u2705 GENUINE DOCUMENT",
+    "verdict_on": "matches_official",
+    "verdict_on_title": "\u2705 GENUINE DOCUMENT",
+    "fields_ref": [
+      "Acad-66/2026"
+    ]
+  },
+  {
+    "id": "OFF-5E1BCD9F8C__crop",
+    "label": "genuine",
+    "verdict_off": "matches_official",
+    "verdict_off_title": "\u2705 GENUINE DOCUMENT",
+    "verdict_on": "matches_official",
+    "verdict_on_title": "\u2705 GENUINE DOCUMENT",
+    "fields_ref": []
+  },
+  {
+    "id": "SYN-0001",
+    "label": "clean",
+    "verdict_off": "unverified",
+    "verdict_off_title": "\u2754 UNVERIFIED DOCUMENT",
+    "verdict_on": "unverified",
+    "verdict_on_title": "\u2754 UNVERIFIED DOCUMENT",
+    "fields_ref": [
+      "NFRA/2024-25/260"
+    ]
+  },
+  {
+    "id": "SYN-0002",
+    "label": "clean",
+    "verdict_off": "unverified",
+    "verdict_off_title": "\u2754 UNVERIFIED DOCUMENT",
+    "verdict_on": "unverified",
+    "verdict_on_title": "\u2754 UNVERIFIED DOCUMENT",
+    "fields_ref": [
+      "CEB/Acad-768/2026"
+    ]
+  },
+  {
+    "id": "SYN-0031",
+    "label": "forged",
+    "verdict_off": "likely_forged",
+    "verdict_off_title": "\u274c LIKELY FAKE DOCUMENT",
+    "verdict_on": "likely_forged",
+    "verdict_on_title": "\u274c LIKELY FAKE DOCUMENT",
+    "fields_ref": [
+      "TCA/QoS/954/2024"
+    ]
+  },
+  {
+    "id": "SYN-0033",
+    "label": "forged",
+    "verdict_off": "likely_forged",
+    "verdict_off_title": "\u274c LIKELY FAKE DOCUMENT",
+    "verdict_on": "likely_forged",
+    "verdict_on_title": "\u274c LIKELY FAKE DOCUMENT",
+    "fields_ref": [
+      "No. 68/2024/GOVT",
+      "68/2024/GOVT"
+    ]
+  }
+]

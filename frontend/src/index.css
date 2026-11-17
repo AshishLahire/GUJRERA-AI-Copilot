@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-page: #FFFDF7;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #FAF6EC;
+    --bg-skeleton: #F3ECE0;
+    --border-warm: #F1E9D2;
+    --border-warm-strong: #E2D5B5;
+    --text-body: #1F2937;
+    --text-muted: #6B6455;
+    --accent-surface: #FEF7DC;
+    --accent-border: #E6D095;
+    --accent-amber: #B7791F;
+    --accent-amber-strong: #975A16;
+    --btn-primary-bg: #1F2937;
+    --btn-primary-text: #FFFFFF;
+    --card-shadow: 0 1px 3px 0 rgba(31, 41, 55, 0.04), 0 1px 2px -1px rgba(31, 41, 55, 0.03);
+  }
+
+  .dark {
+    --bg-page: #1C1A16;
+    --bg-card: #26231D;
+    --bg-subtle: #201D18;
+    --bg-skeleton: #332F27;
+    --border-warm: #38332A;
+    --border-warm-strong: #4A4337;
+    --text-body: #F5F2EB;
+    --text-muted: #A8A090;
+    --accent-surface: #362E1E;
+    --accent-border: #6B5324;
+    --accent-amber: #ECC94B;
+    --accent-amber-strong: #F6E05E;
+    --btn-primary-bg: #F5F2EB;
+    --btn-primary-text: #1C1A16;
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-body);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+.warm-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+
+.focus-amber {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-amber focus-visible:ring-offset-1;
+}

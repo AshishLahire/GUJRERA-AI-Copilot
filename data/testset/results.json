@@ -1,0 +1,397 @@
+[
+ {
+  "id": "TR-01",
+  "label": "real",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TR-02",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "FN-TG-01595",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": true,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-03",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "FN-TG-01595",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": true,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-04",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "TG-1427",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": false,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-05",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "TG-1831",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-06",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "FN-TG-01595",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": true,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-07",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "TG-1782",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-08",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "TG-1782",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-09",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "TG-1427",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-10",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "FN-TG-01595",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-11",
+  "label": "real",
+  "status": "ok",
+  "engine": "pdf_text_layer",
+  "verdict": "matches_official",
+  "decided_by": "source_match",
+  "outcome": "correct",
+  "verdict_unseen": "matches_official",
+  "outcome_unseen": "correct",
+  "risk": "low 0",
+  "top_findings": [],
+  "claim": null,
+  "top_debunk": "FN-TG-01595",
+  "top_debunk_label": "possible",
+  "visual": {
+   "seal": false,
+   "signature": true,
+   "emblem": true
+  },
+  "leak_terms": []
+ },
+ {
+  "id": "TR-12",
+  "label": "real",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-01",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-02",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-03",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-04",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-05",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-06",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-07",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-08",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-09",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-10",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "TF-11",
+  "label": "fake",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0032",
+  "label": "synthetic_forged",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0034",
+  "label": "synthetic_forged",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0035",
+  "label": "synthetic_forged",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0036",
+  "label": "synthetic_forged",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0037",
+  "label": "synthetic_forged",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0038",
+  "label": "synthetic_forged",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0003",
+  "label": "synthetic_clean",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0004",
+  "label": "synthetic_clean",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0005",
+  "label": "synthetic_clean",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0006",
+  "label": "synthetic_clean",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0007",
+  "label": "synthetic_clean",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ },
+ {
+  "id": "SYN-0008",
+  "label": "synthetic_clean",
+  "status": "no_text",
+  "engine": "ollama:qwen3-vl:8b",
+  "error": "Ollama is disabled (OLLAMA_ENABLED=false)"
+ }
+]

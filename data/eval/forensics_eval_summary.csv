@@ -1,0 +1,31 @@
+section,item_or_group,metric_1,metric_2,metric_3,notes
+02_official_source_corpus,all_79_genuine,low=79,medium=0,high=0,fp_high_rate=0/79
+02_top5_genuine,OFF-0B6328356A,issuer=CBSE,score=15 (low),ref=Acad-56/2026,"personal_contact (warning, +15: '9205855997')"
+02_top5_genuine,OFF-2663159B68,issuer=PIB,score=15 (low),ref=PRID 2327833,"ref_format_wrong (warning, +15: 'पर')"
+02_top5_genuine,OFF-4A2E01CE80,issuer=CBSE,score=15 (low),ref=Acad-65/2026,"personal_contact (warning, +15: 'manjit.cbse@gmail.com')"
+02_top5_genuine,OFF-5E1BCD9F8C,issuer=CBSE,score=15 (low),ref=Acad-64/2026,"personal_contact (warning, +15: 'manjit.cbse@gmail.com')"
+02_top5_genuine,OFF-944431245A,issuer=PIB,score=15 (low),ref=PRID 2327846,"ref_format_wrong (warning, +15: 'ग्रामीण')"
+04_multilingual_claims,bn,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+3 extra),any_cue=13/15,true_fp=0/0
+04_multilingual_claims,en,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+2 extra),any_cue=13/15,true_fp=0/5
+04_multilingual_claims,hi,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+3 extra),any_cue=13/15,true_fp=0/5
+04_multilingual_claims,hi-Latn,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+2 extra),any_cue=12/15,true_fp=0/5
+04_multilingual_claims,mr,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+3 extra),any_cue=13/15,true_fp=0/0
+04_multilingual_claims,ta,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+3 extra),any_cue=13/15,true_fp=0/0
+04_multilingual_claims,te,fee_slot=5/5 (+1 extra),urgency_slot=5/5 (+2 extra),any_cue=12/15,true_fp=0/0
+06_synthetic_cached,SYN-0001,label=clean,score=0 (low),expected=,detected=
+06_synthetic_cached,SYN-0002,label=clean,score=0 (low),expected=,detected=
+06_synthetic_cached,SYN-0031,label=forged,score=80 (high),"expected=lookalike_domain,personal_contact,too_good_offer,urgency_threat","detected=lookalike_domain,personal_contact,too_good_offer,urgency_threat"
+06_synthetic_cached,SYN-0033,label=forged,score=60 (high),"expected=ref_format_wrong,spelling_errors,urgency_threat,wrong_signatory_title","detected=ref_format_wrong,spelling_errors,urgency_threat,wrong_signatory_title"
+01_real_fakes_cached,FN-TG-01595,score=100 (high),detected_issuer=Reserve Bank of India (RBI),"cues=fee_demand,lookalike_domain,lookalike_domain","uncropped_pib=True | hand_cues='24 hours express delivery' and 'special offer' stamps; fees: 'income tax department office form charge Rs 700', 'delivery permission charge'; lists Finance Secretary and Ministry of Finance as addressees on an RBI letter; 'Government RBI all-India permission'; Hinglish line 'delivery payment prapt karne ka time'"
+01_real_fakes_cached,FN-TG-00988,score=85 (high),detected_issuer=Ministry of New and Renewable Energy (PM-KUSUM) (MNRE),"cues=payment_to_account,fee_demand,wrong_signatory_title",uncropped_pib=True | hand_cues=bank account named 'PM Kusum Yojna' at a branch; 'Registration Charges is Refundable Rs. 8000.00'; signatory 'Branch Head' for a ministry scheme; same 'At the outset we welcome you to world of...' phrasing as fake MUDRA letters
+01_real_fakes_cached,FN-TG-00130,score=50 (medium),"detected_issuer=Oil Marketing Companies (IOCL, BPCL, HPCL) / Ministry of Petroleum and Natural Gas (OMC)","cues=fee_demand,urgency_threat",uncropped_pib=True | hand_cues=
+01_real_fakes_cached,FN-TG-01746,score=50 (medium),detected_issuer=Ministry of Home Affairs (MHA),"cues=lookalike_domain,spelling_errors",uncropped_pib=True | hand_cues=
+01_real_fakes_cached,FN-TG-01540,score=45 (medium),detected_issuer=Ministry of Commerce and Industry (MOCI),"cues=mixed_issuers,date_anomaly,wrong_signatory_title","uncropped_pib=True | hand_cues=shared via a propaganda X account with a news-style link; reference 'No.68/03' lacks the department/file structure of real GoI letters; Ministry of Civil Aviation address in the footer of a Commerce letter; signatory title 'Additional Chief Secretary, India's Ministry of Commerce' (ACS is a state cadre post)"
+01_real_fakes_cached,FN-PDF-0002,score=30 (medium),detected_issuer=Indian Cyber Crime Coordination Centre (MHA) (I4C),"cues=issuer_never_does,urgency_threat","uncropped_pib=True | hand_cues=fear/urgency: reply within 24 hours or face arrest; mixes logos of I4C, Delhi Police, Intelligence Bureau and 'Cyber Crime' seals on one letter; rubber stamp 'certified copy' placed over body text; signatory named as Director of Intelligence Bureau on an I4C letter"
+01_real_fakes_cached,FN-TG-01896,score=30 (medium),detected_issuer=Supreme Court of India (SCI),"cues=urgency_threat,mixed_issuers",uncropped_pib=True | hand_cues=heading 'GOVERNMENTAL AFFAIR' and 'Financial Transaction Committee Order' - no such body; Supreme Court and Ministry of Finance on one letterhead; orders transfer of all funds to an individual's SBI savings account; signed by 'Prosecutor CBI' with Supreme Court Bar Association seal; deadline: within one hour of opening
+01_real_fakes_cached,FN-TG-01749,score=15 (low),detected_issuer=Micro Units Development & Refinance Agency (PM Mudra Yojana) (MUDRA),cues=too_good_offer,uncropped_pib=True | hand_cues=
+01_real_fakes_cached,FN-TG-00385,score=0 (low),detected_issuer=Ministry of Road Transport and Highways (e-Challan / Parivahan) (MORTH),cues=,uncropped_pib=True | hand_cues=
+01_real_fakes_cached,FN-TG-00427,score=0 (low),detected_issuer=Ministry of Road Transport and Highways (e-Challan / Parivahan) (MORTH),cues=,uncropped_pib=True | hand_cues=
+01_real_fakes_cached,FN-TG-00902,score=0 (low),detected_issuer=Ministry of Health and Family Welfare (MOHFW),cues=,uncropped_pib=True | hand_cues=
+01_real_fakes_cached,FN-TG-01999,score=0 (low),detected_issuer=Railway Recruitment Boards (Ministry of Railways) (RRB),cues=,"uncropped_pib=True | hand_cues=high-quality forgery: correct Railway Board letterhead, bilingual header and RBE-style reference; dated 06.10.2026 with a plausible PLB amount - only a lookup in Railway Board's RBE index can refute it; official-looking email of a named Deputy Director"
+01_real_fakes_cached,FN-TG-01612,score=0 (low),detected_issuer=Income Tax Department (ITD),cues=,uncropped_pib=True | hand_cues=

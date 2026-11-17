@@ -1,0 +1,403 @@
+{
+ "description": "Held-out test set: real circulars, real-world fakes with PIB stamps/captions removed, and synthetic forgeries. Not used to build the index or tune thresholds.",
+ "excluded": {
+  "fa445b7a-69d6-4ded-97a3-65005e20ca56.png": "PIB tweet text only; no copy of the fake document"
+ },
+ "items": [
+  {
+   "id": "TR-01",
+   "label": "real",
+   "file": "real/TR-01.png",
+   "original": "real/TR-01.pdf",
+   "source": "data/heldout/real/20260720623209264.pdf",
+   "title": null,
+   "in_official_index": false,
+   "index_note": "No match in official index"
+  },
+  {
+   "id": "TR-02",
+   "label": "real",
+   "file": "real/TR-02.png",
+   "original": "real/TR-02.pdf",
+   "source": "data/heldout/real/291NT8DE5483CA3F84609A0CA56720CD64103.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/291' -> OFF-B91AEBE068"
+  },
+  {
+   "id": "TR-03",
+   "label": "real",
+   "file": "real/TR-03.png",
+   "original": "real/TR-03.pdf",
+   "source": "data/heldout/real/292NT63009643AFA847A48C9A73F31E26175F.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/292' -> OFF-7F08F23BEC"
+  },
+  {
+   "id": "TR-04",
+   "label": "real",
+   "file": "real/TR-04.png",
+   "original": "real/TR-04.pdf",
+   "source": "data/heldout/real/294NT8A37BD7CAFB1463E8FCD9E5CC9F4D45B.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/294' -> OFF-4C03C23639"
+  },
+  {
+   "id": "TR-05",
+   "label": "real",
+   "file": "real/TR-05.png",
+   "original": "real/TR-05.pdf",
+   "source": "data/heldout/real/297NTF24A93A6BC7943F2A35FACCE28E4ABC3.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/297' -> OFF-E0FE29F195; high embedding similarity (0.951) with OFF-E0FE29F195"
+  },
+  {
+   "id": "TR-06",
+   "label": "real",
+   "file": "real/TR-06.png",
+   "original": "real/TR-06.pdf",
+   "source": "data/heldout/real/NOTI293D62A07A6EF394B75BAB6BEBA6F159565.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/293' -> OFF-FFED80C335"
+  },
+  {
+   "id": "TR-07",
+   "label": "real",
+   "file": "real/TR-07.png",
+   "original": "real/TR-07.pdf",
+   "source": "data/heldout/real/NOTI2964177D6F8B5FA4B0A917BA90749E2394E.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/296' -> OFF-0C00EA2426"
+  },
+  {
+   "id": "TR-08",
+   "label": "real",
+   "file": "real/TR-08.png",
+   "original": "real/TR-08.pdf",
+   "source": "data/heldout/real/NT290D61DF2C36E9C4E04BF3619D3D462C893.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/290' -> OFF-E9E33445EC"
+  },
+  {
+   "id": "TR-09",
+   "label": "real",
+   "file": "real/TR-09.png",
+   "original": "real/TR-09.pdf",
+   "source": "data/heldout/real/NT29576C2A2CDED3247308333EE2DE9383863.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/295' -> OFF-9DFDE2A485"
+  },
+  {
+   "id": "TR-10",
+   "label": "real",
+   "file": "real/TR-10.png",
+   "original": "real/TR-10.pdf",
+   "source": "data/heldout/real/NT298343573D91EA4465B8CFF54B27EC977D5.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/2026-27/299' -> OFF-E50DAB406A"
+  },
+  {
+   "id": "TR-11",
+   "label": "real",
+   "file": "real/TR-11.png",
+   "original": "real/TR-11.pdf",
+   "source": "data/heldout/real/NT298AC9CBAC4415B41D5B6CE45FF58A5AB54.pdf",
+   "title": null,
+   "in_official_index": true,
+   "index_note": "exact reference match 'RBI/FED/2026-27/298' -> OFF-CD6DA12A1A"
+  },
+  {
+   "id": "TR-12",
+   "label": "real",
+   "file": "real/TR-12.png",
+   "original": "real/TR-12.pdf",
+   "source": "data/heldout/real/Reminder_6_Submission_LOC_21102026.pdf",
+   "title": null,
+   "in_official_index": false,
+   "index_note": "No match in official index"
+  },
+  {
+   "id": "TF-01",
+   "label": "fake",
+   "file": "fake/TF-01.png",
+   "original": "fake/original/TF-01_original.jpg",
+   "source": "data/heldout/fake/1781149504055-re-neet-2026-fake-notice-claims-versus-the-pib-fact-check-co.jpg",
+   "title": "NTA: NEET (UG) 2026 re-examination circular",
+   "claimed_issuer_id": "NTA",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (21.4% of pixels)"
+  },
+  {
+   "id": "TF-02",
+   "label": "fake",
+   "file": "fake/TF-02.png",
+   "original": "fake/original/TF-02_original.webp",
+   "source": "data/heldout/fake/202610013962123.webp",
+   "title": "Gazette: all Saturdays public holiday for public sector banks",
+   "claimed_issuer_id": "MOF",
+   "language": "hi/en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (10.6% of pixels)"
+  },
+  {
+   "id": "TF-03",
+   "label": "fake",
+   "file": "fake/TF-03.png",
+   "original": "fake/original/TF-03_original.png",
+   "source": "data/heldout/fake/69084cde-1e9b-4c5d-bf01-17cde18bf3f3.png",
+   "title": "Intelligence Bureau / I4C cyber-crime summons letter",
+   "claimed_issuer_id": "IB",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (7.7% of pixels)"
+  },
+  {
+   "id": "TF-04",
+   "label": "fake",
+   "file": "fake/TF-04.png",
+   "original": "fake/original/TF-04_original.jpg",
+   "source": "data/heldout/fake/FUowzR3aIAEPnYD.jpg",
+   "title": "SMS: Rs 2,67,000 credited under government yojana, click link",
+   "claimed_issuer_id": "UNSPECIFIED",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (8.5% of pixels)"
+  },
+  {
+   "id": "TF-05",
+   "label": "fake",
+   "file": "fake/TF-05.png",
+   "original": "fake/original/TF-05_original.webp",
+   "source": "data/heldout/fake/Fake43-ezgif.com-jpg-to-webp-converter-2.webp",
+   "title": "MeitY notice banning use of recruitment names and logos",
+   "claimed_issuer_id": "MEITY",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (5.9% of pixels)"
+  },
+  {
+   "id": "TF-06",
+   "label": "fake",
+   "file": "fake/TF-06.png",
+   "original": "fake/original/TF-06_original.webp",
+   "source": "data/heldout/fake/PIB-FACT-CHECK.webp",
+   "title": "TRAI permission letter for mobile tower installation (fee demand)",
+   "claimed_issuer_id": "TRAI",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (9.1% of pixels)"
+  },
+  {
+   "id": "TF-07",
+   "label": "fake",
+   "file": "fake/TF-07.png",
+   "original": "fake/original/TF-07_original.png",
+   "source": "data/heldout/fake/Screenshot-2024-03-14-131202.png",
+   "title": "Gazette: appointment of two Election Commissioners",
+   "claimed_issuer_id": "MOLJ",
+   "language": "hi/en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (8.8% of pixels)"
+  },
+  {
+   "id": "TF-08",
+   "label": "fake",
+   "file": "fake/TF-08.png",
+   "original": "fake/original/TF-08_original.webp",
+   "source": "data/heldout/fake/Untitleddesign15-ezgif.com-png-to-webp-converter-2.webp",
+   "title": "BSNL / TRAI notice: SIM card blocked within 24 hours",
+   "claimed_issuer_id": "BSNL",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (16.8% of pixels)"
+  },
+  {
+   "id": "TF-09",
+   "label": "fake",
+   "file": "fake/TF-09.png",
+   "original": "fake/original/TF-09_original.jpg",
+   "source": "data/heldout/fake/fake1.jpg",
+   "title": "RBI foreign-exchange transfer approval notification",
+   "claimed_issuer_id": "RBI",
+   "language": "en",
+   "variant_of": null,
+   "cleaning": "cropped to the letter; red stamp inpainted (7.2% of pixels)"
+  },
+  {
+   "id": "TF-10",
+   "label": "fake",
+   "file": "fake/TF-10.png",
+   "original": "fake/original/TF-10_original.jpeg",
+   "source": "data/heldout/fake/phone_sideways.jpg.jpeg",
+   "title": "NTA NEET re-exam circular (phone photo of a screen)",
+   "claimed_issuer_id": "NTA",
+   "language": "en",
+   "variant_of": "TF-01",
+   "cleaning": "cropped to the letter; red stamp inpainted (8.6% of pixels)"
+  },
+  {
+   "id": "TF-11",
+   "label": "fake",
+   "file": "fake/TF-11.png",
+   "original": "fake/original/TF-11_original.jpeg",
+   "source": "data/heldout/fake/phone_tilted.jpg.jpeg",
+   "title": "Election Commissioners gazette (phone photo of a screen)",
+   "claimed_issuer_id": "MOLJ",
+   "language": "hi/en",
+   "variant_of": "TF-07",
+   "cleaning": "cropped to the letter; red stamp inpainted (7.3% of pixels)"
+  },
+  {
+   "id": "SYN-0032",
+   "label": "synthetic_forged",
+   "file": "synthetic/SYN-0032.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0032.png",
+   "title": "Engagement of block-level coordinators",
+   "claimed_issuer_id": "FIC-RSM",
+   "cues": [
+    "date_anomaly",
+    "urgency_threat"
+   ],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0034",
+   "label": "synthetic_forged",
+   "file": "synthetic/SYN-0034.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0034.png",
+   "title": "Change in examination centre allotment process",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [
+    "date_anomaly",
+    "ref_format_wrong",
+    "spelling_errors",
+    "wrong_signatory_title"
+   ],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0035",
+   "label": "synthetic_forged",
+   "file": "synthetic/SYN-0035.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0035.png",
+   "title": "Release of provisional answer keys",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [
+    "date_anomaly",
+    "fee_demand",
+    "lookalike_domain",
+    "spelling_errors"
+   ],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0036",
+   "label": "synthetic_forged",
+   "file": "synthetic/SYN-0036.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0036.png",
+   "title": "Schedule of supplementary examinations",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [
+    "lookalike_domain",
+    "ref_format_wrong",
+    "spelling_errors"
+   ],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0037",
+   "label": "synthetic_forged",
+   "file": "synthetic/SYN-0037.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0037.png",
+   "title": "Review of customer grievance redress framework",
+   "claimed_issuer_id": "FIC-NFRA",
+   "cues": [
+    "date_anomaly",
+    "wrong_signatory_title"
+   ],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0038",
+   "label": "synthetic_forged",
+   "file": "synthetic/SYN-0038.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0038.png",
+   "title": "Updated KYC documentation for regulated entities",
+   "claimed_issuer_id": "FIC-NFRA",
+   "cues": [
+    "date_anomaly",
+    "wrong_signatory_title"
+   ],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0003",
+   "label": "synthetic_clean",
+   "file": "synthetic/SYN-0003.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0003.png",
+   "title": "Revised timelines for submission of quarterly returns",
+   "claimed_issuer_id": "FIC-NFRA",
+   "cues": [],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0004",
+   "label": "synthetic_clean",
+   "file": "synthetic/SYN-0004.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0004.png",
+   "title": "Change in examination centre allotment process",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0005",
+   "label": "synthetic_clean",
+   "file": "synthetic/SYN-0005.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0005.png",
+   "title": "Release of provisional answer keys",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0006",
+   "label": "synthetic_clean",
+   "file": "synthetic/SYN-0006.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0006.png",
+   "title": "Schedule of supplementary examinations",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0007",
+   "label": "synthetic_clean",
+   "file": "synthetic/SYN-0007.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0007.png",
+   "title": "Schedule of supplementary examinations",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  },
+  {
+   "id": "SYN-0008",
+   "label": "synthetic_clean",
+   "file": "synthetic/SYN-0008.png",
+   "source": "data/dataset/06_synthetic_forgeries/images/SYN-0008.png",
+   "title": "Schedule of supplementary examinations",
+   "claimed_issuer_id": "FIC-CEB",
+   "cues": [],
+   "note": "Fictional issuer, watermarked. Forensic rules were tuned on this dataset (in-sample)."
+  }
+ ]
+}
