@@ -44,6 +44,7 @@ from gujrera.selfservice.summary import agent_summary, focus_of, is_self_service
 from gujrera.selfservice.summary import s as ss
 from gujrera.trust.checks import check_text
 from gujrera.tools.interest import chat_estimate, wants_calculation
+from gujrera.analytics.risk import chat_reply as risk_reply, wants_risk
 
 SUGGESTIONS = {
     "project": {
@@ -250,6 +251,12 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 4. Officer analytics: standard reports, or LLM-written SQL behind the guard
     text_lc = (message or "").lower()
+    if repo.p.role == "officer" and wants_risk(text_lc):  # project risk early warning (officers only)
+        projects = [c for c in u.candidates if c.kind == "project"]
+        district = next(iter(u.districts)) if len(u.districts) == 1 else None
+        sentences, card = risk_reply(repo, lang, project_id=projects[0].id if len(projects) == 1 else None,
+                                     district=district)
+        return Reply(lang, "risk", sentences, cards=[card] if card else [])
     if repo.p.role == "officer" and (match_report(text_lc) or (looks_like_analytics(text_lc) and not u.candidates)):
         a = analytics_answer(message, repo, lang, generate=analytics_generate)
         return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)

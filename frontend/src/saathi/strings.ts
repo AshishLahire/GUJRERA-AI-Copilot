@@ -179,6 +179,26 @@ const STRINGS = {
   calcBreakdown: { en: "Breakdown", gu: "વિગત", hi: "विवरण" },
   calcOpen: { en: "Open calculator", gu: "કેલ્ક્યુલેટર ખોલો", hi: "कैलकुलेटर खोलें" },
   calcFile: { en: "File a complaint", gu: "ફરિયાદ નોંધાવો", hi: "शिकायत दर्ज करें" },
+  navRisk: { en: "Risk watch", gu: "જોખમ નિરીક્ષણ", hi: "जोखिम निगरानी" },
+  riskIntro: {
+    en: "Ongoing projects ranked by early-warning signals from their quarterly reports, dates, registration, approvals, complaints and the promoter's record. Every point has a reason and a source, so you can see why a project is on the list.",
+    gu: "ત્રિમાસિક અહેવાલ, તારીખો, નોંધણી, મંજૂરીઓ, ફરિયાદો અને પ્રમોટરના રેકોર્ડના ચેતવણી સંકેતો પરથી ચાલુ પ્રોજેક્ટનો ક્રમ. દરેક પોઇન્ટનું કારણ અને સ્રોત દેખાય છે.",
+    hi: "तिमाही रिपोर्ट, तारीखों, पंजीकरण, अनुमोदन, शिकायतों और प्रमोटर के रिकॉर्ड के चेतावनी संकेतों के आधार पर चालू प्रोजेक्ट का क्रम। हर अंक का कारण और स्रोत दिखता है।",
+  },
+  loginNeededRisk: {
+    en: "Log in with a GUJRERA officer account to see the risk watchlist.",
+    gu: "જોખમ યાદી જોવા GUJRERA અધિકારી ખાતાથી લોગિન કરો.",
+    hi: "जोखिम सूची देखने के लिए GUJRERA अधिकारी खाते से लॉगिन करें।",
+  },
+  riskWatched: { en: "Ongoing projects watched", gu: "નિરીક્ષણ હેઠળ ચાલુ પ્રોજેક્ટ", hi: "निगरानी में चालू प्रोजेक्ट" },
+  riskHigh: { en: "High risk", gu: "ઊંચું જોખમ", hi: "उच्च जोखिम" },
+  riskMedium: { en: "Medium risk", gu: "મધ્યમ જોખમ", hi: "मध्यम जोखिम" },
+  riskLow: { en: "Low risk", gu: "ઓછું જોખમ", hi: "कम जोखिम" },
+  riskDrivers: { en: "What is driving risk", gu: "જોખમનાં કારણો", hi: "जोखिम के कारण" },
+  riskByDistrict: { en: "High risk by district", gu: "જિલ્લા પ્રમાણે ઊંચું જોખમ", hi: "जिले के अनुसार उच्च जोखिम" },
+  riskList: { en: "Watchlist", gu: "નિરીક્ષણ યાદી", hi: "निगरानी सूची" },
+  riskAllDistricts: { en: "All districts", gu: "બધા જિલ્લા", hi: "सभी जिले" },
+  riskAll: { en: "All", gu: "બધા", hi: "सभी" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CalcSeed, Lang, OPEN_CALC_EVENT } from "../api/gujrera";
+import { CalcSeed, Lang, NAVIGATE_EVENT, OPEN_CALC_EVENT } from "../api/gujrera";
 import { AccountBar } from "../components/AccountBar";
 import { AskPage } from "../components/AskPage";
 import { ReraCheckPage } from "../components/ReraCheckPage";
@@ -9,9 +9,10 @@ import { SaathiProvider, useSaathi } from "./context";
 import { En } from "./En";
 import { HomePage, Page } from "./HomePage";
 import { OfficerPage, PromoterPage } from "./RolePages";
+import { RiskPage } from "./RiskPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
@@ -19,6 +20,7 @@ const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "calc", key: "navCalc", icon: "calc" },
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
   { page: "officer", key: "navOfficer", icon: "chart" },
+  { page: "risk", key: "navRisk", icon: "alert" },
 ];
 const LANGS: { id: Lang; label: string; name: string }[] = [
   { id: "gu", label: "ગુ", name: "Gujarati" },
@@ -57,8 +59,16 @@ const Shell: React.FC = () => {
       setCalcSeed((s) => ({ seed, n: (s?.n ?? 0) + 1 }));
       setPage("calc");
     };
+    const go = (e: Event) => {
+      const target = (e as CustomEvent<string>).detail as Page;
+      if (PAGES.includes(target)) setPage(target);
+    };
     window.addEventListener(OPEN_CALC_EVENT, open);
-    return () => window.removeEventListener(OPEN_CALC_EVENT, open);
+    window.addEventListener(NAVIGATE_EVENT, go);
+    return () => {
+      window.removeEventListener(OPEN_CALC_EVENT, open);
+      window.removeEventListener(NAVIGATE_EVENT, go);
+    };
   }, []);
 
   useEffect(() => {
@@ -198,6 +208,7 @@ const Shell: React.FC = () => {
           {page === "calc" && <CalculatorPage key={calcSeed?.n ?? 0} seed={calcSeed?.seed ?? null} onAsk={ask} />}
           {page === "promoter" && <PromoterPage onAsk={ask} />}
           {page === "officer" && <OfficerPage />}
+          {page === "risk" && <RiskPage />}
         </main>
 
         <footer className="lg:hidden border-t border-warm-border">

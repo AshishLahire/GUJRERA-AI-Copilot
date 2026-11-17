@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, openCalculator, sendChat, transcribeVoice } from "../api/gujrera";
+import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
 import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
@@ -229,6 +229,27 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
             </li>
           ))}
         </ol>
+      </div>
+    );
+  }
+  if (card.type === "risk") {
+    const items = (card.items as Array<{ name: string; score: number; band: string; district: string }>) ?? [];
+    const tone: Record<string, string> = {
+      high: "text-red-700 dark:text-red-300", medium: "text-accent-amber-strong", low: "text-muted",
+    };
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
+        <ul className="flex flex-col gap-1">
+          {items.map((r, i) => (
+            <li key={i} className="flex items-center justify-between gap-3">
+              <span className="truncate">{r.name.replace(" (Demo)", "")} <span className="text-muted">· {r.district}</span></span>
+              <span className={`font-semibold tabular-nums ${tone[r.band] ?? ""}`}>{r.score} · {r.band}</span>
+            </li>
+          ))}
+        </ul>
+        <button type="button" onClick={() => navigateTo("risk")} className="mt-2 px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+          Open risk watch →
+        </button>
       </div>
     );
   }

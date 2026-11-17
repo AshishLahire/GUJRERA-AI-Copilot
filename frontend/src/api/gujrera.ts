@@ -315,3 +315,51 @@ export const OPEN_CALC_EVENT = "saathi:open-calculator";
 export function openCalculator(seed: CalcSeed): void {
   window.dispatchEvent(new CustomEvent<CalcSeed>(OPEN_CALC_EVENT, { detail: seed }));
 }
+
+
+// ------------------------------------------------------------ risk watch (officers)
+export interface RiskSignal {
+  code: string;
+  points: number;
+  text: string;
+  citations: { type: string; id: string }[];
+}
+export interface RiskItem {
+  project_id: number;
+  name: string;
+  name_gu: string | null;
+  rera_no: string;
+  district: string;
+  promoter: string;
+  target: string;
+  percent_complete: number | null;
+  expected_percent: number | null;
+  projected_finish: string | null;
+  score: number;
+  band: "high" | "medium" | "low";
+  signals: RiskSignal[];
+}
+export interface RiskSummary {
+  projects: number;
+  by_band: { high: number; medium: number; low: number };
+  by_signal: Record<string, number>;
+  by_district: { district: string; high: number; medium: number; low: number }[];
+}
+export interface RiskResponse {
+  summary: RiskSummary;
+  items: RiskItem[];
+  district_scope: string | null;
+}
+
+export async function fetchRisk(token: string, lang: Lang, district: string | null): Promise<RiskResponse> {
+  const qs = new URLSearchParams({ lang, ...(district ? { district } : {}) });
+  const res = await fetch(`${API_BASE}/api/gujrera/risk/projects?${qs}`, { headers: authHeaders(token) });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
+/** Ask the shell to switch page (used by chat cards). */
+export const NAVIGATE_EVENT = "saathi:navigate";
+export function navigateTo(page: string): void {
+  window.dispatchEvent(new CustomEvent<string>(NAVIGATE_EVENT, { detail: page }));
+}

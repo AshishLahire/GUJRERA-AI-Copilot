@@ -310,6 +310,20 @@ async def voice_transcribe(file: UploadFile = File(...), lang: str | None = Form
     }
 
 
+@router.get("/risk/projects")
+def risk_projects(lang: str = Query("en"), district: str | None = Query(None, max_length=60),
+                  repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Project risk watchlist (officers; district officers see their district only)."""
+    from gujrera.analytics.risk import score_projects, summary
+
+    try:
+        risks = score_projects(repo, _lang(lang), district=district or None)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    return {"summary": summary(risks), "items": [r.to_dict() for r in risks],
+            "district_scope": repo.p.district_scope, "is_mock": any(r.is_mock for r in risks)}
+
+
 @router.post("/analytics/query")
 def analytics_query(body: AnalyticsRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
     if repo.p.role != "officer":

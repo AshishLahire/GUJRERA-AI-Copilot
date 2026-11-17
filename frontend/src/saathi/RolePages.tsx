@@ -13,7 +13,7 @@ import { useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
-const LoginPrompt: React.FC<{ k: StringKey }> = ({ k }) => {
+export const LoginPrompt: React.FC<{ k: StringKey }> = ({ k }) => {
   const { lang } = useSaathi();
   return (
   <div className="rounded-2xl border border-warm-border bg-card p-8 flex flex-col items-center text-center gap-4">

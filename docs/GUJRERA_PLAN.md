@@ -354,6 +354,13 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - API: `GET /calc/projects`, `GET /calc/rate`, `POST /calc/interest`. Dashboard: "Interest calculator" page (stay or withdraw, several payments, breakdown table, sources, "file a complaint" and print).
 - Tests: `tests/test_gujrera_interest.py` (16), including hand-checked figures.
 
+**PoC feature 2: project risk early warning for officers (2026-11-17): done.**
+- `gujrera/analytics/risk.py`: each ongoing project gets 0-100 points from named signals, each with a reason in gu/hi/en and the records behind it: behind schedule (progress vs time used), late at the current pace or stalled (projected finish from the last five filed quarterly reports), promised date passed, completion extended, quarterly reports overdue or late (Section 11), registration expired or ending (Section 6), approvals pending or rejected, open complaints or a recent rise, and the promoter's record (other projects late, adverse orders, unpaid penalties). High at 60 points, medium at 30: 8 high, 23 medium, 43 low of 74 ongoing projects.
+- The weights are the whole model and are written out in the code; calibrate them in the PoC against GUJRERA's history (which projects actually stalled or drew complaints). Money signals (withdrawals from the project account vs progress) need GUJRERA's escrow data.
+- Officers only; district officers see their district whatever they ask for; every listing is in the audit log. Buyers asking "is it risky?" get the normal public answer.
+- API `GET /risk/projects`; chat for officers ("which projects are at high risk?", "સુરતમાં કયા પ્રોજેક્ટ જોખમમાં છે?", "risk for <project>"); dashboard page "Risk watch" (counts, what drives risk, high risk by district, watchlist with expandable reasons and sources).
+- Tests: `tests/test_gujrera_risk.py` (6), with a project built to trip known signals; officer analytics check unchanged (27/27, 30/30, 126/126).
+
 ---
 
 ## 11. Risks and mitigations
