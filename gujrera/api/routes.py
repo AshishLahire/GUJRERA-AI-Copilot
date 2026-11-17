@@ -40,7 +40,7 @@ from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query
 from datetime import date
 
 from pydantic import BaseModel
-from sqlalchemy import Engine, func, inspect, select
+from sqlalchemy import Engine, event, func, inspect, select
 from sqlalchemy.orm import Session
 
 from gujrera.auth import LoginError, authenticate, issue_token, principal_for, read_token
@@ -80,6 +80,17 @@ class AnalyticsRequest(BaseModel):
 class PaymentIn(BaseModel):
     amount: float
     paid_on: date | None = None
+
+
+class AdReportRequest(BaseModel):
+    text: str
+    channel: str = "text"  # text | upload | chat
+
+
+class CaseUpdate(BaseModel):
+    status: str | None = None
+    outcome: str | None = None
+    note: str | None = None
 
 
 class InterestRequest(BaseModel):
@@ -141,7 +152,12 @@ async def lifespan(_app):  # noqa: ANN001
 
 @lru_cache
 def _engine() -> Engine:
-    return make_engine()
+    engine = make_engine()
+    if inspect(engine).has_table("projects"):
+        from gujrera.enforcement import ensure_tables
+
+        ensure_tables(engine)  # databases seeded before the enforcement tables existed
+    return engine
 
 
 def get_session() -> Iterator[Session]:
@@ -153,11 +169,28 @@ def get_session() -> Iterator[Session]:
         session.commit()  # keeps the audit log
 
 
+@event.listens_for(Session, "after_flush")
+def _mark_writes(session: Session, _ctx) -> None:  # noqa: ANN001
+    session.info["has_writes"] = True
+
+
+@event.listens_for(Session, "after_commit")
+@event.listens_for(Session, "after_rollback")
+def _clear_writes(session: Session) -> None:
+    session.info.pop("has_writes", None)
+
+
 def _commit_now(session: Session):
-    """Audit sink: write the row in its own short transaction on the same database."""
+    """Audit sink. A request that has not written anything commits the audit row at once in its own short
+    transaction, so waiting on the LLM never holds the database write lock. A request that has already
+    written (a complaint, a report) holds that lock itself, so the row joins its transaction instead and is
+    committed with it; a separate writer would wait for this same request and deadlock."""
     engine = session.get_bind()
 
     def sink(row) -> None:  # noqa: ANN001
+        if session.info.get("has_writes"):
+            session.add(row)
+            return
         with Session(engine) as s:
             s.add(row)
             s.commit()
@@ -308,6 +341,67 @@ async def voice_transcribe(file: UploadFile = File(...), lang: str | None = Form
         "low_quality": detected in WEAK_VOICE_LANGS,
         "notes": result.get("notes", []),
     }
+
+
+@router.post("/trust/report")
+def trust_report(body: AdReportRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """A citizen reports an ad that failed the RERA check. The check is re-run here on the ad text;
+    the reporter's name and number are not stored."""
+    from gujrera.enforcement import file_report
+
+    text = (body.text or "").strip()
+    if len(text) < 20:
+        raise HTTPException(400, "The ad text is too short to report.")
+    if len(text) > MAX_TEXT_CHARS:
+        raise HTTPException(400, f"Text exceeds the {MAX_TEXT_CHARS:,}-character limit.")
+    channel = body.channel if body.channel in ("text", "upload", "chat") else "text"
+    report = check_text(text, repo)
+    try:
+        row, case, new = file_report(repo, text, report, channel=channel)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {"received": True, "receipt": f"RPT-{row.reported_on.year}-{row.id:05d}", "duplicate": not new,
+            "kind": case.kind,
+            "message": "Thank you. GUJRERA's enforcement team will see this ad with what the check found. "
+                       "Your name and number were not included."}
+
+
+def _officer_or_403(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@router.get("/enforcement/cases")
+def enforcement_cases(status: str | None = Query(None), kind: str | None = Query(None),
+                      district: str | None = Query(None, max_length=60),
+                      repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.enforcement import list_cases
+
+    return _officer_or_403(list_cases, repo, status=status, kind=kind, district=district)
+
+
+@router.get("/enforcement/cases/{case_id}")
+def enforcement_case(case_id: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.enforcement import get_case
+
+    case = _officer_or_403(get_case, repo, case_id)
+    if case is None:
+        raise HTTPException(404, "Case not found.")
+    return case
+
+
+@router.post("/enforcement/cases/{case_id}")
+def enforcement_case_update(case_id: int, body: CaseUpdate, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.enforcement import update_case
+
+    case = _officer_or_403(update_case, repo, case_id, status=body.status, outcome=body.outcome, note=body.note)
+    if case is None:
+        raise HTTPException(404, "Case not found.")
+    return case
 
 
 @router.get("/risk/projects")

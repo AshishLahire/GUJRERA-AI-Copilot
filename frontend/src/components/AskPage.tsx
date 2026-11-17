@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
+import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { tr } from "../saathi/strings";
 import { AnalyticsCard, AnalyticsCardData } from "./AnalyticsCard";
 
@@ -71,7 +72,7 @@ const CitedText: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
+const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = ({ card, question }) => {
   if (card.type === "project") {
     return (
       <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs grid grid-cols-2 gap-2">
@@ -285,6 +286,25 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
           </ul>
         )}
         <div className="mt-1 opacity-80">Open the RERA check tab for the full report.</div>
+        {question && REPORTABLE.has(verdict) && <ReportAd text={question} channel="chat" compact />}
+      </div>
+    );
+  }
+  if (card.type === "enforcement") {
+    const items = (card.items as Array<{ ref_no: string; title: string; district: string | null; reports: number; kind: string; status: string }>) ?? [];
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
+        <ul className="flex flex-col gap-1">
+          {items.map((c) => (
+            <li key={c.ref_no} className="flex items-center justify-between gap-3">
+              <span className="truncate">{c.title} <span className="text-muted">· {c.district ?? "?"} · {c.kind}</span></span>
+              <span className="font-semibold tabular-nums whitespace-nowrap">{c.reports} reports</span>
+            </li>
+          ))}
+        </ul>
+        <button type="button" onClick={() => navigateTo("enforce")} className="mt-2 px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+          Open ad enforcement →
+        </button>
       </div>
     );
   }
@@ -506,7 +526,10 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
                   <CitedText text={m.reply.english} />
                 </div>
               )}
-              {m.reply.cards.map((c, j) => <Card key={j} card={c} />)}
+              {m.reply.cards.map((c, j) => {
+                const prev = messages[i - 1];
+                return <Card key={j} card={c} question={prev && prev.role === "user" ? prev.text : undefined} />;
+              })}
               {m.reply.options.length > 0 && (
                 <div className="mt-2 flex flex-col gap-1.5">
                   {m.reply.options.map((o) => (

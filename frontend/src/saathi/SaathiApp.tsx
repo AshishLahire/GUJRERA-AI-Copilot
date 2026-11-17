@@ -10,9 +10,10 @@ import { En } from "./En";
 import { HomePage, Page } from "./HomePage";
 import { OfficerPage, PromoterPage } from "./RolePages";
 import { RiskPage } from "./RiskPage";
+import { EnforcementPage } from "./EnforcementPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce"];
 const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "home", key: "navOverview", icon: "grid" },
   { page: "ask", key: "navAsk", icon: "chat" },
@@ -21,6 +22,7 @@ const NAV: { page: Page; key: StringKey; icon: string }[] = [
   { page: "promoter", key: "navPromoter", icon: "briefcase" },
   { page: "officer", key: "navOfficer", icon: "chart" },
   { page: "risk", key: "navRisk", icon: "alert" },
+  { page: "enforce", key: "navEnforce", icon: "flag" },
 ];
 const LANGS: { id: Lang; label: string; name: string }[] = [
   { id: "gu", label: "ગુ", name: "Gujarati" },
@@ -209,6 +211,7 @@ const Shell: React.FC = () => {
           {page === "promoter" && <PromoterPage onAsk={ask} />}
           {page === "officer" && <OfficerPage />}
           {page === "risk" && <RiskPage />}
+          {page === "enforce" && <EnforcementPage />}
         </main>
 
         <footer className="lg:hidden border-t border-warm-border">

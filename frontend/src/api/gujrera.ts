@@ -363,3 +363,85 @@ export const NAVIGATE_EVENT = "saathi:navigate";
 export function navigateTo(page: string): void {
   window.dispatchEvent(new CustomEvent<string>(NAVIGATE_EVENT, { detail: page }));
 }
+
+
+// ------------------------------------------------------------ ad reports and enforcement
+export interface AdReportReceipt {
+  received: boolean;
+  receipt: string;
+  duplicate: boolean;
+  kind: string;
+  message: string;
+}
+
+export async function reportAd(text: string, channel: "text" | "upload" | "chat", token: string | null): Promise<AdReportReceipt> {
+  return parse(
+    await fetch(`${API_BASE}/api/gujrera/trust/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders(token) },
+      body: JSON.stringify({ text, channel }),
+    }),
+  );
+}
+
+export interface EnfCase {
+  id: number;
+  ref_no: string;
+  kind: "unregistered" | "lapsed" | "misleading";
+  law: string;
+  title: string;
+  advertised_promoter: string | null;
+  district: string | null;
+  claimed_rera: string | null;
+  project_id: number | null;
+  status: "new" | "reviewing" | "notice_issued" | "closed";
+  outcome: string | null;
+  opened_on: string;
+  updated_on: string;
+  reports: number;
+  last_reported: string;
+  phones: string[];
+  websites: string[];
+  asks_payment_to_account: boolean;
+  notes?: string | null;
+  evidence?: {
+    id: number;
+    reported_on: string;
+    channel: string;
+    verdict: string;
+    claimed_rera: string | null;
+    advertised_project: string | null;
+    advertised_promoter: string | null;
+    problems: string[];
+    excerpt: string;
+  }[];
+}
+
+export interface EnfList {
+  counts: { open: number; new: number; reports: number; by_kind: Record<string, number> };
+  items: EnfCase[];
+  district_scope: string | null;
+}
+
+async function officerFetch<T>(url: string, token: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, { ...init, headers: { ...(init?.headers ?? {}), ...authHeaders(token) } });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
+export function fetchCases(token: string, filters: { status?: string; kind?: string; district?: string }): Promise<EnfList> {
+  const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v) as [string, string][]);
+  return officerFetch(`${API_BASE}/api/gujrera/enforcement/cases?${qs}`, token);
+}
+
+export function fetchCase(token: string, id: number): Promise<EnfCase> {
+  return officerFetch(`${API_BASE}/api/gujrera/enforcement/cases/${id}`, token);
+}
+
+export function updateCase(token: string, id: number, body: { status?: string; outcome?: string; note?: string }): Promise<EnfCase> {
+  return officerFetch(`${API_BASE}/api/gujrera/enforcement/cases/${id}`, token, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}

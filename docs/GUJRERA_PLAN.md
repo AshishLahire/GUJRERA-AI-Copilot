@@ -361,6 +361,14 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - API `GET /risk/projects`; chat for officers ("which projects are at high risk?", "સુરતમાં કયા પ્રોજેક્ટ જોખમમાં છે?", "risk for <project>"); dashboard page "Risk watch" (counts, what drives risk, high risk by district, watchlist with expandable reasons and sources).
 - Tests: `tests/test_gujrera_risk.py` (6), with a project built to trip known signals; officer analytics check unchanged (27/27, 30/30, 126/126).
 
+**PoC feature 3: unregistered-project watch (2026-11-17): done.**
+- Citizens: after an ad fails the RERA check (not registered, no number, lapsed, or details that do not match), "Report this ad to GUJRERA" on the Check-an-ad page and on chat answers, with a consent line. The server re-runs the check on the ad text (a browser cannot force a report), and the same ad reported twice counts once. The reporter's name and number are never stored (a logged-in reporter is linked by user id only).
+- `gujrera/enforcement.py`: extracts who and where from the ad (project and promoter as advertised, district, phone numbers, websites, "pay to this account") and files it under a case: same claimed registration number, or the same advertised name (allowing small spelling differences) in the same district. Kinds and the law they point to: unregistered (Section 3; penalty Section 59), lapsed (Sections 3, 6, 7), misleading (Section 12; Section 13 for more than 10% before the agreement).
+- Officers: "Ad enforcement" page (open cases, most reported first; evidence with the ad text and failed checks; phones and websites across reports; status new → reviewing → notice issued → closed with an outcome; notes with date and officer), API `/enforcement/cases`, and chat ("unregistered projects reported in Surat"). District officers see their district; every view and change is audited. A new citizen report reopens a closed case.
+- Tables `enforcement_cases` and `ad_reports` are added to an existing database on start-up; `python scripts/seed_gujrera.py --add-ad-reports` adds a starting set (41 reports in 22 cases) without rebuilding.
+- Found and fixed on the way: a request that writes data and then logs an audit row deadlocked (the audit row waited for the request's own write lock). Audit rows now join the request's transaction when it has already written.
+- Tests: `tests/test_gujrera_enforcement.py` (7).
+
 ---
 
 ## 11. Risks and mitigations

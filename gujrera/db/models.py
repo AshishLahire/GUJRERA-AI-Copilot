@@ -257,3 +257,54 @@ class AuditLog(Base):
     role: Mapped[str] = mapped_column(String(20))
     action: Mapped[str] = mapped_column(String(60))
     detail: Mapped[str | None] = mapped_column(Text)
+
+
+class EnforcementCase(Base):
+    """Citizen ad reports about one advertised project, grouped for GUJRERA's enforcement team.
+
+    kind: unregistered (Section 3: advertised or sold without registration; penalty Section 59),
+          lapsed (sold under a lapsed or revoked registration), misleading (Section 12: details that do
+          not match the registration, e.g. another promoter or a later possession date).
+    """
+
+    __tablename__ = "enforcement_cases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ref_no: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(20), index=True)
+    title: Mapped[str] = mapped_column(String(200))  # project name as advertised
+    advertised_promoter: Mapped[str | None] = mapped_column(String(200))
+    district: Mapped[str | None] = mapped_column(String(60), index=True)
+    claimed_rera: Mapped[str | None] = mapped_column(String(120), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"))  # registered project it names, if any
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)  # new | reviewing | notice_issued | closed
+    outcome: Mapped[str | None] = mapped_column(String(40))  # registered | false_alarm | penalty | other
+    notes: Mapped[str | None] = mapped_column(Text)
+    opened_on: Mapped[date] = mapped_column(Date)
+    updated_on: Mapped[date] = mapped_column(Date)
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class AdReport(Base):
+    """One ad a citizen reported after the RERA check. Holds the ad's content and the check result,
+    never the reporter's name or number (a logged-in reporter is linked by user id only)."""
+
+    __tablename__ = "ad_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("enforcement_cases.id"), index=True)
+    reported_on: Mapped[date] = mapped_column(Date, index=True)
+    channel: Mapped[str] = mapped_column(String(20))  # text | upload | chat
+    verdict: Mapped[str] = mapped_column(String(40))
+    claimed_rera: Mapped[str | None] = mapped_column(String(120))
+    advertised_project: Mapped[str | None] = mapped_column(String(200))
+    advertised_promoter: Mapped[str | None] = mapped_column(String(200))
+    district: Mapped[str | None] = mapped_column(String(60))
+    contact_phones: Mapped[str | None] = mapped_column(String(200))  # numbers printed on the ad
+    websites: Mapped[str | None] = mapped_column(String(300))
+    asks_payment_to_account: Mapped[bool] = mapped_column(Boolean, default=False)
+    problems: Mapped[str | None] = mapped_column(Text)  # failed checks, one per line
+    excerpt: Mapped[str] = mapped_column(Text)  # the ad text (first 1,500 characters)
+    text_hash: Mapped[str] = mapped_column(String(64), index=True)  # same ad reported twice is one report
+    reporter_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False)

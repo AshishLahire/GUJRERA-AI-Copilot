@@ -45,6 +45,8 @@ from gujrera.selfservice.summary import s as ss
 from gujrera.trust.checks import check_text
 from gujrera.tools.interest import chat_estimate, wants_calculation
 from gujrera.analytics.risk import chat_reply as risk_reply, wants_risk
+from gujrera.enforcement import chat_reply as enforcement_reply, wants_enforcement
+from gujrera.enforcement import citizen_reply as enforcement_citizen_reply
 
 SUGGESTIONS = {
     "project": {
@@ -251,6 +253,12 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 4. Officer analytics: standard reports, or LLM-written SQL behind the guard
     text_lc = (message or "").lower()
+    if repo.p.role == "officer" and wants_enforcement(text_lc):  # citizen ad reports (officers only)
+        district = next(iter(u.districts)) if len(u.districts) == 1 else None
+        sentences, card = enforcement_reply(repo, lang, district=district)
+        return Reply(lang, "enforcement", sentences, cards=[card] if card else [])
+    if repo.p.role != "officer" and wants_enforcement(text_lc) and not u.candidates and not u.project_numbers             and not u.looks_like_ad:
+        return Reply(lang, "enforcement_info", enforcement_citizen_reply(lang), suggestions=SUGGESTIONS["start"][lang])
     if repo.p.role == "officer" and wants_risk(text_lc):  # project risk early warning (officers only)
         projects = [c for c in u.candidates if c.kind == "project"]
         district = next(iter(u.districts)) if len(u.districts) == 1 else None

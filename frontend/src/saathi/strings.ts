@@ -199,6 +199,33 @@ const STRINGS = {
   riskList: { en: "Watchlist", gu: "નિરીક્ષણ યાદી", hi: "निगरानी सूची" },
   riskAllDistricts: { en: "All districts", gu: "બધા જિલ્લા", hi: "सभी जिले" },
   riskAll: { en: "All", gu: "બધા", hi: "सभी" },
+  navEnforce: { en: "Ad enforcement", gu: "જાહેરાત અમલીકરણ", hi: "विज्ञापन प्रवर्तन" },
+  enfIntro: {
+    en: "Ads that citizens checked and reported, grouped by project: projects advertised without registration (Section 3), under a lapsed registration, or with details that do not match the registry (Section 12). Most-reported first.",
+    gu: "નાગરિકોએ તપાસીને રિપોર્ટ કરેલી જાહેરાતો, પ્રોજેક્ટ પ્રમાણે: નોંધણી વગર જાહેરાત (કલમ 3), મુદત પૂરી થયેલી નોંધણી, કે રજિસ્ટ્રી સાથે મેળ ન ખાતી વિગતો (કલમ 12). સૌથી વધુ રિપોર્ટ પહેલા.",
+    hi: "नागरिकों द्वारा जाँचे और रिपोर्ट किए गए विज्ञापन, प्रोजेक्ट के अनुसार: बिना पंजीकरण विज्ञापन (धारा 3), समाप्त पंजीकरण, या रजिस्ट्री से मेल न खाते विवरण (धारा 12)। सबसे अधिक रिपोर्ट पहले।",
+  },
+  loginNeededEnforce: {
+    en: "Log in with a GUJRERA officer account to see reported ads.",
+    gu: "રિપોર્ટ થયેલી જાહેરાતો જોવા GUJRERA અધિકારી ખાતાથી લોગિન કરો.",
+    hi: "रिपोर्ट किए गए विज्ञापन देखने के लिए GUJRERA अधिकारी खाते से लॉगिन करें।",
+  },
+  enfOpen: { en: "Open cases", gu: "ખુલ્લા કેસ", hi: "खुले मामले" },
+  enfNew: { en: "Not yet reviewed", gu: "સમીક્ષા બાકી", hi: "समीक्षा बाकी" },
+  enfReports: { en: "Citizen reports", gu: "નાગરિક રિપોર્ટ", hi: "नागरिक रिपोर्ट" },
+  enfUnregistered: { en: "Unregistered", gu: "નોંધણી વગર", hi: "बिना पंजीकरण" },
+  enfLapsed: { en: "Lapsed registration", gu: "નોંધણીની મુદત પૂરી", hi: "पंजीकरण समाप्त" },
+  enfMisleading: { en: "Misleading ad", gu: "ગેરમાર્ગે દોરતી જાહેરાત", hi: "भ्रामक विज्ञापन" },
+  enfEvidence: { en: "Reported ads", gu: "રિપોર્ટ થયેલી જાહેરાતો", hi: "रिपोर्ट किए गए विज्ञापन" },
+  enfAction: { en: "Action", gu: "કાર્યવાહી", hi: "कार्रवाई" },
+  enfSave: { en: "Save", gu: "સાચવો", hi: "सहेजें" },
+  reportTitle: { en: "Report this ad to GUJRERA", gu: "આ જાહેરાત GUJRERA ને રિપોર્ટ કરો", hi: "यह विज्ञापन GUJRERA को रिपोर्ट करें" },
+  reportConsent: {
+    en: "GUJRERA's enforcement team will see the ad text and what this check found. Your name and phone number are not sent.",
+    gu: "GUJRERA ની અમલીકરણ ટીમ જાહેરાતનું લખાણ અને આ ચકાસણીનું પરિણામ જોશે. તમારું નામ અને ફોન નંબર મોકલાતા નથી.",
+    hi: "GUJRERA की प्रवर्तन टीम विज्ञापन का टेक्स्ट और इस जाँच का नतीजा देखेगी। आपका नाम और फोन नंबर नहीं भेजा जाता।",
+  },
+  reportSent: { en: "Reported. Thank you.", gu: "રિપોર્ટ થઈ ગયું. આભાર.", hi: "रिपोर्ट हो गया। धन्यवाद।" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

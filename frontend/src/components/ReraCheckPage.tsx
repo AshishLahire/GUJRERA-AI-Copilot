@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import {
   Lang,
   TrustCheck,
@@ -297,6 +298,10 @@ export const ReraCheckPage: React.FC = () => {
               {lang !== "en" && <p className="text-sm opacity-80 mt-1">{report.headline.en}</p>}
               <p className="text-sm mt-3 leading-relaxed">{report.next_steps}</p>
             </div>
+
+            {REPORTABLE.has(report.verdict) && (report.ocr?.text || text).trim().length >= 20 && (
+              <ReportAd key={report.ocr?.text || text} text={report.ocr?.text || text} channel={report.ocr ? "upload" : "text"} />
+            )}
 
             <RegistryCard report={report} />
 
