@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from gujrera.api.routes import get_session, router
 from gujrera.chat.gold import build_gold
@@ -339,3 +339,21 @@ def test_english_companion_makes_no_second_model_call(repo, monkeypatch):
     monkeypatch.setattr(orch, "llm_route", fake_route)
     orch.respond_with_english("આજે કંઈક મજાનું કહો ને", ChatState(), repo)
     assert len(calls) <= 1
+
+
+def test_overview_returns_totals_only(Session):
+    app = FastAPI()
+    app.include_router(router)
+
+    def _session():
+        with Session() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = _session
+    body = TestClient(app).get("/api/gujrera/overview").json()
+    with Session() as s:
+        assert body["projects"] == s.scalar(select(func.count()).select_from(Project))
+    assert body["complaints_open"] <= body["complaints"] and body["ongoing_delayed"] <= body["projects_by_status"]["ongoing"]
+    assert sum(d["count"] for d in body["projects_by_district"]) == body["projects"]
+    flat = repr(body).lower()
+    assert "name" not in flat and "mobile" not in flat and "@" not in flat  # no names or contact details

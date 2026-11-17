@@ -59,9 +59,9 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
   }, [allowed, token, lang, logout]);
 
   return (
-    <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-body">{tr("dashTitle", lang)}<En k="dashTitle" className="text-muted" /></h1>
+        <h2 className="font-heading text-xl font-bold text-body">{tr("dashTitle", lang)}<En k="dashTitle" className="text-muted" /></h2>
         {allowed && <p className="text-sm text-muted mt-1">{user?.display_name}{data?.is_mock ? " · demo data" : ""}</p>}
       </div>
       {!allowed && <LoginPrompt k="loginNeededPromoter" />}
@@ -95,7 +95,7 @@ export const PromoterPage: React.FC<{ onAsk: (q: string) => void }> = ({ onAsk }
                 <button
                   type="button"
                   onClick={() => onAsk({ en: "What are my dues?", gu: "મારી બાકી ચુકવણી", hi: "मेरे बकाया क्या हैं?" }[lang])}
-                  className="mt-4 px-4 py-2 rounded-lg bg-brand text-on-brand text-sm font-semibold"
+                  className="mt-4 px-4 py-2 rounded-lg bg-primary-bg text-primary-text text-sm font-semibold"
                 >
                   {tr("dashAsk", lang)}
                   <En k="dashAsk" />
@@ -191,9 +191,9 @@ export const OfficerPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-body">{tr("analyticsTitle", lang)}<En k="analyticsTitle" className="text-muted" /></h1>
+        <h2 className="font-heading text-xl font-bold text-body">{tr("analyticsTitle", lang)}<En k="analyticsTitle" className="text-muted" /></h2>
         {allowed && (
           <p className="text-sm text-muted mt-1">
             {user?.display_name} · read-only queries on reporting views, every query logged
@@ -212,7 +212,7 @@ export const OfficerPage: React.FC = () => {
               className="flex-1 min-w-0 rounded-xl border border-warm-border bg-card text-body px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <button type="submit" disabled={busy || !q.trim()}
-              className="px-5 rounded-xl bg-brand text-on-brand font-semibold disabled:opacity-50">
+              className="px-5 rounded-xl bg-primary-bg text-primary-text font-semibold disabled:opacity-50">
               {busy ? "…" : <>{tr("run", lang)}<En k="run" /></>}
             </button>
           </form>

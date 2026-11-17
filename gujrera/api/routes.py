@@ -44,7 +44,7 @@ from sqlalchemy.orm import Session
 from gujrera.auth import LoginError, authenticate, issue_token, principal_for, read_token
 from gujrera.chat.orchestrator import ChatState, respond, respond_with_english
 from gujrera.config import get_gujrera_settings
-from gujrera.db.models import Agent, Project, Promoter, User
+from gujrera.db.models import Agent, Complaint, Project, Promoter, User
 from gujrera.db.repository import AccessDenied, Principal, Repository
 from gujrera.db.session import make_engine, session_factory
 from gujrera.i18n import LANGS
@@ -327,6 +327,33 @@ def chat(body: ChatRequest, repo: Repository = Depends(user_repo)) -> dict[str, 
     except AccessDenied as exc:  # last line of defence; skills normally answer politely first
         raise HTTPException(403, str(exc)) from None
     return {"session_id": session_id, **reply.to_dict(), "english": english}
+
+
+CLOSED_COMPLAINT_STATUSES = ("disposed", "withdrawn")
+
+
+@router.get("/overview")
+def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Registry totals for the dashboard home: counts only, no names or personal data."""
+    by_status = dict(session.execute(select(Project.status, func.count()).group_by(Project.status)).all())
+    delayed = session.scalar(select(func.count()).select_from(Project).where(
+        Project.status == "ongoing", func.coalesce(Project.revised_completion, Project.proposed_completion)
+        > Project.proposed_completion)) or 0
+    complaints = dict(session.execute(select(Complaint.status, func.count()).group_by(Complaint.status)).all())
+    districts = session.execute(select(Project.district, func.count()).group_by(Project.district)
+                                .order_by(func.count().desc())).all()
+    return {
+        "projects": sum(by_status.values()),
+        "projects_by_status": by_status,
+        "ongoing_delayed": delayed,
+        "promoters": session.scalar(select(func.count()).select_from(Promoter)) or 0,
+        "agents_active": session.scalar(select(func.count()).select_from(Agent).where(Agent.status == "active")) or 0,
+        "complaints": sum(complaints.values()),
+        "complaints_open": sum(n for st, n in complaints.items() if st not in CLOSED_COMPLAINT_STATUSES),
+        "complaints_by_status": complaints,
+        "projects_by_district": [{"district": d, "count": n} for d, n in districts],
+        "is_mock": bool(session.scalar(select(func.count()).select_from(Project).where(Project.is_mock))),
+    }
 
 
 @router.get("/chat/starters")

@@ -96,7 +96,7 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) =
                 formatter={(v: number) => [v, label(card.chart!.y)]}
                 contentStyle={{ backgroundColor: themeColor("--bg-card", "#fff"), border: `1px solid ${themeColor("--border-warm", "#DCE4EF")}`, fontSize: 11 }}
               />
-              <Bar dataKey="y" fill={themeColor("--accent-amber", "#A86A00")} radius={[0, 3, 3, 0]} isAnimationActive={false} />
+              <Bar dataKey="y" fill={themeColor("--brand", "#F5B400")} radius={[0, 3, 3, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

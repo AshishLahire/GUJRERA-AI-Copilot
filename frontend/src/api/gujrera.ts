@@ -175,6 +175,23 @@ export async function fetchChatStarters(): Promise<{ items: { lang: Lang; text: 
   return parse(await fetch(`${API_BASE}/api/gujrera/chat/starters`));
 }
 
+export interface Overview {
+  projects: number;
+  projects_by_status: Record<string, number>;
+  ongoing_delayed: number;
+  promoters: number;
+  agents_active: number;
+  complaints: number;
+  complaints_open: number;
+  complaints_by_status: Record<string, number>;
+  projects_by_district: { district: string; count: number }[];
+  is_mock: boolean;
+}
+
+export async function fetchOverview(): Promise<Overview> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/overview`));
+}
+
 export interface VoiceResult {
   text: string;
   language: string | null;

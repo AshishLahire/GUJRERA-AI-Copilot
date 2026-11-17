@@ -3,51 +3,51 @@
 @tailwind utilities;
 
 @layer base {
-  /* GujRERA Saathi palette: white and yellow. Yellow fills (banner, buttons, active tabs) carry dark
-     text, never white; on white, accents use dark gold (--brand-strong) so text stays readable.
+  /* GujRERA Saathi palette: an all-white, neutral dashboard. Yellow is an accent only (active menu
+     marker, icon badges, logo, chart bars, small tags); main buttons are near-black.
      Token names are kept from the Pramaan theme so existing components restyle without changes. */
   :root {
     --bg-page: #FFFFFF;
     --bg-card: #FFFFFF;
-    --bg-subtle: #FFFBEA;
-    --bg-skeleton: #F5EFD9;
-    --border-warm: #EFE6C6;
-    --border-warm-strong: #DCCF9E;
-    --text-body: #1F1A0A;
-    --text-muted: #635A43;
-    --accent-surface: #FFF6D6;
-    --accent-border: #F2D27A;
-    --accent-amber: #A86A00;
-    --accent-amber-strong: #7A4D00;
-    --btn-primary-bg: #FFC21A;
-    --btn-primary-text: #1F1A0A;
-    --brand: #FFC21A;
-    --brand-strong: #7A5200;
-    --brand-soft: #FFF3C4;
-    --on-brand: #1F1A0A;
-    --card-shadow: 0 1px 2px 0 rgba(60, 45, 0, 0.06), 0 1px 3px -1px rgba(60, 45, 0, 0.08);
+    --bg-subtle: #F7F7F8;
+    --bg-skeleton: #EEEEF0;
+    --border-warm: #E6E6EA;
+    --border-warm-strong: #D3D3D9;
+    --text-body: #14161B;
+    --text-muted: #5E6370;
+    --accent-surface: #FFF8DB;
+    --accent-border: #F2D46B;
+    --accent-amber: #9A6700;
+    --accent-amber-strong: #7A5100;
+    --btn-primary-bg: #14161B;
+    --btn-primary-text: #FFFFFF;
+    --brand: #F5B400;
+    --brand-strong: #8A5D00;
+    --brand-soft: #FFF6D1;
+    --on-brand: #14161B;
+    --card-shadow: 0 1px 2px 0 rgba(20, 22, 27, 0.04);
   }
 
   .dark {
-    --bg-page: #12100B;
-    --bg-card: #1C1911;
-    --bg-subtle: #17140E;
-    --bg-skeleton: #2A2518;
-    --border-warm: #3A3322;
-    --border-warm-strong: #4D442D;
-    --text-body: #F5F0E1;
-    --text-muted: #B8AE94;
-    --accent-surface: #3A2F12;
-    --accent-border: #6E5718;
-    --accent-amber: #FFC93C;
+    --bg-page: #0F1013;
+    --bg-card: #16181C;
+    --bg-subtle: #1C1E23;
+    --bg-skeleton: #26292F;
+    --border-warm: #2A2D34;
+    --border-warm-strong: #3A3E47;
+    --text-body: #ECEDEF;
+    --text-muted: #9CA1AB;
+    --accent-surface: #2D2510;
+    --accent-border: #5C4A17;
+    --accent-amber: #F5C842;
     --accent-amber-strong: #FFD966;
-    --btn-primary-bg: #FFC93C;
-    --btn-primary-text: #1F1A0A;
-    --brand: #FFC93C;
-    --brand-strong: #FFD966;
-    --brand-soft: #3A2F12;
-    --on-brand: #1F1A0A;
-    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+    --btn-primary-bg: #ECEDEF;
+    --btn-primary-text: #0F1013;
+    --brand: #F5B400;
+    --brand-strong: #F5C842;
+    --brand-soft: #2D2510;
+    --on-brand: #14161B;
+    --card-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
   }
 
   body {

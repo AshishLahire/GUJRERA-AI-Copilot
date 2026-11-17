@@ -5,23 +5,23 @@ import { AskPage } from "../components/AskPage";
 import { ReraCheckPage } from "../components/ReraCheckPage";
 import { BrandMark, Icon } from "./Brand";
 import { SaathiProvider, useSaathi } from "./context";
+import { En } from "./En";
 import { HomePage, Page } from "./HomePage";
 import { OfficerPage, PromoterPage } from "./RolePages";
-import { En } from "./En";
-import { tr } from "./strings";
+import { StringKey, tr } from "./strings";
 
 const PAGES: Page[] = ["home", "ask", "check", "promoter", "officer"];
-const NAV: { page: Page; key: "navHome" | "navAsk" | "navCheck" | "navPromoter" | "navOfficer" }[] = [
-  { page: "home", key: "navHome" },
-  { page: "ask", key: "navAsk" },
-  { page: "check", key: "navCheck" },
-  { page: "promoter", key: "navPromoter" },
-  { page: "officer", key: "navOfficer" },
+const NAV: { page: Page; key: StringKey; icon: string }[] = [
+  { page: "home", key: "navOverview", icon: "grid" },
+  { page: "ask", key: "navAsk", icon: "chat" },
+  { page: "check", key: "navCheck", icon: "shield" },
+  { page: "promoter", key: "navPromoter", icon: "briefcase" },
+  { page: "officer", key: "navOfficer", icon: "chart" },
 ];
-const LANGS: { id: Lang; label: string }[] = [
-  { id: "gu", label: "ગુ" },
-  { id: "hi", label: "हि" },
-  { id: "en", label: "EN" },
+const LANGS: { id: Lang; label: string; name: string }[] = [
+  { id: "gu", label: "ગુ", name: "Gujarati" },
+  { id: "hi", label: "हि", name: "Hindi" },
+  { id: "en", label: "EN", name: "English" },
 ];
 
 function initialPage(): Page {
@@ -44,8 +44,9 @@ const Shell: React.FC = () => {
   const { lang, setLang } = useSaathi();
   const [page, setPage] = useState<Page>(initialPage);
   const [dark, setDark] = useState<boolean>(initialDark);
-  // A question from the home page; the counter remounts the chat so each one starts fresh.
+  // A question from the overview page; the counter remounts the chat so each one starts fresh.
   const [askSeed, setAskSeed] = useState<{ q: string; n: number } | null>(null);
+  const current = NAV.find((n) => n.page === page) ?? NAV[0];
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -64,101 +65,131 @@ const Shell: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-page">
+    <div className="min-h-screen bg-page flex">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-card px-3 py-2 rounded z-50">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b-2 border-brand">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
-          <button type="button" onClick={() => setPage("home")} className="flex items-center gap-2.5 shrink-0" aria-label={tr("brand", "en")}>
-            <BrandMark />
-            <span className="flex flex-col items-start leading-tight">
-              <span className="font-heading font-bold text-body text-[15px]">GujRERA Saathi</span>
-              <span className="text-[11px] text-muted hidden sm:block">{lang === "en" ? tr("tagline", "en") : tr("brand", lang)}</span>
-            </span>
-          </button>
-          <nav aria-label="Main" className="hidden xl:flex items-center gap-1 ml-4">
-            {NAV.map((n) => (
-              <button
-                key={n.page}
-                type="button"
-                onClick={() => setPage(n.page)}
-                aria-current={page === n.page ? "page" : undefined}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap leading-tight ${
-                  page === n.page ? "bg-brand text-on-brand" : "text-muted hover:text-body hover:bg-subtle"
-                }`}
-              >
-                {tr(n.key, lang)}
-                <En k={n.key} className="text-[10px]" />
-              </button>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-2 min-w-0">
-            <div className="flex rounded-lg border border-warm-border p-0.5 bg-subtle" role="group" aria-label="Language">
-              {LANGS.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() => setLang(l.id)}
-                  aria-pressed={lang === l.id}
-                  className={`px-2 py-1 rounded-md text-xs font-semibold ${lang === l.id ? "bg-card text-brand-strong shadow-sm" : "text-muted"}`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setDark((d) => !d)}
-              aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
-              className="hidden sm:flex w-8 h-8 rounded-lg border border-warm-border items-center justify-center text-muted hover:text-body"
-            >
-              <Icon name={dark ? "sun" : "moon"} className="w-4 h-4" />
-            </button>
-            <AccountBar />
-          </div>
-        </div>
-        <nav aria-label="Main" className="xl:hidden border-t border-warm-border overflow-x-auto [scrollbar-width:none]">
-          <div className="flex gap-1 px-3 py-1.5 w-max">
-            {NAV.map((n) => (
-              <button
-                key={n.page}
-                type="button"
-                onClick={() => setPage(n.page)}
-                aria-current={page === n.page ? "page" : undefined}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap leading-tight ${
-                  page === n.page ? "bg-brand text-on-brand" : "text-muted"
-                }`}
-              >
-                {tr(n.key, lang)}
-                <En k={n.key} className="text-[9px]" />
-              </button>
-            ))}
-          </div>
-        </nav>
-      </header>
 
-      <main id="main" className="flex-1">
-        {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
-        {/* Chat and ad check stay mounted so a conversation survives switching pages. */}
-        <div hidden={page !== "ask"}>
-          <AskPage key={askSeed?.n ?? 0} initialQuestion={askSeed?.q ?? null} />
-        </div>
-        <div hidden={page !== "check"}>
-          <ReraCheckPage />
-        </div>
-        {page === "promoter" && <PromoterPage onAsk={ask} />}
-        {page === "officer" && <OfficerPage />}
-      </main>
-
-      <footer className="border-t border-warm-border bg-card">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row gap-2 sm:items-center justify-between text-xs text-muted">
-          <span className="flex items-center gap-2">
-            <BrandMark className="w-5 h-5" /> GujRERA Saathi · {tr("brand", "gu")}
+      {/* Sidebar (desktop) */}
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-warm-border bg-card sticky top-0 h-screen">
+        <button type="button" onClick={() => setPage("home")} className="h-16 px-5 flex items-center gap-3 border-b border-warm-border text-left">
+          <BrandMark className="w-8 h-8" />
+          <span className="flex flex-col leading-tight">
+            <span className="font-heading font-bold text-body text-[15px]">GujRERA Saathi</span>
+            <span className="text-[11px] text-muted">{tr("brand", "gu")}</span>
           </span>
-          <span className="max-w-2xl">{tr("footer", lang)}</span>
+        </button>
+        <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-0.5">
+          {NAV.map((n) => {
+            const active = page === n.page;
+            return (
+              <button
+                key={n.page}
+                type="button"
+                onClick={() => setPage(n.page)}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex items-start gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                  active ? "bg-subtle text-body font-semibold" : "text-muted hover:text-body hover:bg-subtle"
+                }`}
+              >
+                {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand" aria-hidden="true" />}
+                <span className={`mt-0.5 ${active ? "text-brand-strong" : ""}`}><Icon name={n.icon} className="w-[18px] h-[18px]" /></span>
+                <span className="leading-tight">
+                  {tr(n.key, lang)}
+                  <En k={n.key} className="font-normal" />
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="px-5 py-4 border-t border-warm-border text-[11px] text-muted leading-relaxed">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-border bg-accent-surface px-2 py-0.5 font-semibold text-accent-amber-strong mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand" /> {tr("demoData", "en")}
+          </span>
+          <p>{tr("footer", "en")}</p>
         </div>
-      </footer>
+      </aside>
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Top bar */}
+        <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-warm-border">
+          <div className="h-16 px-4 sm:px-6 flex items-center gap-3">
+            <button type="button" onClick={() => setPage("home")} className="lg:hidden shrink-0" aria-label="GujRERA Saathi">
+              <BrandMark className="w-8 h-8" />
+            </button>
+            <div className="min-w-0 leading-tight">
+              <h1 className="font-heading font-bold text-body text-base sm:text-lg truncate">{tr(current.key, lang)}</h1>
+              <En k={current.key} className="text-[12px] text-muted opacity-100 truncate" />
+            </div>
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              <div className="flex rounded-lg border border-warm-border p-0.5" role="group" aria-label="Language">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => setLang(l.id)}
+                    aria-pressed={lang === l.id}
+                    title={l.name}
+                    className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                      lang === l.id ? "bg-subtle text-body ring-1 ring-warm-strong" : "text-muted hover:text-body"
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDark((d) => !d)}
+                aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+                className="hidden sm:flex w-8 h-8 rounded-lg border border-warm-border items-center justify-center text-muted hover:text-body"
+              >
+                <Icon name={dark ? "sun" : "moon"} className="w-4 h-4" />
+              </button>
+              <AccountBar />
+            </div>
+          </div>
+          {/* Tabs (phones and tablets) */}
+          <nav aria-label="Main" className="lg:hidden border-t border-warm-border overflow-x-auto [scrollbar-width:none]">
+            <div className="flex px-2 w-max">
+              {NAV.map((n) => {
+                const active = page === n.page;
+                return (
+                  <button
+                    key={n.page}
+                    type="button"
+                    onClick={() => setPage(n.page)}
+                    aria-current={active ? "page" : undefined}
+                    className={`px-3 pt-2 pb-1.5 text-xs whitespace-nowrap leading-tight border-b-2 ${
+                      active ? "border-brand text-body font-semibold" : "border-transparent text-muted"
+                    }`}
+                  >
+                    {tr(n.key, lang)}
+                    <En k={n.key} className="text-[9px] font-normal" />
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        </header>
+
+        <main id="main" className="flex-1">
+          {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
+          {/* Chat and ad check stay mounted so a conversation survives switching pages. */}
+          <div hidden={page !== "ask"}>
+            <AskPage key={askSeed?.n ?? 0} initialQuestion={askSeed?.q ?? null} />
+          </div>
+          <div hidden={page !== "check"}>
+            <ReraCheckPage />
+          </div>
+          {page === "promoter" && <PromoterPage onAsk={ask} />}
+          {page === "officer" && <OfficerPage />}
+        </main>
+
+        <footer className="lg:hidden border-t border-warm-border">
+          <div className="px-4 sm:px-6 py-4 text-xs text-muted">{tr("footer", lang)}</div>
+        </footer>
+      </div>
     </div>
   );
 };

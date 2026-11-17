@@ -82,7 +82,7 @@ export const AccountBar: React.FC = () => {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="px-3.5 py-1.5 rounded-lg bg-brand text-on-brand text-xs font-semibold hover:opacity-90"
+        className="px-3.5 py-1.5 rounded-lg bg-primary-bg text-primary-text text-xs font-semibold hover:opacity-90"
       >
         {tr("login", lang)}
       </button>
@@ -127,7 +127,7 @@ export const AccountBar: React.FC = () => {
           <button
             type="submit"
             disabled={busy || !username || !password}
-            className="py-2 rounded-md bg-brand text-on-brand font-semibold disabled:opacity-50"
+            className="py-2 rounded-md bg-primary-bg text-primary-text font-semibold disabled:opacity-50"
           >
             {busy ? "…" : tr("login", lang)}
           </button>
