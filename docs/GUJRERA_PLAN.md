@@ -283,6 +283,15 @@ Steps 2, 3 and 6 can run in parallel once step 1 is done, and 4 and 5 can follow
 - Evaluation: `scripts/eval_gujrera_chat.py` → `docs/gujrera_chat_eval.md`: 300 template questions (100 per language), 300/300 pass, 0 unknown names answered as found, p95 latency about 50 ms on CPU. These are generated from templates the router was tuned on; real user questions must be collected in the pilot.
 - Not done: IndicTrans2 (answers use native templates instead, so translation is only needed for free-form text such as order summaries, which are shown in English).
 
+**Step 5, complaint filing and tracking (2026-11-17): done on a mock workflow; built before step 4 (login).**
+- `gujrera/complaints/`: step-by-step filing in chat (project → story → category → relief → name → mobile → optional email and unit → consent → review → submit), in Gujarati, Hindi and English. The category is guessed from the story and confirmed at review; the form follows from the relief (Form B for compensation, Section 71; otherwise Form A, Section 31; verify against the Gujarat Rules). Cancel at any point; nothing is sent without consent and a final "Submit"; any field can be changed from the review.
+- Hand-off: `ComplaintAdapter` interface with `MockComplaintAdapter` (labelled MOCK). Contact details go only to the mock portal table, as the real portal would hold them; the copilot's complaint row keeps an HMAC of the mobile, never the number.
+- Tracking without login: reference number plus a 6-digit code given at filing, stored only as an HMAC (`GUJRERA_HASH_SECRET`); three wrong codes lock that reference for the session. Complaints filed outside the copilot have no code and are pointed to the portal.
+- Console: review card, receipt card with copy button, status timeline; option buttons show their label and old buttons are disabled.
+- Evaluation: `scripts/eval_gujrera_complaints.py` → `docs/gujrera_complaints_eval.md`: 90 simulated conversations (6 types × 3 languages × 5 projects), 90/90 submitted complete with the right project, category and form, staying in the buyer's language, 8 turns on average. Template stories only.
+- Fix found on the way: a shared word such as "Developers" could carry a fuzzy promoter match; the distinctive first word must now match too (trust check and chat).
+- Next: replace the mock adapter once GUJRERA shares the complaint hand-off format; add logged-in tracking with step 4.
+
 ---
 
 ## 11. Risks and mitigations

@@ -116,7 +116,8 @@ def test_typo_is_forgiven_but_unknown_name_is_not_found(repo):
 @pytest.mark.parametrize("message,intent", [
     ("what is the weather today", "out_of_scope"),
     ("નમસ્તે", "greeting"),
-    ("I want to file a complaint", "complaint_file"),
+    ("I want to file a complaint", "complaint_filing"),
+    ("Track my complaint", "complaint_tracking"),
     ("What is the track record of builder Zzz Infra?", "not_found"),
     ("Is PR/GJ/SURAT/OLPAD/SUDA/RAA99999/010122 registered?", "not_found"),
 ])
@@ -218,7 +219,7 @@ def test_api_chat_keeps_session(client, Session):
 def test_api_starters_resolve(client):
     for item in client.get("/api/gujrera/chat/starters").json()["items"]:
         out = client.post("/api/gujrera/chat", json={"message": item["text"]}).json()
-        assert out["intent"] in ("possession", "promoter_profile", "not_found", "disambiguate")
+        assert out["intent"] in ("possession", "promoter_profile", "not_found", "disambiguate", "complaint_filing")
 
 
 def test_api_profiles_and_errors(client):

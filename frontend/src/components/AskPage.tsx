@@ -91,6 +91,45 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
       </div>
     );
   }
+  if (card.type === "complaint_draft") {
+    const fields = (card.fields as { key: string; label: string; value: string }[]) ?? [];
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-heading text-sm font-bold text-body">Form {String(card.form)}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full border border-warm-border text-muted">Draft · not sent</span>
+        </div>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+          {fields.map((f) => (
+            <React.Fragment key={f.key}>
+              <dt className="text-muted">{f.label}</dt>
+              <dd className="text-body break-words whitespace-pre-wrap">{f.value}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
+      </div>
+    );
+  }
+  if (card.type === "complaint_submitted") {
+    return <SubmittedCard refNo={String(card.ref_no)} code={String(card.tracking_code)} form={String(card.form)} />;
+  }
+  if (card.type === "complaint_status") {
+    const events = (card.events as { at: string; status: string; note: string | null }[]) ?? [];
+    return (
+      <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
+        <div className="font-mono text-body mb-2">{String(card.ref_no)}</div>
+        <ol className="relative border-l border-warm-border ml-1.5 flex flex-col gap-2">
+          {events.map((e, i) => (
+            <li key={i} className="ml-3">
+              <span className={`absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full ${i === events.length - 1 ? "bg-accent-amber" : "bg-muted/50"}`} />
+              <div className="font-semibold text-body capitalize">{e.status}</div>
+              <div className="text-muted">{e.at}{e.note ? ` · ${e.note}` : ""}</div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    );
+  }
   if (card.type === "trust") {
     const verdict = String(card.verdict);
     const problems = (card.problems as string[]) ?? [];
@@ -107,6 +146,30 @@ const Card: React.FC<{ card: ChatReply["cards"][number] }> = ({ card }) => {
     );
   }
   return null;
+};
+
+const SubmittedCard: React.FC<{ refNo: string; code: string; form: string }> = ({ refNo, code, form }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard
+      ?.writeText(`${refNo} ${code}`)
+      .then(() => setCopied(true))
+      .catch(() => setCopied(false));
+  };
+  return (
+    <div className="mt-3 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100 p-3 text-xs">
+      <div className="font-bold uppercase tracking-wide mb-2">Complaint filed · Form {form}</div>
+      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        <span className="opacity-80">Reference</span>
+        <span className="font-mono font-bold break-all">{refNo}</span>
+        <span className="opacity-80">Tracking code</span>
+        <span className="font-mono font-bold text-base tracking-widest">{code}</span>
+      </div>
+      <button type="button" onClick={copy} className="mt-2 px-2.5 py-1 rounded-md border border-current text-[11px] font-semibold">
+        {copied ? "Copied" : "Copy both"}
+      </button>
+    </div>
+  );
 };
 
 export const AskPage: React.FC = () => {
@@ -126,12 +189,12 @@ export const AskPage: React.FC = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  const send = async (text: string) => {
+  const send = async (text: string, shown?: string) => {
     const message = text.trim();
     if (!message || busy) return;
     setInput("");
     setError(null);
-    setMessages((m) => [...m, { role: "user", text: message }]);
+    setMessages((m) => [...m, { role: "user", text: shown ?? message }]);
     setBusy(true);
     try {
       const reply = await sendChat(message, sessionId, lang);
@@ -208,8 +271,9 @@ export const AskPage: React.FC = () => {
                     <button
                       key={o.n}
                       type="button"
-                      onClick={() => send(String(o.n))}
-                      className="text-left text-xs px-3 py-2 rounded-lg border border-warm-border bg-card hover:border-accent-amber"
+                      disabled={busy || m !== last}
+                      onClick={() => send(String(o.n), o.label)}
+                      className="text-left text-xs px-3 py-2 rounded-lg border border-warm-border bg-card hover:border-accent-amber disabled:opacity-50 disabled:hover:border-warm-border disabled:cursor-default"
                     >
                       <span className="font-bold mr-1.5">{o.n}.</span>{o.label}
                     </button>
@@ -281,7 +345,8 @@ export const AskPage: React.FC = () => {
         </button>
       </form>
       <p className="text-[11px] text-muted">
-        Prototype on demo data. Answers are built only from registry records; complaint filing by chat comes next.
+        Prototype on demo data. Answers are built only from registry records. Complaints go to a mock GUJRERA
+        workflow until the real one is connected.
       </p>
     </div>
   );

@@ -20,13 +20,23 @@ from gujrera.db.repository import Repository
 from gujrera.i18n import t, word
 from gujrera.profile.summarise import Profile, Sentence, agent_profile, project_profile, promoter_profile
 from gujrera.chat.understand import Candidate, Understanding, understand
+from gujrera.complaints.flow import (
+    CODE_RE,
+    REF_RE,
+    FlowOut,
+    continue_filing,
+    continue_tracking,
+    start_filing,
+    start_tracking,
+    wants_tracking,
+)
 from gujrera.trust.checks import check_text
 
 SUGGESTIONS = {
     "project": {
-        "en": ["When will I get possession?", "Who is the builder?", "Any complaints?"],
-        "gu": ["પઝેશન ક્યારે મળશે?", "બિલ્ડર કોણ છે?", "કોઈ ફરિયાદ છે?"],
-        "hi": ["पज़ेशन कब मिलेगा?", "बिल्डर कौन है?", "कोई शिकायत है?"],
+        "en": ["When will I get possession?", "Who is the builder?", "Any complaints?", "File a complaint"],
+        "gu": ["પઝેશન ક્યારે મળશે?", "બિલ્ડર કોણ છે?", "કોઈ ફરિયાદ છે?", "ફરિયાદ નોંધાવો"],
+        "hi": ["पज़ेशन कब मिलेगा?", "बिल्डर कौन है?", "कोई शिकायत है?", "शिकायत दर्ज करें"],
     },
     "promoter": {
         "en": ["Show the delayed projects", "Any penalty orders?"],
@@ -34,9 +44,9 @@ SUGGESTIONS = {
         "hi": ["देरी वाले प्रोजेक्ट दिखाएँ", "कोई दंड आदेश है?"],
     },
     "start": {
-        "en": ["Tell me about a project", "Is this ad genuine?"],
-        "gu": ["પ્રોજેક્ટ વિશે જણાવો", "આ જાહેરાત સાચી છે?"],
-        "hi": ["किसी प्रोजेक्ट के बारे में बताएँ", "क्या यह विज्ञापन असली है?"],
+        "en": ["File a complaint", "Track my complaint"],
+        "gu": ["ફરિયાદ નોંધાવો", "મારી ફરિયાદની સ્થિતિ"],
+        "hi": ["शिकायत दर्ज करें", "मेरी शिकायत की स्थिति"],
     },
 }
 
@@ -48,6 +58,8 @@ class ChatState:
     options: list[dict[str, Any]] = field(default_factory=list)  # pending disambiguation
     pending_focus: str | None = None
     turns: int = 0
+    complaint: Any = None  # gujrera.complaints.flow.FilingState while a complaint is being filed
+    tracking: Any = None  # gujrera.complaints.flow.TrackingState while a complaint is being tracked
 
 
 @dataclass
@@ -125,11 +137,13 @@ def respond(message: str, state: ChatState, repo: Repository, *, lang: str | Non
     state.turns += 1
     u = understand(repo.s, message)
     is_choice = bool(state.options) and re.fullmatch(r"\s*\d\s*[.)]?\s*", message or "")
-    lang = lang or (state.lang if is_choice or (u.lang == "en" and state.turns > 1 and
-                                                 not re.search(r"[a-z]{3,}", (message or "").lower()))
-                    else u.lang)
+    in_form = state.complaint is not None or state.tracking is not None
+    # Inside a form, Latin-script answers ("skip", "B-402", an email) keep the conversation's language.
+    keep = is_choice or (u.lang == "en" and state.turns > 1 and
+                         (in_form or not re.search(r"[a-z]{3,}", (message or "").lower())))
+    lang = lang or (state.lang if keep else u.lang)
     state.lang = lang
-    reply = _route(message, u, state, repo, lang)
+    reply = _complaint_turn(message, u, state, repo, lang) or _route(message, u, state, repo, lang)
     if reply.is_mock and reply.sentences:
         reply.sentences.append(_say("demo_note", lang))
     if rephrase and reply.intent in ("project_profile", "promoter_profile", "possession"):
@@ -173,9 +187,10 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         state.entity = {"kind": "project", "id": project["id"]}
         return _answer_entity(state, repo, lang, _focus(u))
 
-    # 4. Complaint filing / tracking is the next build step
-    if "complaint_file" in u.intents:
-        return Reply(lang, "complaint_file", [_say("complaints_coming", lang)])
+    # 4. Complaint filing / tracking
+    if "complaint_file" in u.intents or REF_RE.search(message or ""):
+        out = (start_tracking if wants_tracking(message) else start_filing)(message, state, repo, lang)
+        return _from_flow(out, lang)
 
     # 5. Names
     cands = u.candidates
@@ -225,6 +240,21 @@ def _focus(u: Understanding) -> str | None:
 
 COMPLAINT_KEYS = {"complaints", "no_complaints", "promoter_complaints", "promoter_orders", "promoter_no_orders",
                   "latest_order"}
+
+
+def _from_flow(out: FlowOut, lang: str) -> Reply:
+    return Reply(lang, out.intent, out.sentences, cards=out.cards, options=out.options)
+
+
+def _complaint_turn(message: str, u: Understanding, state: ChatState, repo: Repository, lang: str) -> Reply | None:
+    """Keep the user inside an open filing or tracking conversation."""
+    if state.complaint is not None:
+        return _from_flow(continue_filing(message, state, repo, lang), lang)
+    if state.tracking is not None:
+        if REF_RE.search(message or "") or CODE_RE.search(message or "") or not (u.intents or u.candidates):
+            return _from_flow(continue_tracking(message, state, repo, lang), lang)
+        state.tracking = None  # the user moved on to another question
+    return None
 
 
 def _answer_entity(state: ChatState, repo: Repository, lang: str, focus: str | None) -> Reply:

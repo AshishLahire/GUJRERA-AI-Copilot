@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from factcheck.lang.normalize import normalize_digits
 from gujrera.db.models import Project, Promoter
+from gujrera.trust.checks import stem_present
 from gujrera.trust.rera_number import ReraNumber, find_rera_numbers
 
 # Romanised Gujarati / Hindi words, for "Gujlish" and "Hinglish" input.
@@ -29,8 +30,9 @@ INTENT_WORDS: dict[str, tuple[str, ...]] = {
     "promoter": ("builder", "developer", "promoter", "બિલ્ડર", "ડેવલપર", "પ્રમોટર", "बिल्डर", "डेवलपर",
                  "प्रमोटर", "track record", "history"),
     "complaint_file": ("file a complaint", "register a complaint", "lodge", "my complaint", "complaint status",
-                       "track my complaint", "track complaint", "ફરિયાદ નોંધ", "મારી ફરિયાદ", "शिकायत दर्ज",
-                       "मेरी शिकायत"),
+                       "track my complaint", "track complaint", "complain", "raise a complaint",
+                       "ફરિયાદ નોંધ", "મારી ફરિયાદ", "ફરિયાદ કરવી", "ફરિયાદની સ્થિતિ",
+                       "शिकायत दर्ज", "मेरी शिकायत", "शिकायत करनी", "शिकायत की स्थिति"),
     "complaints": ("complaint", "complaints", "ફરિયાદ", "शिकायत"),
     "trust": ("genuine", "fake", "real or", "legit", "verify", "is this", "scam", "fraud", "check this",
               "સાચું", "સાચો", "નકલી", "ખોટું", "असली", "नकली", "फर्जी", "सही है"),
@@ -117,7 +119,7 @@ def _score(variant: str, text_lc: str) -> float:
         return 0.0
     if re.search(rf"(?<![\w]){re.escape(variant)}(?![\w])", text_lc):
         return 100.0
-    if len(variant) >= 8:
+    if len(variant) >= 8 and stem_present(variant, text_lc):
         return float(fuzz.partial_ratio(variant, text_lc))
     return 0.0
 

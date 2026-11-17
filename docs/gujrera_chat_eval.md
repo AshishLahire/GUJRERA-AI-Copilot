@@ -6,7 +6,7 @@ A question passes when the reply has the expected intent, contains the expected 
 
 - **Passed: 300/300 (100.0%)** (deck target: 90%+ correct and cited)
 - Unknown names or off-topic questions answered as if found: **0**
-- Latency: p95 47 ms, total 12.2 s on CPU (template answers, no LLM)
+- Latency: p95 46 ms, total 12.1 s on CPU (template answers, no LLM)
 
 | Language | Passed |
 |:--|:-:|

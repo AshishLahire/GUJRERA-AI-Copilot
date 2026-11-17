@@ -161,6 +161,7 @@ def chat_starters(session: Session = Depends(get_session)) -> dict[str, Any]:
         b = projects[1]
         items.append({"lang": "hi", "text": f"{b.name} का पज़ेशन कब मिलेगा?"})
     items.append({"lang": "en", "text": "Is PR/GJ/SURAT/OLPAD/SUDA/RAA99999/010122 registered?"})
+    items.append({"lang": "gu", "text": "મારે ફરિયાદ નોંધાવવી છે"})
     return {"items": items, "is_mock": True}
 
 

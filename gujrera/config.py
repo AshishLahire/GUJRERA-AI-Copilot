@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,10 @@ class GujreraSettings(BaseSettings):
     GUJRERA_LLM_MODEL: str = Field(default="qwen3-vl:4b")
     GUJRERA_LLM_BASE_URL: str = Field(default="http://localhost:11434")
     GUJRERA_LLM_TIMEOUT_SECONDS: float = Field(default=20.0, gt=0)
+
+    # Key for hashing complaint tracking codes and complainant mobiles (HMAC-SHA256).
+    # The default is for local development only; set a long random value in any deployment.
+    GUJRERA_HASH_SECRET: SecretStr = Field(default=SecretStr("dev-only-change-me"))
 
 
 @lru_cache

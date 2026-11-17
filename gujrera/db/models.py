@@ -48,6 +48,7 @@ COMPLAINT_CATEGORIES = (
     "agent_misconduct",
     "compensation",
 )
+RELIEFS = ("possession_with_interest", "refund_with_interest", "rectification", "compensation", "other")
 COMPLAINT_STATUSES = ("filed", "under_scrutiny", "hearing_scheduled", "order_reserved", "disposed", "withdrawn")
 OPEN_COMPLAINT_STATUSES = ("filed", "under_scrutiny", "hearing_scheduled", "order_reserved")
 ORDER_TYPES = ("complaint_order", "show_cause", "penalty_order", "extension_order", "revocation_order")
@@ -174,6 +175,10 @@ class Complaint(Base):
     status: Mapped[str] = mapped_column(String(30), index=True)
     closed_on: Mapped[date | None] = mapped_column(Date)
     outcome: Mapped[str | None] = mapped_column(String(40))  # allowed | partly_allowed | dismissed | settled
+    relief: Mapped[str | None] = mapped_column(String(40))
+    channel: Mapped[str] = mapped_column(String(20), default="portal")  # portal | copilot
+    # Complaints filed through the copilot are tracked with ref_no + a 6-digit code; only a hash is kept.
+    tracking_code_hash: Mapped[str | None] = mapped_column(String(64))
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
 
     events: Mapped[list[ComplaintEvent]] = relationship(
@@ -224,6 +229,21 @@ class DueNotice(Base):
     due_date: Mapped[date | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20))
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class MockPortalSubmission(Base):
+    """Stands in for GUJRERA's existing complaint workflow until its API is available.
+
+    Holds the full submission (including contact details) the way the real
+    portal would. The copilot's own tables keep only a hash of the complainant.
+    """
+
+    __tablename__ = "mock_portal_submissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ref_no: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime)
+    payload_json: Mapped[str] = mapped_column(Text)
 
 
 class AuditLog(Base):

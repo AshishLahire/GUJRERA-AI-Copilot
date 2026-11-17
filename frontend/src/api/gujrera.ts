@@ -63,7 +63,7 @@ export interface ChatSource extends RecordSource {
 export interface ChatOption {
   n: number;
   kind: string;
-  id: number;
+  id: number | string;
   label: string;
 }
 

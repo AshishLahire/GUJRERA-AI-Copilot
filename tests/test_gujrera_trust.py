@@ -172,3 +172,12 @@ def test_api_reports_empty_database(tmp_path, monkeypatch):
     res = TestClient(app).get("/api/gujrera/health")
     assert res.status_code == 503 and "seed_gujrera" in res.json()["detail"]
     empty.dispose()
+
+
+def test_shared_suffix_does_not_count_as_promoter_match():
+    from gujrera.trust.checks import _mentioned
+
+    text = "kesar heights by kesar developers. gujrera reg. no: pr/gj/..."
+    assert _mentioned("Navrang Developers (Demo)", text) == 0
+    assert _mentioned("Kesar Developers (Demo)", text) == 100
+    assert _mentioned("Navrang Developers", "flats by navrnag developers") >= 85  # typo still matches

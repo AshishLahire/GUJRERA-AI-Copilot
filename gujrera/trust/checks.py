@@ -147,7 +147,18 @@ def _mentioned(name: str | None, text_lc: str) -> float:
         return 0.0
     if core in text_lc:
         return 100.0
-    return float(fuzz.partial_ratio(core, text_lc)) if len(core) >= 8 else 0.0
+    if len(core) < 8 or not stem_present(core, text_lc):
+        return 0.0
+    return float(fuzz.partial_ratio(core, text_lc))
+
+
+def stem_present(name_lc: str, text_lc: str) -> bool:
+    """The distinctive first word must appear (allowing a typo), so a shared suffix such as
+    "Developers" or "Residency" cannot carry a fuzzy match on its own."""
+    stem = name_lc.split()[0]
+    if len(stem) < 4:
+        return stem in text_lc.split()
+    return fuzz.partial_ratio(stem, text_lc) >= 85
 
 
 def check_text(text: str, repo: Repository, *, as_of: date | None = None) -> TrustReport:
