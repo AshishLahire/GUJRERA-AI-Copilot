@@ -27,7 +27,7 @@ from gujrera.profile.summarise import Sentence
 
 S = {
     "result": {
-        "en": "{title}: {n} rows.{scope}",
+        "en": "{title}: {n} {rows}.{scope}",
         "gu": "{title}: {n} પંક્તિઓ.{scope}",
         "hi": "{title}: {n} पंक्तियाँ।{scope}",
     },
@@ -206,7 +206,8 @@ def answer(question: str, repo: Repository, lang: str, *,
 
     citations = [{"type": "view", "id": v, "is_mock": True} for v in guarded.views]
     scope_txt = s("scope", lang, d=word(scope, lang)) if scope else ""
-    sentences = [Sentence(s("result", lang, title=title, n=len(result.rows), scope=scope_txt), citations, "an_result")]
+    sentences = [Sentence(s("result", lang, title=title, n=len(result.rows), rows="row" if len(result.rows) == 1 else "rows",
+                            scope=scope_txt), citations, "an_result")]
     chart = _chart(result.columns, result.rows)
     if result.rows and chart and "order by" in sql.lower():  # "top" only makes sense for a sorted result
         top = result.rows[0]

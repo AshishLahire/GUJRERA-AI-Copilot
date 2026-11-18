@@ -304,6 +304,13 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
                 f"The document promises possession around {claim.possession.text!r}, later than the registered "
                 f"completion date {valid_until.isoformat()}.", evidence=claim.possession.text, source=src,
                 verdict_hint="mismatch"))
+        elif project["status"] != "completed" and (valid_until - claim.possession.value).days > 90:
+            # Promising handover well before the registered date is a common misleading pitch (RERA Act s.12).
+            out.append(Check(
+                "possession_date", "warn", "warning", "Advertised possession is earlier than the registered date",
+                f"The document promises possession around {claim.possession.text!r}, but the project is registered "
+                f"to complete by {valid_until.isoformat()}. Ask the promoter to put the earlier date in the "
+                "agreement for sale.", evidence=claim.possession.text, source=src))
         else:
             out.append(Check("possession_date", "pass", "info", "Possession date consistent",
                              f"Registered completion: {valid_until.isoformat()}.",

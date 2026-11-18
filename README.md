@@ -59,13 +59,15 @@ python scripts/seed_gujrera.py
 #    gujarat_rera_general_rules_2017.pdf, then:
 python scripts/build_gujrera_legal_index.py
 
-# 5. Run: API on :8000 and the app on :5173
-python -m uvicorn gujrera.api.dev_app:app --port 8000
-npm --prefix frontend install
-npm --prefix frontend run dev
+# 5. Run: API on :8000 and the app on :5173. The launcher moves to free ports if another
+#    program (for example another project's dev server) already uses them.
+powershell -ExecutionPolicy Bypass -File scripts\run_gujrera.ps1
 ```
 
-Open http://localhost:5173. Demo accounts: `dev_002` (promoter), `agent_001` (agent), `citizen_01` (home buyer), `officer_surat` / `officer_state` (officers); password = `GUJRERA_DEMO_PASSWORD` in `.env`.
+Or by hand: `python -m uvicorn gujrera.api.dev_app:app --port 8000` and `npm --prefix frontend run dev`
+(set `PRAMAAN_API` and `PRAMAAN_UI_PORT` to use other ports).
+
+Open the address the launcher prints (http://localhost:5173 by default). Demo walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Demo accounts: `dev_002` (promoter), `agent_001` (agent), `citizen_01` (home buyer), `officer_surat` / `officer_state` (officers); password = `GUJRERA_DEMO_PASSWORD` in `.env`.
 
 `gujrera.api.dev_app` serves only the GujRERA Saathi endpoints. The full Pramaan backend (`factcheck.api.app`) also mounts them, but needs Pramaan's retrieval indexes and extra packages.
 

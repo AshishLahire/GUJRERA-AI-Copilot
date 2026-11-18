@@ -181,3 +181,15 @@ def test_shared_suffix_does_not_count_as_promoter_match():
     assert _mentioned("Navrang Developers (Demo)", text) == 0
     assert _mentioned("Kesar Developers (Demo)", text) == 100
     assert _mentioned("Navrang Developers", "flats by navrnag developers") >= 85  # typo still matches
+
+
+def test_possession_promised_well_before_registered_date_is_warned(repo):
+    p = repo.s.scalars(select(Project).where(Project.status == "ongoing",
+                                              Project.reg_valid_until > AS_OF)).first()
+    pr = repo.s.get(Promoter, p.promoter_id)
+    base = f"{p.name} by {pr.name.replace(' (Demo)', '')}. RERA {p.rera_no}. "
+    early = check_text(base + f"Possession by December {p.reg_valid_until.year - 2}!", repo, as_of=AS_OF)
+    assert any(c.id == "possession_date" and c.status == "warn" for c in early.checks)
+    assert early.verdict == "registered_with_warnings"
+    same = check_text(base + f"Possession by {p.reg_valid_until:%B %Y}.", repo, as_of=AS_OF)
+    assert any(c.id == "possession_date" and c.status == "pass" for c in same.checks)

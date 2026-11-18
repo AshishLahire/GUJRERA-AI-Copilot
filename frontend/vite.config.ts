@@ -4,7 +4,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    // Override with PRAMAAN_UI_PORT when 5173 is taken (scripts/run_gujrera.ps1 picks a free one).
+    port: Number(process.env.PRAMAAN_UI_PORT ?? 5173),
     strictPort: true,
     proxy: {
       "/api": {
