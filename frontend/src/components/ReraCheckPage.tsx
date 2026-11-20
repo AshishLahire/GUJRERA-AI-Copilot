@@ -9,6 +9,7 @@ import {
   checkTrustText,
   checkTrustUpload,
   fetchTrustSamples,
+  openReport,
 } from "../api/gujrera";
 
 const TONES: Record<string, { box: string; badge: string }> = {
@@ -118,6 +119,12 @@ const RegistryCard: React.FC<{ report: TrustReport }> = ({ report }) => {
             <dd className="text-body">{Number(project.delay_days) > 0 ? `${project.delay_days} days` : "None"}</dd>
           </div>
         </dl>
+      )}
+      {project && Number(project.id) > 0 && (
+        <button type="button" onClick={() => openReport(Number(project.id))}
+          className="mt-3 inline-flex items-center gap-1 rounded-full border border-warm-border px-3 py-1 text-xs font-semibold text-body hover:border-warm-strong">
+          Open the full registry record →
+        </button>
       )}
       {card && (
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
