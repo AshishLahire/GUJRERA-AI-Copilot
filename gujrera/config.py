@@ -41,6 +41,9 @@ class GujreraSettings(BaseSettings):
     GUJRERA_LLM_MODEL: str = Field(default="qwen2.5:7b-instruct")
     GUJRERA_LLM_BASE_URL: str = Field(default="http://localhost:11434")
     GUJRERA_LLM_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)
+    # How long Ollama keeps the model loaded after the last question ("-1" = always). Ollama's own
+    # default is 5 minutes, after which the next question waits ~1-2 minutes for the model to reload.
+    GUJRERA_LLM_KEEP_ALIVE: str = Field(default="2h")
 
     # Key for hashing complaint tracking codes and complainant mobiles (HMAC-SHA256).
     # The default is for local development only; set a long random value in any deployment.

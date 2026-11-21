@@ -114,7 +114,7 @@ def ollama_sql(prompt: str) -> str:
     cfg = get_gujrera_settings()
     res = httpx.post(
         f"{cfg.GUJRERA_LLM_BASE_URL.rstrip('/')}/api/chat",
-        json={"model": cfg.GUJRERA_SQL_MODEL, "stream": False, "think": False, "options": {"temperature": 0},
+        json={"model": cfg.GUJRERA_SQL_MODEL, "stream": False, "think": False, "keep_alive": cfg.GUJRERA_LLM_KEEP_ALIVE, "options": {"temperature": 0},
               "messages": [{"role": "user", "content": "/no_think\n" + prompt}]},
         timeout=cfg.GUJRERA_ANALYTICS_LLM_TIMEOUT_SECONDS,
     )

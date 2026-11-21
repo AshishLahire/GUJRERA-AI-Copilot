@@ -55,7 +55,7 @@ def ollama_generate(prompt: str) -> str:
     cfg = get_gujrera_settings()
     res = httpx.post(
         f"{cfg.GUJRERA_LLM_BASE_URL.rstrip('/')}/api/chat",
-        json={"model": cfg.GUJRERA_LLM_MODEL, "stream": False, "think": False,
+        json={"model": cfg.GUJRERA_LLM_MODEL, "stream": False, "think": False, "keep_alive": cfg.GUJRERA_LLM_KEEP_ALIVE,
               "options": {"temperature": 0},
               "messages": [{"role": "user", "content": prompt}]},
         timeout=cfg.GUJRERA_LLM_TIMEOUT_SECONDS,
