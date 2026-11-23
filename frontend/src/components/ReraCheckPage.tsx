@@ -8,6 +8,7 @@ import {
   TrustVerdict,
   checkTrustText,
   checkTrustUpload,
+  fetchHealth,
   fetchTrustSamples,
   openReport,
 } from "../api/gujrera";
@@ -160,10 +161,15 @@ export const ReraCheckPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Samples are optional (demo data only): a failure to load them is not an error for the user.
+  const [demo, setDemo] = useState(true);
   useEffect(() => {
     fetchTrustSamples()
       .then((r) => setSamples(r.items))
-      .catch((e: Error) => setError(e.message));
+      .catch(() => setSamples([]));
+    fetchHealth()
+      .then((h) => setDemo(h.mock_projects > 0 || h.projects === 0))
+      .catch(() => setDemo(true));
   }, []);
 
   const run = async (fn: () => Promise<TrustReport>) => {
@@ -254,8 +260,10 @@ export const ReraCheckPage: React.FC = () => {
           <input ref={fileRef} type="file" accept=".png,.jpg,.jpeg,.webp,.pdf" className="hidden" onChange={onFile} />
         </div>
         <p className="text-[11px] text-muted">
-          Prototype: registry data is demo data (registration codes start with MOCK). Uploaded files are deleted
-          after reading.
+          {demo
+            ? "Prototype: registry data is demo data (registration codes start with MOCK)."
+            : "Checked against public GUJRERA records imported from the portal."}{" "}
+          Uploaded files are deleted after reading.
         </p>
       </section>
 

@@ -210,3 +210,15 @@ def test_portal_search_results_are_imported_safely(Session, tmp_path):
         assert "OLD TEST HOMES" in intro and UNKNOWN_PROMOTER not in intro
         listing = respond("Show me projects in Gandhinagar", ChatState(), repo).to_dict()["text"]
         assert "completion not recorded" in listing and "lapsed" not in listing
+
+
+def test_sample_ads_are_not_made_from_real_records(Session, tmp_path):
+    """The ad page's sample picker must load on imported public data (no fake ads about real builders)."""
+    from gujrera.trust.samples import demo_samples
+
+    path = tmp_path / "one.json"
+    path.write_text(json.dumps({"data": [{"entityType": "PROJECT", "regNo": P1, "entityName": "X Test",
+                                           "pdate": "01/01/2023 - 31/12/2029"}]}), encoding="utf-8")
+    with Session() as s:
+        import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/")
+        assert demo_samples(s) == []

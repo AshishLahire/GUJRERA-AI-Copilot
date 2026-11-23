@@ -95,6 +95,8 @@ def build_cases(session: Session, *, as_of: date | None = None, per_kind: int = 
     for i, p in enumerate(pick(valid, per_kind)):
         others = [o for o in promoters.values() if o.id != p.promoter_id
                   and _core(o.name).split()[0] != _core(promoters[p.promoter_id].name).split()[0]]
+        if not others:  # only one promoter on record: no mismatch example can be made
+            continue
         other = rng.choice(others)
         cases.append(TrustCase(f"promoter-{i:02d}", "promoter_mismatch", "en",
                                _en_ad(p, _core(other.name), p.rera_no, p.reg_valid_until.year - 1),
@@ -120,7 +122,10 @@ def build_cases(session: Session, *, as_of: date | None = None, per_kind: int = 
 
 
 def demo_samples(session: Session, *, as_of: date | None = None) -> list[TrustCase]:
-    """One case per kind, for the console's sample picker."""
+    """One case per kind, for the console's sample picker. Only on demo data: sample ads with made-up
+    claims are never built around real projects or builders (imported public records)."""
+    if not session.scalar(select(Project.id).where(Project.is_mock.is_(True)).limit(1)):
+        return []
     seen: dict[str, TrustCase] = {}
     for case in build_cases(session, as_of=as_of, per_kind=1, seed=5):
         key = f"{case.kind}-{case.lang}"
