@@ -59,6 +59,7 @@ from gujrera.chat.basics import about_rera, asks_about_rera, district_list, says
 from gujrera.chat.basics import (
     agent_list,
     filter_list,
+    need_list,
     is_followup,
     locality_list,
     wants_agent_list,
@@ -283,6 +284,9 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             sentences, ids = narrowed
             state.last_list = ids or state.last_list
             return Reply(lang, "list_filter", sentences)
+    if (not state.last_list and is_followup(message) and not u.candidates and not u.project_numbers
+            and not u.districts and not officer_report):
+        return Reply(lang, "list_needed", need_list(lang))  # "which of these ...?" with no list shown yet
     loc = find_locality(msg_lc)
     if (loc and wants_locality_list(msg_lc) and not u.candidates and not u.project_numbers and not officer_report
             and not wants_enforcement(msg_lc) and not wants_agent_list(msg_lc)):

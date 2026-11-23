@@ -58,6 +58,14 @@ def test_follow_up_filters_the_previous_list(Session):
         assert {x["id"] for x in out["sources"] if x["type"] == "project"} == expected
 
 
+def test_follow_up_without_a_list_explains_what_to_do(Session):
+    with Session() as s:
+        out = _ask(s, "Which of these are ongoing?")
+        gu = _ask(s, "આમાંથી કયા ચાલુ છે?")
+    assert out["intent"] == "list_needed" and "Ask for one first" in out["text"]
+    assert gu["intent"] == "list_needed" and gu["lang"] == "gu"
+
+
 @pytest.mark.parametrize("q", ["સુરતમાં નોંધાયેલા એજન્ટ કોણ છે?", "Who are the registered agents in Surat?"])
 def test_agents_in_a_district(Session, q):
     with Session() as s:

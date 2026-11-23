@@ -147,6 +147,12 @@ LOCAL = {
                    "hi": "{name}, {reg}, {valid} तक मान्य ({status})।"},
     "filtered": {"en": "Of the previous list, {n} match.", "gu": "આગળની યાદીમાંથી {n} મેળ ખાય છે.",
                  "hi": "पिछली सूची में से {n} मेल खाते हैं।"},
+    "need_list": {"en": "There is no list to narrow down yet. Ask for one first, for example: "
+                         "\"Which RERA-approved projects are in Gandhinagar?\" Then ask \"which of these are ongoing?\"",
+                  "gu": "હજી કોઈ યાદી નથી જેમાંથી પસંદ કરી શકાય. પહેલાં યાદી માંગો, દા.ત. \"ગાંધીનગરમાં કયા "
+                        "પ્રોજેક્ટ છે?\" પછી પૂછો \"આમાંથી કયા ચાલુ છે?\"",
+                  "hi": "अभी कोई सूची नहीं है जिसमें से छाँटा जा सके। पहले सूची माँगें, जैसे \"गांधीनगर में कौन से "
+                        "प्रोजेक्ट हैं?\" फिर पूछें \"इनमें से कौन से चालू हैं?\""},
     "filtered_none": {"en": "None of the previous list match that.", "gu": "આગળની યાદીમાંથી કોઈ મેળ ખાતું નથી.",
                       "hi": "पिछली सूची में से कोई मेल नहीं खाता।"},
 }
@@ -256,6 +262,10 @@ def agent_list(repo: Repository, district: str, lang: str, limit: int = 10) -> t
         out.append(Sentence(_lt("more", lang, shown=limit, n=len(agents)), [], "agents_more"))
     return out, {"type": "agents", "district": district,
                  "agents": [{"name": a.name, "reg_no": a.reg_no, "status": a.status} for a in agents]}
+
+
+def need_list(lang: str) -> list[Sentence]:
+    return [Sentence(_lt("need_list", lang), [], "need_list")]
 
 
 def is_followup(text: str) -> bool:
