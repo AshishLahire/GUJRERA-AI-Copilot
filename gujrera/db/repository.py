@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from rapidfuzz import fuzz, process
+from rapidfuzz.utils import default_process
 from sqlalchemy import Select, select, text
 from sqlalchemy.orm import Session
 
@@ -285,7 +286,9 @@ class Repository:
                     choices[key] = name
                     owners[key] = obj
         best: dict[int, tuple[Any, float]] = {}
-        for _, score, key in process.extract(query, choices, scorer=fuzz.WRatio, limit=limit * 3):
+        # Ignore case and punctuation: real registry names are often in capitals ("BANSARI SKYVIEW").
+        for _, score, key in process.extract(query, choices, scorer=fuzz.WRatio, processor=default_process,
+                                             limit=limit * 3):
             obj = owners[key]
             if score >= min_score and (obj.id not in best or best[obj.id][1] < score):
                 best[obj.id] = (obj, round(float(score), 1))
