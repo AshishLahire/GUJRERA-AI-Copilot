@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from gujrera.analytics.periods import Period, parse_period, without_period
+
 DISTRICT_WORDS = {
     "ahmedabad": "Ahmedabad", "અમદાવાદ": "Ahmedabad", "अहमदाबाद": "Ahmedabad",
     "surat": "Surat", "સુરત": "Surat", "सूरत": "Surat",
@@ -35,6 +37,19 @@ W = {
     "orders": ("penalty", "penalties", "show cause", "show-cause", "revocation", "adverse",
                "દંડ", "કારણદર્શક", "दंड", "जुर्माना"),
     "count": ("how many", "number of", "count", "કેટલા", "કેટલી", "कितने", "कितनी"),
+    # authority records (POC sample questions)
+    "scrutiny": ("scrutiny", "under review", "under examination", "pending approval", "સ્ક્રુટિની", "સ્ક્રૂટિની",
+                 "ચકાસણી હેઠળ", "તપાસ હેઠળ", "स्क्रूटिनी", "स्क्रुटिनी", "जांच के अधीन", "जाँच के अधीन", "समीक्षाधीन"),
+    "notice": ("notice", "notices", "નોટિસ", "नोटिस"),
+    "default": ("default", "defaults", "defaulted", "defaulting", "defaulter", "defaulters", "non-compliance",
+                "non compliance", "ડિફોલ્ટ", "ડિફૉલ્ટ", "ડિફોલ્ટર", "નિયમભંગ", "डिफ़ॉल्ट", "डिफॉल्ट", "चूक",
+                "अनुपालन नहीं"),
+    "past_completion": ("past their completion", "past completion", "past the completion",
+                        "completion date has passed", "completion date passed", "overdue",
+                        "પૂર્ણ થવાની તારીખ વીતી", "તારીખ વીતી", "સમયમર્યાદા વીતી",
+                        "समापन तिथि बीत", "तारीख बीत", "तिथि बीत", "तिथि निकल"),
+    "rank": ("top", "most", "highest", "સૌથી", "सबसे"),
+    "penalty": ("penalty", "penalties", "fine", "fines", "દંડ", "दंड", "जुर्माना"),
 }
 ANALYTICS_CUES = ("which", "how many", "top", "list", "show", "count", "average", "most", "highest", "compare",
                   "report", "by district", "district-wise", "breakdown", "trend",
@@ -56,6 +71,18 @@ TITLES = {
                        "hi": "समाप्त या समाप्त होने वाले पंजीकरण वाले एजेंट"},
     "projects_by_district": {"en": "Projects and delays by district", "gu": "જિલ્લા મુજબ પ્રોજેક્ટ અને વિલંબ",
                              "hi": "जिलेवार प्रोजेक्ट और देरी"},
+    "projects_under_scrutiny": {"en": "Projects under scrutiny", "gu": "સ્ક્રુટિની હેઠળના પ્રોજેક્ટ",
+                                "hi": "स्क्रूटिनी के अधीन प्रोजेक्ट"},
+    "notices_issued": {"en": "Notices issued to developers", "gu": "ડેવલપર્સને આપેલી નોટિસ",
+                       "hi": "डेवलपर्स को जारी नोटिस"},
+    "promoters_by_notices": {"en": "Promoters with the most notices", "gu": "સૌથી વધુ નોટિસ મેળવનાર પ્રમોટર",
+                             "hi": "सबसे अधिक नोटिस वाले प्रमोटर"},
+    "defaulting_promoters": {"en": "Defaulting developers", "gu": "ડિફોલ્ટ કરનાર ડેવલપર્સ",
+                             "hi": "डिफ़ॉल्ट करने वाले डेवलपर्स"},
+    "past_completion": {"en": "Ongoing projects past their completion date",
+                        "gu": "પૂર્ણ થવાની તારીખ વીતી ગઈ હોય તેવા ચાલુ પ્રોજેક્ટ",
+                        "hi": "समापन तिथि बीत चुके चालू प्रोजेक्ट"},
+    "penalty_orders": {"en": "Orders with penalties", "gu": "દંડ સાથેના આદેશો", "hi": "दंड वाले आदेश"},
     "adverse_orders": {"en": "Promoters with show-cause, penalty or revocation orders",
                        "gu": "કારણદર્શક, દંડ અથવા રદ કરવાના આદેશ ધરાવતા પ્રમોટર",
                        "hi": "कारण बताओ, दंड या रद्द करने के आदेश वाले प्रमोटर"},
@@ -67,11 +94,20 @@ AGENT_EXPIRING = "(is_expired = 1 OR status <> 'active' OR valid_until < date('n
 REG_ENDING = "(status = 'lapsed' OR (status = 'ongoing' AND reg_valid_until < date('now', '+90 day')))"
 
 
+# Reports over the authority records (the department's POC sample questions). In chat these take
+# precedence over older officer features that share words such as "order".
+AUTHORITY_REPORTS = frozenset({"projects_under_scrutiny", "notices_issued", "promoters_by_notices",
+                               "defaulting_promoters", "past_completion", "penalty_orders"})
+
+
 @dataclass
 class Report:
     key: str
     sql: str
     district: str | None
+    period: Period | None = None
+    note: str | None = None  # key of an explanatory sentence (e.g. how "default" is defined)
+    locality: str | None = None
 
 
 def _has(text_lc: str, group: str) -> bool:
@@ -97,7 +133,22 @@ def looks_like_analytics(text_lc: str) -> bool:
 
 def _top_n(text_lc: str, default: int = 10) -> int:
     m = re.search(r"\btop\s+(\d{1,3})\b", text_lc)
+    if not m and _has(text_lc, "rank"):  # "સૌથી વધુ નોટિસ મેળવનાર 10 પ્રમોટર"
+        m = re.search(r"(?<![\d/.-])(\d{1,3})(?![\d/.-])", text_lc)
     return max(1, min(int(m.group(1)), 100)) if m else default
+
+
+def find_locality(text_lc: str) -> str | None:
+    """A locality named in the question, from the fixed list (never copied from user text)."""
+    from gujrera.authority_seed import locality_names
+
+    best = None
+    for spelling, name in locality_names().items():
+        hit = (re.search(rf"(?<![a-z]){re.escape(spelling)}(?![a-z])", text_lc) if spelling.isascii()
+               else spelling in text_lc)
+        if hit and (best is None or len(spelling) > len(best[0])):
+            best = (spelling, name)  # longest wins: "south bopal" over "bopal"
+    return best[1] if best else None
 
 
 # Dimensions or measures no standard report provides. A question asking for one of these goes to the
@@ -119,16 +170,59 @@ def _uncovered(text_lc: str) -> bool:
 
 
 def match_report(text_lc: str) -> Report | None:
+    period = parse_period(text_lc)
+    text_lc = without_period(text_lc, period)  # "last six months" must not send the question to the LLM path
     if _uncovered(text_lc):
         return None
     d = find_district(text_lc)
     where_d = f"district = '{d}'" if d else None  # d comes only from DISTRICT_WORDS
+    loc = find_locality(text_lc)
+    where_l = f"locality = '{loc}'" if loc else None  # loc comes only from the fixed locality list
 
     def w(*conds: str | None) -> str:
         parts = [c for c in conds if c]
         return (" WHERE " + " AND ".join(parts)) if parts else ""
 
+    def when(column: str) -> str | None:
+        return period.sql(column) if period else None
+
     n = _top_n(text_lc)
+
+    # Authority records (POC sample questions) first: their questions also contain words older reports match.
+    if _has(text_lc, "scrutiny") and not _has(text_lc, "complaint"):
+        return Report("projects_under_scrutiny",
+                      "SELECT project_name, promoter_name, district, locality, subject, stage, opened_on "
+                      f"FROM v_scrutiny{w('is_open = 1', where_d, where_l, when('opened_on'))} ORDER BY opened_on",
+                      d, period, locality=loc)
+    if _has(text_lc, "default"):
+        limit = n if _has(text_lc, "rank") else 100
+        return Report("defaulting_promoters",
+                      "SELECT promoter_name, district, COUNT(*) AS defaults, SUM(is_unresolved) AS unresolved, "
+                      f"MAX(event_date) AS latest_default FROM v_defaults{w(where_d, when('event_date'))} "
+                      f"GROUP BY promoter_name, district ORDER BY unresolved DESC, defaults DESC LIMIT {limit}",
+                      d, period, note="default_definition")
+    if _has(text_lc, "notice"):
+        if _has(text_lc, "rank"):
+            return Report("promoters_by_notices",
+                          "SELECT promoter_name, district, COUNT(*) AS notices, MAX(issued_on) AS latest_notice "
+                          f"FROM v_notices{w(where_d, when('issued_on'))} GROUP BY promoter_name, district "
+                          f"ORDER BY notices DESC, latest_notice DESC LIMIT {n}", d, period)
+        return Report("notices_issued",
+                      "SELECT promoter_name, project_name, district, notice_type, issued_on, status "
+                      f"FROM v_notices{w(where_d, when('issued_on'))} ORDER BY issued_on DESC", d, period)
+    if _has(text_lc, "past_completion") and not _has(text_lc, "complaint"):  # "overdue complaints" = triage
+        overdue = "proposed_completion < date('now')"  # the completion date declared at registration
+        return Report("past_completion",
+                      "SELECT project_name, promoter_name, district, locality, proposed_completion, "
+                      "revised_completion, delay_days "
+                      f"FROM v_project_delays{w(ONGOING, overdue, where_d, where_l)} ORDER BY proposed_completion",
+                      d, locality=loc)
+    if _has(text_lc, "penalty") and not _has(text_lc, "promoter"):
+        penalty = "order_type = 'penalty_order'"
+        return Report("penalty_orders",
+                      "SELECT order_no, promoter_name, project_name, district, issued_on, penalty_amount, penalty_paid "
+                      f"FROM v_orders{w(penalty, where_d, when('issued_on'))} "
+                      "ORDER BY issued_on DESC", d, period)
     if _has(text_lc, "delay") and _has(text_lc, "promoter"):
         return Report("delayed_by_promoter",
                       "SELECT promoter_name, COUNT(*) AS delayed_projects, MAX(delay_days) AS max_delay_days "

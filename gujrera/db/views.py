@@ -16,6 +16,11 @@ ANALYTICS_VIEWS = (
     "v_promoter_scorecard",
     "v_complaint_stats",
     "v_agent_status",
+    # Authority records (officers only); each carries `district` so officer scope applies.
+    "v_scrutiny",
+    "v_notices",
+    "v_defaults",
+    "v_orders",
 )
 
 
@@ -45,7 +50,7 @@ def view_sql(dialect: str) -> dict[str, str]:
     return {
         "v_project_delays": f"""
             CREATE VIEW v_project_delays AS
-            SELECT p.id AS project_id, p.rera_no, p.name AS project_name, p.district, p.taluka,
+            SELECT p.id AS project_id, p.rera_no, p.name AS project_name, p.district, p.taluka, p.locality,
                    p.project_type, p.status, p.units, p.promoter_id, pr.name AS promoter_name,
                    p.reg_date, p.proposed_completion, p.revised_completion, p.actual_completion,
                    p.reg_valid_until,
@@ -89,6 +94,38 @@ def view_sql(dialect: str) -> dict[str, str]:
                    (SELECT COUNT(*) FROM complaints c WHERE c.agent_id = a.id) AS complaints_total,
                    a.is_mock
             FROM agents a
+        """,
+        "v_scrutiny": """
+            CREATE VIEW v_scrutiny AS
+            SELECT s.id AS scrutiny_id, p.id AS project_id, p.rera_no, p.name AS project_name, p.district, p.taluka,
+                   p.locality, pr.name AS promoter_name, s.subject, s.stage,
+                   CASE WHEN s.stage IN ('under_scrutiny', 'query_raised') THEN 1 ELSE 0 END AS is_open,
+                   s.opened_on, s.closed_on, s.is_mock
+            FROM project_scrutiny s JOIN projects p ON p.id = s.project_id JOIN promoters pr ON pr.id = p.promoter_id
+        """,
+        "v_notices": """
+            CREATE VIEW v_notices AS
+            SELECT n.id AS notice_id, n.ref_no, n.notice_type, n.issued_on, n.status,
+                   pr.id AS promoter_id, pr.name AS promoter_name, p.name AS project_name, p.rera_no,
+                   COALESCE(p.district, pr.district) AS district, n.is_mock
+            FROM authority_notices n JOIN promoters pr ON pr.id = n.promoter_id
+            LEFT JOIN projects p ON p.id = n.project_id
+        """,
+        "v_defaults": """
+            CREATE VIEW v_defaults AS
+            SELECT e.id AS event_id, e.event_type, e.period, e.event_date, e.resolved_on,
+                   CASE WHEN e.resolved_on IS NULL THEN 1 ELSE 0 END AS is_unresolved,
+                   pr.id AS promoter_id, pr.name AS promoter_name, p.name AS project_name, p.rera_no,
+                   p.district, e.is_mock
+            FROM compliance_events e JOIN promoters pr ON pr.id = e.promoter_id JOIN projects p ON p.id = e.project_id
+        """,
+        "v_orders": """
+            CREATE VIEW v_orders AS
+            SELECT o.id AS order_id, o.order_no, o.order_type, o.issued_on, op.amount AS penalty_amount,
+                   op.paid AS penalty_paid, pr.name AS promoter_name, p.name AS project_name, p.rera_no,
+                   COALESCE(p.district, pr.district) AS district, o.is_mock
+            FROM orders o LEFT JOIN order_penalties op ON op.order_id = o.id
+            LEFT JOIN projects p ON p.id = o.project_id LEFT JOIN promoters pr ON pr.id = COALESCE(o.promoter_id, p.promoter_id)
         """,
     }
 

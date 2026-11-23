@@ -6,6 +6,7 @@
     python scripts/seed_gujrera.py --add-ad-reports     # only add the starting set of reported ads
     python scripts/seed_gujrera.py --add-order-tracking # only add compliance records for complaint orders
     python scripts/seed_gujrera.py --add-watches        # only add the demo buyer's watched projects
+    python scripts/seed_gujrera.py --add-authority-data # only add officer test records (scrutiny, notices, ...)
 
 The database location comes from GUJRERA_DB_URL (default
 data/gujrera/gujrera.sqlite). The existing database is dropped and rebuilt.
@@ -30,6 +31,7 @@ from gujrera.db.session import session_factory as Session_  # noqa: E402
 from gujrera.enforcement import ensure_tables, seed_reports  # noqa: E402
 from gujrera.orders import seed_compliance  # noqa: E402
 from gujrera.watch import seed_watches  # noqa: E402
+from gujrera.authority_seed import seed_authority  # noqa: E402
 
 
 def main() -> int:
@@ -39,6 +41,8 @@ def main() -> int:
     ap.add_argument("--no-mock", action="store_true", help="skip mock data")
     ap.add_argument("--csv", type=Path, action="append", default=[], help="public projects CSV to import")
     ap.add_argument("--add-watches", action="store_true", help="keep the database; only add demo project watches")
+    ap.add_argument("--add-authority-data", action="store_true",
+                    help="keep the database; only add officer test records (localities, scrutiny, defaults, notices, penalties)")
     ap.add_argument("--add-order-tracking", action="store_true",
                     help="keep the database; only add order compliance records")
     ap.add_argument("--add-ad-reports", action="store_true",
@@ -47,6 +51,11 @@ def main() -> int:
 
     settings = get_gujrera_settings()
     engine = make_engine(args.db_url)
+    if args.add_authority_data:
+        ensure_tables(engine)
+        with Session_(engine)() as s:
+            print(seed_authority(s) or "Authority records already present; nothing added.")
+        return 0
     if args.add_watches:
         ensure_tables(engine)
         with Session_(engine)() as s:
@@ -80,6 +89,8 @@ def main() -> int:
                 print(f"  {table:<18}{n:>6}")
             print(f"  {'order_compliance':<18}{seed_compliance(s):>6}")
             print(f"  {'project_watches':<18}{seed_watches(s):>6}")
+            for table, n in seed_authority(s).items():
+                print(f"  {table:<18}{n:>6}")
 
     failed = False
     for path in args.csv:

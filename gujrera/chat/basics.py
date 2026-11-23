@@ -122,3 +122,175 @@ def district_list(repo: Repository, district: str, lang: str, limit: int = 8, *,
     repo._audit("district_list", {"district": district})
     return out, {"type": "district", "district": district,
                  "projects": [{"id": p.id, "name": p.name, "rera_no": p.rera_no} for p in ongoing]}
+
+
+# ------------------------------------------------------------------ localities, agents, follow-ups on a list
+LOCAL = {
+    "head": {"en": "{place}: {n} RERA-registered {projects}.",
+             "gu": "{place}: {n} RERA નોંધાયેલા પ્રોજેક્ટ.",
+             "hi": "{place}: {n} RERA पंजीकृत प्रोजेक्ट।"},
+    "item": {"en": "{name}, {rera}, by {promoter} ({status}).",
+             "gu": "{name}, {rera}, {promoter} દ્વારા ({status}).",
+             "hi": "{name}, {rera}, {promoter} द्वारा ({status})।"},
+    "item_np": {"en": "{name}, {rera} ({status}).", "gu": "{name}, {rera} ({status}).", "hi": "{name}, {rera} ({status})।"},
+    "more": {"en": "Showing {shown} of {n}; ask for a narrower list, e.g. only ongoing ones.",
+             "gu": "{n} માંથી {shown} બતાવ્યા; ટૂંકી યાદી માટે પૂછો, દા.ત. ફક્ત ચાલુ પ્રોજેક્ટ.",
+             "hi": "{n} में से {shown} दिखाए; छोटी सूची के लिए पूछें, जैसे केवल चालू प्रोजेक्ट।"},
+    "none": {"en": "No RERA-registered projects found in {place} in the records available to me.",
+             "gu": "મારી પાસેના રેકોર્ડમાં {place} માં કોઈ RERA નોંધાયેલ પ્રોજેક્ટ મળ્યો નથી.",
+             "hi": "मेरे पास के रिकॉर्ड में {place} में कोई RERA पंजीकृत प्रोजेक्ट नहीं मिला।"},
+    "agents_head": {"en": "{district}: {n} registered real estate agents ({active} with active registration).",
+                    "gu": "{district}: {n} નોંધાયેલા રિયલ એસ્ટેટ એજન્ટ ({active} ની નોંધણી સક્રિય).",
+                    "hi": "{district}: {n} पंजीकृत रियल एस्टेट एजेंट ({active} का पंजीकरण सक्रिय)।"},
+    "agent_item": {"en": "{name}, {reg}, valid until {valid} ({status}).",
+                   "gu": "{name}, {reg}, {valid} સુધી માન્ય ({status}).",
+                   "hi": "{name}, {reg}, {valid} तक मान्य ({status})।"},
+    "filtered": {"en": "Of the previous list, {n} match.", "gu": "આગળની યાદીમાંથી {n} મેળ ખાય છે.",
+                 "hi": "पिछली सूची में से {n} मेल खाते हैं।"},
+    "filtered_none": {"en": "None of the previous list match that.", "gu": "આગળની યાદીમાંથી કોઈ મેળ ખાતું નથી.",
+                      "hi": "पिछली सूची में से कोई मेल नहीं खाता।"},
+}
+AGENT_WORDS = ("agent", "agents", "broker", "brokers", "એજન્ટ", "દલાલ", "एजेंट", "दलाल")
+_FOLLOWUP = re.compile(r"\b(of these|of them|these|those|among them)\b|આમાંથી|આમાં|એમાંથી|તેમાંથી|इनमें|इनमे|उनमें",
+                       re.IGNORECASE)
+_LIST_WORDS = _PROJECT_WORDS + ("developer", "developers", "builder", "builders", "ડેવલપર", "બિલ્ડર", "डेवलपर",
+                                "बिल्डर", "rera approved", "rera-approved", "માન્ય", "मान्य")
+
+
+def wants_locality_list(text_lc: str) -> bool:
+    return any(w in text_lc for w in _LIST_WORDS)
+
+
+def wants_agent_list(text_lc: str) -> bool:
+    return any(w in text_lc for w in AGENT_WORDS)
+
+
+_DEMO_TAG = re.compile(r"\s*\((?:demo|ડેમો|डेमो)\)", re.IGNORECASE)
+
+
+def _clean(name: str | None) -> str:
+    return _DEMO_TAG.sub("", name or "").strip()
+
+
+def _place(locality: str, lang: str) -> str:
+    """The locality in the answer's language (from the fixed list), else as stored."""
+    from gujrera.authority_seed import LOCALITIES
+
+    for names in LOCALITIES.values():
+        for en, gu, hi in names:
+            if en == locality:
+                return {"gu": gu, "hi": hi}.get(lang, en)
+    return locality
+
+
+def _lt(key: str, lang: str, **v: Any) -> str:
+    return LOCAL[key].get(lang, LOCAL[key]["en"]).format(**v)
+
+
+def _project_lines(repo: Repository, projects: list[Project], lang: str, limit: int) -> list[Sentence]:
+    from gujrera.db.models import Promoter
+    from gujrera.i18n import word
+
+    out = []
+    for p in projects[:limit]:
+        promoter = repo.s.get(Promoter, p.promoter_id)
+        src = {"type": "project", "id": p.rera_no, "is_mock": bool(p.is_mock)}
+        name = _clean(p.name_gu if lang == "gu" and p.name_gu else p.name)
+        status = word(p.status, lang)
+        if promoter.promoter_type == "unknown":
+            out.append(Sentence(_lt("item_np", lang, name=name, rera=p.rera_no, status=status), [src], "locality_item"))
+        else:
+            pname = _clean(promoter.name_gu if lang == "gu" and promoter.name_gu else promoter.name)
+            out.append(Sentence(_lt("item", lang, name=name, rera=p.rera_no, promoter=pname, status=status),
+                                [src], "locality_item"))
+    return out
+
+
+def locality_list(repo: Repository, locality: str, lang: str, limit: int = 10
+                  ) -> tuple[list[Sentence], dict[str, Any], list[int]]:
+    """Registered projects in a locality, as on the public registry (citizen-safe columns only)."""
+    projects = repo.s.scalars(select(Project).where(Project.locality == locality)
+                              .order_by(Project.status != "ongoing", Project.name)).all()
+    repo._audit("locality_list", {"locality": locality, "n": len(projects)})
+    card: dict[str, Any] = {"type": "locality", "locality": locality,
+                            "projects": [{"id": p.id, "name": p.name, "rera_no": p.rera_no, "status": p.status}
+                                         for p in projects]}
+    if not projects:
+        return [Sentence(_lt("none", lang, place=_place(locality, lang)), [], "locality_none")], card, []
+    stat = {"type": "locality", "id": locality, "is_mock": any(p.is_mock for p in projects)}
+    out = [Sentence(_lt("head", lang, place=_place(locality, lang), n=len(projects),
+                        projects="project" if len(projects) == 1 else "projects"), [stat], "locality_head")]
+    out += _project_lines(repo, list(projects), lang, limit)
+    if len(projects) > limit:
+        out.append(Sentence(_lt("more", lang, shown=limit, n=len(projects)), [], "locality_more"))
+    return out, card, [p.id for p in projects]
+
+
+def agent_list(repo: Repository, district: str, lang: str, limit: int = 10) -> tuple[list[Sentence], dict[str, Any]]:
+    """Registered agents in a district: name, registration number, validity (public fields only)."""
+    from datetime import date
+
+    from gujrera.db.models import Agent
+    from gujrera.i18n import fmt_date
+
+    agents = repo.s.scalars(select(Agent).where(Agent.district == district)
+                            .order_by(Agent.status != "active", Agent.name)).all()
+    repo._audit("agent_list", {"district": district, "n": len(agents)})
+    today = date.today()
+    active = sum(a.status == "active" and a.valid_until >= today for a in agents)
+    label = {"active": {"en": "active", "gu": "સક્રિય", "hi": "सक्रिय"},
+             "expired": {"en": "expired", "gu": "મુદત પૂરી", "hi": "समाप्त"},
+             "revoked": {"en": "revoked", "gu": "રદ", "hi": "रद्द"}}
+    stat = {"type": "agent_registry", "id": district, "is_mock": any(a.is_mock for a in agents)}
+    from gujrera.i18n import word
+
+    out = [Sentence(_lt("agents_head", lang, district=word(district, lang), n=len(agents), active=active), [stat],
+                    "agents_head")]
+    for a in agents[:limit]:
+        st = a.status if a.valid_until >= today or a.status != "active" else "expired"
+        name = _clean(a.name_gu if lang == "gu" and a.name_gu else a.name)
+        out.append(Sentence(_lt("agent_item", lang, name=name, reg=a.reg_no, valid=fmt_date(a.valid_until, lang),
+                                status=label[st].get(lang, label[st]["en"])),
+                            [{"type": "agent", "id": a.reg_no, "is_mock": bool(a.is_mock)}], "agent_item"))
+    if len(agents) > limit:
+        out.append(Sentence(_lt("more", lang, shown=limit, n=len(agents)), [], "agents_more"))
+    return out, {"type": "agents", "district": district,
+                 "agents": [{"name": a.name, "reg_no": a.reg_no, "status": a.status} for a in agents]}
+
+
+def is_followup(text: str) -> bool:
+    return bool(_FOLLOWUP.search(text or ""))
+
+
+def filter_list(repo: Repository, ids: list[int], text: str, lang: str, limit: int = 10
+                ) -> tuple[list[Sentence], list[int]] | None:
+    """Narrow the previous project list: registered after/before/in a year, ongoing or completed, a locality.
+    None if the follow-up asks for nothing this can filter on."""
+    from datetime import date
+
+    from gujrera.analytics.reports import find_locality
+
+    t = (text or "").lower()
+    conds = []
+    m = re.search(r"(?:after|since)\s+(20\d{2})|(20\d{2})\s*(?:પછી|થી|के बाद|से)", t)
+    if m:
+        y = int(m.group(1) or m.group(2))
+        after = any(w in m.group(0) for w in ("after", "પછી", "के बाद"))
+        conds.append(Project.reg_date >= date(y + 1 if after else y, 1, 1))
+    m = re.search(r"before\s+(20\d{2})|(20\d{2})\s*(?:પહેલાં|પહેલા|से पहले)", t)
+    if m:
+        conds.append(Project.reg_date < date(int(m.group(1) or m.group(2)), 1, 1))
+    if any(w in t for w in ("ongoing", "ચાલુ", "चालू", "under construction")):
+        conds.append(Project.status == "ongoing")
+    if any(w in t for w in ("completed", "પૂર્ણ થયેલ", "પૂર્ણ થયા", "पूरे हो")):
+        conds.append(Project.status == "completed")
+    loc = find_locality(t)
+    if loc:
+        conds.append(Project.locality == loc)
+    if not conds:
+        return None
+    projects = repo.s.scalars(select(Project).where(Project.id.in_(ids), *conds).order_by(Project.name)).all()
+    if not projects:
+        return [Sentence(_lt("filtered_none", lang), [], "filter_none")], []
+    head = Sentence(_lt("filtered", lang, n=len(projects)), [], "filter_head")
+    return [head, *_project_lines(repo, list(projects), lang, limit)], [p.id for p in projects]

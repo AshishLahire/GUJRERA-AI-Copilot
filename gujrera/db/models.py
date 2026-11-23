@@ -99,6 +99,9 @@ class Project(Base):
     reg_valid_until: Mapped[date] = mapped_column(Date)
     source_url: Mapped[str | None] = mapped_column(String(500))
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Area within the taluka (e.g. Bopal, Adajan) and the site address, as on the public project page.
+    locality: Mapped[str | None] = mapped_column(String(80), index=True)
+    address: Mapped[str | None] = mapped_column(String(400))
 
     promoter: Mapped[Promoter] = relationship(back_populates="projects")
 
@@ -363,3 +366,69 @@ class ProjectWatch(Base):
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
     created_on: Mapped[date] = mapped_column(Date)
     last_seen_on: Mapped[date] = mapped_column(Date)
+
+
+# --- Authority (officer) records for the POC: internal data, never shown to citizens ---
+
+SCRUTINY_SUBJECTS = ("registration", "extension", "alteration")
+SCRUTINY_STAGES = ("under_scrutiny", "query_raised", "cleared", "rejected")
+# Non-compliance categories as named on the GUJRERA portal (NCQR, NCQER, NCAR).
+COMPLIANCE_EVENT_TYPES = ("qpr_not_filed", "quarter_end_return_not_filed", "form5_annual_report_not_filed",
+                          "fee_not_paid")
+NOTICE_TYPES = ("show_cause", "non_compliance", "hearing", "penalty_demand")
+
+
+class ProjectScrutiny(Base):
+    """An application (registration, extension, alteration) being examined by the Authority."""
+
+    __tablename__ = "project_scrutiny"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    subject: Mapped[str] = mapped_column(String(20))
+    stage: Mapped[str] = mapped_column(String(20), index=True)
+    opened_on: Mapped[date] = mapped_column(Date)
+    closed_on: Mapped[date | None] = mapped_column(Date)
+    officer_note: Mapped[str | None] = mapped_column(String(300))
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ComplianceEvent(Base):
+    """A recorded default: a filing or payment the promoter did not make on time."""
+
+    __tablename__ = "compliance_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    promoter_id: Mapped[int] = mapped_column(ForeignKey("promoters.id"), index=True)
+    event_type: Mapped[str] = mapped_column(String(40), index=True)
+    period: Mapped[str | None] = mapped_column(String(10))  # e.g. "2026-Q2" or "FY2025-26"
+    event_date: Mapped[date] = mapped_column(Date, index=True)
+    resolved_on: Mapped[date | None] = mapped_column(Date)
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class AuthorityNotice(Base):
+    """A notice the Authority issued to a promoter (show-cause, non-compliance, hearing, penalty demand)."""
+
+    __tablename__ = "authority_notices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ref_no: Mapped[str] = mapped_column(String(40), unique=True)
+    promoter_id: Mapped[int] = mapped_column(ForeignKey("promoters.id"), index=True)
+    project_id: Mapped[int | None] = mapped_column(ForeignKey("projects.id"), index=True)
+    notice_type: Mapped[str] = mapped_column(String(30), index=True)
+    issued_on: Mapped[date] = mapped_column(Date, index=True)
+    status: Mapped[str] = mapped_column(String(20))  # issued | replied | closed
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class OrderPenalty(Base):
+    """Penalty amount imposed by an order (orders.order_type = 'penalty_order')."""
+
+    __tablename__ = "order_penalties"
+
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), primary_key=True)
+    amount: Mapped[float] = mapped_column(Float)
+    paid: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=True)

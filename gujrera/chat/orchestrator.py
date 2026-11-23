@@ -17,13 +17,16 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from sqlalchemy import select
+
 from gujrera.db.models import Project
 from gujrera.db.repository import Repository
 from gujrera.i18n import t, word
 from gujrera.profile.summarise import Profile, Sentence, agent_profile, project_profile, promoter_profile
 from gujrera.analytics.engine import answer as analytics_answer
 from gujrera.analytics.engine import s as analytics_text
-from gujrera.analytics.reports import looks_like_analytics, match_report
+from gujrera.analytics.engine import WRITE_INTENT
+from gujrera.analytics.reports import AUTHORITY_REPORTS, find_locality, looks_like_analytics, match_report
 from gujrera.analytics.reports import ANALYTICS_CUES
 from gujrera.chat.llm_router import Routed
 from gujrera.chat.llm_router import route as llm_route
@@ -53,6 +56,14 @@ from gujrera.tools.agreement import chat_reply as agreement_reply, looks_like_ag
 from gujrera.tools.agreement import wants_check as wants_agreement_check
 from gujrera.chat.basics import DELAY_WORDS as DISTRICT_DELAY_WORDS
 from gujrera.chat.basics import about_rera, asks_about_rera, district_list, says_thanks, thanks, wants_district_list
+from gujrera.chat.basics import (
+    agent_list,
+    filter_list,
+    is_followup,
+    locality_list,
+    wants_agent_list,
+    wants_locality_list,
+)
 
 SUGGESTIONS = {
     "project": {
@@ -96,6 +107,7 @@ class ChatState:
     turns: int = 0
     complaint: Any = None  # gujrera.complaints.flow.FilingState while a complaint is being filed
     tracking: Any = None  # gujrera.complaints.flow.TrackingState while a complaint is being tracked
+    last_list: list[int] | None = None  # project ids of the last list shown, for "which of these ..." follow-ups
 
 
 @dataclass
@@ -260,10 +272,32 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         if repo.p.user_id is not None:
             return _from_flow(my_complaints(repo, lang), lang)
         return _from_flow(start_tracking(message, state, repo, lang), lang)
+    report = match_report(msg_lc)
+    officer_report = repo.p.role == "officer" and report is not None
+    if repo.p.role != "officer" and report is not None and report.key in AUTHORITY_REPORTS and not u.candidates:
+        # Internal authority records (scrutiny, notices, defaults, penalties): officers only, no data shown.
+        return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
+    if state.last_list and is_followup(message) and not u.candidates and not u.project_numbers:
+        narrowed = filter_list(repo, state.last_list, message, lang)  # "which of these were registered after 2025?"
+        if narrowed:
+            sentences, ids = narrowed
+            state.last_list = ids or state.last_list
+            return Reply(lang, "list_filter", sentences)
+    loc = find_locality(msg_lc)
+    if (loc and wants_locality_list(msg_lc) and not u.candidates and not u.project_numbers and not officer_report
+            and not wants_enforcement(msg_lc) and not wants_agent_list(msg_lc)):
+        sentences, card, ids = locality_list(repo, loc, lang)
+        state.last_list = ids
+        return Reply(lang, "locality_projects", sentences, cards=[card])
+    if (wants_agent_list(msg_lc) and len(u.districts) == 1 and not u.candidates and not u.agent_numbers
+            and not officer_report and not wants_enforcement(msg_lc)):
+        sentences, card = agent_list(repo, next(iter(u.districts)), lang)
+        return Reply(lang, "agent_list", sentences, cards=[card])
     if (len(u.districts) == 1 and not u.candidates and not u.project_numbers and wants_district_list(msg_lc)
             and repo.p.role != "officer" and not (u.intents - {"greeting"}) and not wants_enforcement(msg_lc)):
-        sentences, card = district_list(repo, next(iter(u.districts)), lang,
-                                        delayed=any(w in msg_lc for w in DISTRICT_DELAY_WORDS))
+        district = next(iter(u.districts))
+        sentences, card = district_list(repo, district, lang, delayed=any(w in msg_lc for w in DISTRICT_DELAY_WORDS))
+        state.last_list = list(repo.s.scalars(select(Project.id).where(Project.district == district)))
         return Reply(lang, "district_projects", sentences, cards=[card])
 
     # 2. Pasted ad, or an explicit "is this genuine?" with a registration number → trust check
@@ -289,6 +323,10 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
 
     # 4. Officer analytics: standard reports, or LLM-written SQL behind the guard
     text_lc = (message or "").lower()
+    if repo.p.role == "officer" and (WRITE_INTENT.search(text_lc) or (
+            not u.candidates and (rep := match_report(text_lc)) and rep.key in AUTHORITY_REPORTS)):
+        a = analytics_answer(message, repo, lang, generate=analytics_generate)
+        return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
     if (repo.p.role == "officer" and any(w in text_lc for w in ORDER_WORDS) and not ORDER_RE.search(message or "")
             and not REF_RE.search(message or "") and not u.candidates):  # orders to enforce (officers only)
         return _orders_to_enforce(repo, lang)

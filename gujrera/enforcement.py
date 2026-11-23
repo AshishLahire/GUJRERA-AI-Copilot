@@ -50,14 +50,35 @@ NAME_MATCH = 90
 
 
 def ensure_tables(engine: Engine) -> None:
-    """Add tables introduced after a database was seeded (enforcement cases, ad reports, order compliance)."""
-    from gujrera.db.models import OrderCompliance, ProjectWatch, QprSubmission
+    """Bring a database seeded earlier up to date: tables and columns added since, and the reporting views."""
+    from sqlalchemy import text as sql_text
 
-    names = set(inspect(engine).get_table_names())
+    from gujrera.db.models import (
+        AuthorityNotice,
+        ComplianceEvent,
+        OrderCompliance,
+        OrderPenalty,
+        ProjectScrutiny,
+        ProjectWatch,
+        QprSubmission,
+    )
+    from gujrera.db.views import create_views
+
+    insp = inspect(engine)
+    names = set(insp.get_table_names())
     missing = [t for t in (EnforcementCase.__table__, AdReport.__table__, OrderCompliance.__table__,
-                           QprSubmission.__table__, ProjectWatch.__table__) if t.name not in names]
+                           QprSubmission.__table__, ProjectWatch.__table__, ProjectScrutiny.__table__,
+                           ComplianceEvent.__table__, AuthorityNotice.__table__, OrderPenalty.__table__)
+               if t.name not in names]
     if missing:
         Base.metadata.create_all(engine, tables=missing)
+    cols = {c["name"] for c in insp.get_columns("projects")} if "projects" in names else set()
+    with engine.begin() as conn:
+        for name, ddl in (("locality", "VARCHAR(80)"), ("address", "VARCHAR(400)")):
+            if cols and name not in cols:
+                conn.execute(sql_text(f"ALTER TABLE projects ADD COLUMN {name} {ddl}"))
+        if "projects" in names:
+            create_views(conn)
 
 
 # ------------------------------------------------------------------ extraction

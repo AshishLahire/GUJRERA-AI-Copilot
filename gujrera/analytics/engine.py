@@ -8,20 +8,21 @@ audit log. The SQL is always shown, and LLM-written queries are labelled.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 from sqlalchemy import Engine, inspect
 
 from gujrera.analytics.reports import TITLES, find_district, match_report
 from gujrera.analytics.sql_guard import UnsafeSQL, execute_readonly, guard_sql
+from gujrera.complaints.strings import label
 from gujrera.config import get_gujrera_settings
 from gujrera.db.repository import Repository
 from gujrera.db.session import make_readonly_engine
 from gujrera.db.views import ANALYTICS_VIEWS
-from gujrera.complaints.strings import label
 from gujrera.i18n import word
 from gujrera.profile.summarise import Sentence
 
@@ -58,6 +59,25 @@ S = {
         "gu": "આ રિપોર્ટ GUJRERA અધિકારીઓ માટે છે. કૃપા કરીને અધિકારી તરીકે લોગિન કરો.",
         "hi": "यह रिपोर्ट GUJRERA अधिकारियों के लिए है। कृपया अधिकारी के रूप में लॉगिन करें।",
     },
+    "period": {"en": "Period used: {p}.", "gu": "ગણતરીનો સમયગાળો: {p}.", "hi": "अवधि: {p}।"},
+    "default_definition": {
+        "en": "\"Default\" here means a recorded non-compliance: a quarterly progress report, quarter-end return or "
+              "Form 5 annual report not filed on time, or a fee not paid. \"Unresolved\" means not yet made good.",
+        "gu": "અહીં \"ડિફોલ્ટ\" એટલે નોંધાયેલ નિયમભંગ: ત્રિમાસિક પ્રગતિ અહેવાલ, ત્રિમાસિક અંતનું રિટર્ન અથવા ફોર્મ 5 "
+              "વાર્ષિક અહેવાલ સમયસર ન ભરવો, અથવા ફી ન ભરવી. \"બાકી\" એટલે હજી સુધી પૂર્ણ ન કરેલ.",
+        "hi": "यहाँ \"डिफ़ॉल्ट\" का अर्थ है दर्ज अनुपालन चूक: तिमाही प्रगति रिपोर्ट, तिमाही-अंत रिटर्न या फ़ॉर्म 5 वार्षिक "
+              "रिपोर्ट समय पर न भरना, या शुल्क न भरना। \"लंबित\" यानी अभी तक पूरा नहीं किया गया।",
+    },
+    "out_of_scope": {
+        "en": "Your access covers {scope} district only, so records from {asked} are not shown. This request has been logged.",
+        "gu": "તમારી પહોંચ ફક્ત {scope} જિલ્લા સુધી છે, તેથી {asked} ના રેકોર્ડ બતાવાયા નથી. આ વિનંતી નોંધવામાં આવી છે.",
+        "hi": "आपकी पहुँच केवल {scope} जिले तक है, इसलिए {asked} के रिकॉर्ड नहीं दिखाए गए। यह अनुरोध दर्ज किया गया है।",
+    },
+    "read_only": {
+        "en": "I can only read records. Changing or deleting data is not possible from here. This request has been logged.",
+        "gu": "હું ફક્ત રેકોર્ડ વાંચી શકું છું. અહીંથી ડેટા બદલવો કે કાઢી નાખવો શક્ય નથી. આ વિનંતી નોંધવામાં આવી છે.",
+        "hi": "मैं केवल रिकॉर्ड पढ़ सकता हूँ। यहाँ से डेटा बदलना या हटाना संभव नहीं है। यह अनुरोध दर्ज किया गया है।",
+    },
     "refused": {
         "en": "That query was refused: {reason}",
         "gu": "તે ક્વેરી નકારવામાં આવી: {reason}",
@@ -65,6 +85,9 @@ S = {
     },
 }
 SUGGESTED = [
+    "Which projects are under scrutiny in Ahmedabad?",
+    "Which developers were issued notices in the last six months?",
+    "Which developers in Ahmedabad defaulted in the last six months?",
     "Which promoters in Surat have the most delayed projects?",
     "Complaints by category",
     "Oldest open complaints",
@@ -79,6 +102,14 @@ Q: average delay of delayed projects by project type
 SQL: SELECT project_type, ROUND(AVG(delay_days), 0) AS avg_delay_days, COUNT(*) AS projects FROM v_project_delays WHERE is_delayed = 1 GROUP BY project_type ORDER BY avg_delay_days DESC
 Q: how many complaints were filed each year
 SQL: SELECT strftime('%Y', filed_on) AS year, COUNT(*) AS complaints FROM v_complaint_stats GROUP BY year ORDER BY year"""
+
+
+# Requests to change data. Refused before any SQL is written: the officer assistant only reads.
+WRITE_INTENT = re.compile(
+    r"\b(delete|drop|truncate|update|insert|modify|alter|remove|erase|wipe)\b.*\b(table|tables|record|records|row|rows|"
+    r"data|database|project|projects|entry|entries|notice|notices|order|orders|complaint|complaints|promoter|promoters|"
+    r"agent|agents|status|statuses|user|users|log|logs)\b|"
+    r"(ડિલીટ|કાઢી નાખ|ભૂંસી|હટાવ|બદલી નાખ)|(डिलीट|हटा दो|हटाओ|मिटा|बदल दो)", re.IGNORECASE)
 
 
 def s(key: str, lang: str, **values: Any) -> str:
@@ -167,6 +198,16 @@ def answer(question: str, repo: Repository, lang: str, *,
     settings = get_gujrera_settings()
     scope = repo.p.district_scope
     text_lc = (question or "").lower()
+    if WRITE_INTENT.search(text_lc):
+        repo._audit("analytics_write_refused", {"question": question})
+        return AnalyticsAnswer("analytics_refused", [Sentence(s("read_only", lang), [], "an_read_only")],
+                               suggestions=SUGGESTED)
+    asked = find_district(text_lc)
+    if scope and asked and asked != scope:
+        repo._audit("analytics_out_of_scope", {"question": question, "asked": asked, "scope": scope})
+        return AnalyticsAnswer("analytics_out_of_scope",
+                               [Sentence(s("out_of_scope", lang, scope=word(scope, lang), asked=word(asked, lang)),
+                                         [], "an_out_of_scope")], suggestions=SUGGESTED)
     report = match_report(text_lc)
     source = "report"
     if report:
@@ -216,6 +257,10 @@ def answer(question: str, repo: Repository, lang: str, *,
                                     value=top[y_idx]), citations, "an_top"))
     elif not result.rows:
         sentences.append(Sentence(s("empty", lang), [], "an_empty"))
+    if report and report.period:
+        sentences.append(Sentence(s("period", lang, p=report.period.describe(lang)), [], "an_period"))
+    if report and report.note:
+        sentences.append(Sentence(s(report.note, lang), [], "an_note"))
     if source == "llm":
         sentences.append(Sentence(s("llm_note", lang), [], "an_llm_note"))
     card = {

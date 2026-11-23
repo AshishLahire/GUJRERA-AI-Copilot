@@ -69,6 +69,18 @@ Or by hand: `python -m uvicorn gujrera.api.dev_app:app --port 8000` and `npm --p
 
 Open the address the launcher prints (http://localhost:5173 by default). Demo walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Demo accounts: `dev_002` (promoter), `agent_001` (agent), `citizen_01` (home buyer), `officer_surat` / `officer_state` (officers); password = `GUJRERA_DEMO_PASSWORD` in `.env`.
 
+### POC: citizen and authority assistants
+
+The department's POC sample questions (projects in a locality, agents by district, projects under scrutiny,
+notices and defaults in a period, projects past their completion date, penalty orders) are answered in
+Gujarati, Hindi and English. Officer answers come from read-only, validated SQL over reporting views, with
+the SQL shown and logged; a district officer sees only their district; requests to change data are refused.
+
+```
+python scripts/seed_gujrera.py --add-authority-data   # officer test records on an existing database
+python scripts/eval_gujrera_poc.py                    # sample questions + paraphrases -> docs/gujrera_poc_eval.md
+```
+
 ### Running on public GUJRERA records
 
 Projects and agents downloaded from the public GUJRERA portal (CSV, Excel or JSON, as downloaded) can be
