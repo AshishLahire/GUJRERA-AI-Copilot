@@ -302,6 +302,28 @@ def login(body: LoginRequest, session: Session = Depends(get_session)) -> dict[s
     return {"token": issue_token(user), "user": _user_dict(session, user)}
 
 
+# Demo logins offered as quick picks, in this order, when they exist in the loaded database.
+_DEMO_PICKS = ("dev_002", "agent_001", "citizen_01", "citizen_03", "officer_state", "officer_surat",
+               "officer_ahmedabad", "officer_gandhinagar")
+
+
+@router.get("/auth/demo-accounts")
+def demo_accounts(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Quick-pick demo logins for this database (demo accounts only; real accounts are never listed)."""
+    users = {u.username: u for u in session.scalars(select(User).where(User.is_mock.is_(True),
+                                                                      User.username.in_(_DEMO_PICKS)))}
+    label = {"developer": "Promoter", "agent": "Agent", "citizen": "Home buyer"}
+    out = []
+    for name in _DEMO_PICKS:
+        u = users.get(name)
+        if u is None:
+            continue
+        text = (f"Officer ({u.district_scope or 'statewide'})" if u.role == "officer"
+                else label.get(u.role, u.role) + (f" {name.split('_')[-1]}" if name.startswith("citizen") else ""))
+        out.append({"username": u.username, "label": text})
+    return {"accounts": out}
+
+
 @router.get("/auth/me")
 def me(session: Session = Depends(get_session), user: User | None = Depends(current_user)) -> dict[str, Any]:
     if user is None:

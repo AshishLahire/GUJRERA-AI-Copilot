@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AuthUser, login } from "../api/gujrera";
+import { AuthUser, fetchDemoAccounts, login } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
 import { tr } from "../saathi/strings";
 
@@ -10,7 +10,8 @@ const ROLE_LABEL: Record<AuthUser["role"], string> = {
   officer: "GUJRERA officer",
 };
 
-// Seeded demo accounts. The password is GUJRERA_DEMO_PASSWORD (see .env.example); it is never stored here.
+// Fallback quick picks if the server list cannot be loaded. The server lists the demo accounts that exist in
+// the loaded database (demo data or imported public records). The password is never stored here.
 const DEMO_ACCOUNTS: { username: string; label: string }[] = [
   { username: "dev_002", label: "Promoter" },
   { username: "agent_001", label: "Agent" },
@@ -26,7 +27,15 @@ export const AccountBar: React.FC = () => {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState(DEMO_ACCOUNTS);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    fetchDemoAccounts()
+      .then((r) => setAccounts(r.accounts))
+      .catch(() => setAccounts(DEMO_ACCOUNTS));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -93,7 +102,7 @@ export const AccountBar: React.FC = () => {
         >
           <div className="font-heading text-sm font-bold text-body">{tr("login", lang)}</div>
           <div className="flex flex-wrap gap-1.5">
-            {DEMO_ACCOUNTS.map((a) => (
+            {accounts.map((a) => (
               <button
                 key={a.username}
                 type="button"

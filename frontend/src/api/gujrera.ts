@@ -90,6 +90,10 @@ export interface ChatReply {
   english?: string | null;
 }
 
+export async function fetchDemoAccounts(): Promise<{ accounts: { username: string; label: string }[] }> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/auth/demo-accounts`));
+}
+
 export interface Health {
   status: string;
   projects: number;
