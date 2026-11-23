@@ -110,7 +110,9 @@ def district_list(repo: Repository, district: str, lang: str, limit: int = 8, *,
     names = ", ".join((p.name_gu if lang == "gu" and p.name_gu else p.name).replace(" (Demo)", "") for p in ongoing)
     stat = {"type": "district_stats", "id": district, "is_mock": True}
     total = sum(counts.values())
-    out = [Sentence(t("head", district=district, total=total, projects="project" if total == 1 else "projects",
+    from gujrera.i18n import word
+
+    out = [Sentence(t("head", district=word(district, lang), total=total, projects="project" if total == 1 else "projects",
                       ongoing=counts.get("ongoing", 0),
                       completed=counts.get("completed", 0),
                       other=(t("other", n=other) if other else "") + (t("unverified", n=unverified) if unverified else "")),
