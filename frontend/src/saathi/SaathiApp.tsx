@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CalcSeed, Lang, NAVIGATE_EVENT, OPEN_CALC_EVENT, OPEN_REPORT_EVENT } from "../api/gujrera";
+import { CalcSeed, Lang, NAVIGATE_EVENT, OPEN_CALC_EVENT, OPEN_REPORT_EVENT, fetchHealth } from "../api/gujrera";
 import { AccountBar } from "../components/AccountBar";
 import { AskPage } from "../components/AskPage";
 import { ReraCheckPage } from "../components/ReraCheckPage";
@@ -66,6 +66,11 @@ const Shell: React.FC = () => {
   const [askSeed, setAskSeed] = useState<{ q: string; n: number } | null>(null);
   const [calcSeed, setCalcSeed] = useState<{ seed: CalcSeed; n: number } | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
+  // Label the data honestly: demo records, or records imported from the public GUJRERA portal.
+  const [demo, setDemo] = useState<boolean>(true);
+  useEffect(() => {
+    fetchHealth().then((h) => setDemo(h.mock_projects > 0 || h.projects === 0)).catch(() => setDemo(true));
+  }, []);
   const current = NAV.find((n) => n.page === page) ?? NAV[0];
 
   useEffect(() => {
@@ -149,9 +154,9 @@ const Shell: React.FC = () => {
         </nav>
         <div className="px-5 py-4 border-t border-warm-border text-[11px] text-muted leading-relaxed">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-border bg-accent-surface px-2 py-0.5 font-semibold text-accent-amber-strong mb-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand" /> {tr("demoData", "en")}
+            <span className="w-1.5 h-1.5 rounded-full bg-brand" /> {tr(demo ? "demoData" : "publicData", "en")}
           </span>
-          <p>{tr("footer", "en")}</p>
+          <p>{tr(demo ? "footer" : "footerPublic", "en")}</p>
         </div>
       </aside>
 

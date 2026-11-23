@@ -772,7 +772,11 @@ def chat_starters(session: Session = Depends(get_session)) -> dict[str, Any]:
         items.append({"lang": "hi", "text": f"{b.name} का पज़ेशन कब मिलेगा?"})
     items.append({"lang": "en", "text": "Is PR/GJ/SURAT/OLPAD/SUDA/RAA99999/010122 registered?"})
     items.append({"lang": "gu", "text": "મારે ફરિયાદ નોંધાવવી છે"})
-    return {"items": items, "is_mock": True}
+    # Name used in the overview page's examples, so they always point at a project in this database.
+    first = projects[0] if projects else None
+    return {"items": items, "is_mock": bool(first.is_mock) if first else True,
+            "project": first.name.replace(" (Demo)", "") if first else None,
+            "project_gu": (first.name_gu or first.name.replace(" (Demo)", "")) if first else None}
 
 
 @router.get("/profile/project/{project_id}")

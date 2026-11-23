@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Overview, fetchOverview } from "../api/gujrera";
+import { Overview, fetchChatStarters, fetchOverview } from "../api/gujrera";
 import { Icon } from "./Brand";
 import { useSaathi } from "./context";
 import { En } from "./En";
@@ -80,9 +80,20 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
   const [data, setData] = useState<Overview | null>(null);
   const [failed, setFailed] = useState(false);
 
+  // Examples name a project from the loaded database (demo or imported public records).
+  const [names, setNames] = useState<{ en: string; gu: string } | null>(null);
+
   useEffect(() => {
     fetchOverview().then(setData).catch(() => setFailed(true));
+    fetchChatStarters()
+      .then((s) => s.project && !s.is_mock && setNames({ en: s.project, gu: s.project_gu || s.project }))
+      .catch(() => setNames(null));
   }, []);
+
+  const withName = (text: string): string =>
+    names
+      ? text.replace("Mangal Square", names.en).replace("મંગલ સ્ક્વેર", names.gu).replace("मंगल स्क्वेयर", names.en)
+      : text;
 
   const actions: { icon: string; key: StringKey; body: StringKey; page: Page; prompt?: string }[] = [
     { icon: "building", key: "tileProjectTitle", body: "tileProjectBody", page: "ask" },
@@ -129,7 +140,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
             id="overview-ask"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={tr("heroPlaceholder", lang)}
+            placeholder={withName(tr("heroPlaceholder", lang))}
             className="flex-1 min-w-0 rounded-lg border border-warm-border bg-card text-body px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
           />
           <button type="submit" className="px-5 rounded-lg bg-primary-bg text-primary-text text-sm font-semibold leading-tight hover:opacity-90">
@@ -138,7 +149,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
           </button>
         </form>
         <div className="mt-3 flex flex-wrap gap-2">
-          {EXAMPLES[lang].map((ex) => (
+          {EXAMPLES[lang].map(withName).map((ex) => (
             <button
               key={ex}
               type="button"

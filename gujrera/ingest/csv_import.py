@@ -45,14 +45,15 @@ def import_projects_csv(session: Session, path: Path) -> ImportReport:
     with path.open(encoding="utf-8-sig", newline="") as fh:
         for line_no, row in enumerate(csv.DictReader(fh), start=2):
             try:
-                _import_row(session, row, report)
+                import_project_row(session, row, report)
             except (ValueError, KeyError) as exc:
                 report.errors.append(f"line {line_no}: {exc}")
     session.commit()
     return report
 
 
-def _import_row(session: Session, row: dict[str, str], report: ImportReport) -> None:
+def import_project_row(session: Session, row: dict[str, str], report: ImportReport) -> None:
+    """Insert or update one project from canonical columns (see the module docstring)."""
     row = {k.strip(): (v or "").strip() for k, v in row.items() if k}
     missing = [c for c in REQUIRED if not row.get(c)]
     if missing:

@@ -69,6 +69,25 @@ Or by hand: `python -m uvicorn gujrera.api.dev_app:app --port 8000` and `npm --p
 
 Open the address the launcher prints (http://localhost:5173 by default). Demo walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Demo accounts: `dev_002` (promoter), `agent_001` (agent), `citizen_01` (home buyer), `officer_surat` / `officer_state` (officers); password = `GUJRERA_DEMO_PASSWORD` in `.env`.
 
+### Running on public GUJRERA records
+
+Projects and agents downloaded from the public GUJRERA portal (CSV, Excel or JSON, as downloaded) can be
+loaded into a separate database; the demo database is never touched.
+
+```
+python scripts/import_gujrera_public.py projects.xlsx agents.csv
+powershell -ExecutionPolicy Bypass -File scripts\run_gujrera.ps1 -Db data\gujrera\gujrera_public.sqlite
+```
+
+- Column names are matched loosely ("Project Registration No", "RERA No", "projectRegNo", ...); dates may be
+  dd/mm/yyyy as on the portal. A ready-to-fill template with the portal's column names is in
+  `gujrera/ingest/public_records_template.xlsx`.
+- Rows with problems are listed with their row number and skipped; unused columns are listed too.
+- Running again updates existing records; `--fresh` starts over. Officer and buyer logins are created
+  (`officer_state`, `officer_<largest district>`, `citizen_01`, demo password).
+- The app labels the data "Public GUJRERA records" instead of "Demo data". Complaints, dues, notices and
+  orders are not public, so those features stay empty until GUJRERA's own data is connected.
+
 `gujrera.api.dev_app` serves only the GujRERA Saathi endpoints. The full Pramaan backend (`factcheck.api.app`) also mounts them, but needs Pramaan's retrieval indexes and extra packages.
 
 ### Tests and evaluations

@@ -1,15 +1,23 @@
 # Start GujRERA Saathi: the API and the web app, each in its own window, on free ports.
 #
 #     powershell -ExecutionPolicy Bypass -File scripts\run_gujrera.ps1
+#     powershell -ExecutionPolicy Bypass -File scripts\run_gujrera.ps1 -Db data\gujrera\gujrera_public.sqlite
 #
 # Uses ports 8000 (API) and 5173 (app) when they are free. If another program already
 # holds one (for example another project's dev server), it says which program and moves
 # to the next free port, so the app never talks to someone else's backend.
-param([int]$ApiPort = 8000, [int]$UiPort = 5173, [switch]$NoBrowser)
+param([int]$ApiPort = 8000, [int]$UiPort = 5173, [switch]$NoBrowser, [string]$Db = "")
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
+
+# -Db runs the app on another database file, e.g. public records from scripts\import_gujrera_public.py.
+if ($Db) {
+    $DbPath = (Resolve-Path $Db -ErrorAction Stop).Path
+    $env:GUJRERA_DB_URL = "sqlite:///" + ($DbPath -replace '\\', '/')
+    Write-Host "Database: $DbPath" -ForegroundColor Cyan
+}
 
 function Get-Holder([int]$Port) {
     $c = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1

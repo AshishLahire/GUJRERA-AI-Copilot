@@ -90,6 +90,16 @@ export interface ChatReply {
   english?: string | null;
 }
 
+export interface Health {
+  status: string;
+  projects: number;
+  mock_projects: number;
+}
+
+export async function fetchHealth(): Promise<Health> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/health`));
+}
+
 async function parse<T>(res: Response): Promise<T> {
   let payload: unknown = null;
   try {
@@ -171,7 +181,7 @@ export async function fetchMe(token: string): Promise<{ user: AuthUser }> {
   return parse(res);
 }
 
-export async function fetchChatStarters(): Promise<{ items: { lang: Lang; text: string }[] }> {
+export async function fetchChatStarters(): Promise<{ items: { lang: Lang; text: string }[]; is_mock?: boolean; project?: string | null; project_gu?: string | null }> {
   return parse(await fetch(`${API_BASE}/api/gujrera/chat/starters`));
 }
 

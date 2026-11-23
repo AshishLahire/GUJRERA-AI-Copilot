@@ -101,6 +101,12 @@ const STRINGS = {
     gu: "AI CoE ઇનોવેશન ચેલેન્જ માટે YellowSense Technologies નો ડેમો ડેટા પરનો પ્રોટોટાઇપ. આ સત્તાવાર GUJRERA સેવા નથી.",
     hi: "AI CoE इनोवेशन चैलेंज के लिए YellowSense Technologies का डेमो डेटा पर प्रोटोटाइप। यह आधिकारिक GUJRERA सेवा नहीं है।",
   },
+  footerPublic: {
+    en: "Prototype by YellowSense Technologies for the AI CoE Innovation Challenge, on records imported from the public GUJRERA portal. Not an official GUJRERA service.",
+    gu: "AI CoE ઇનોવેશન ચેલેન્જ માટે YellowSense Technologies નો પ્રોટોટાઇપ, જાહેર GUJRERA પોર્ટલના રેકોર્ડ પર. આ સત્તાવાર GUJRERA સેવા નથી.",
+    hi: "AI CoE इनोवेशन चैलेंज के लिए YellowSense Technologies का प्रोटोटाइप, सार्वजनिक GUJRERA पोर्टल के रिकॉर्ड पर। यह आधिकारिक GUJRERA सेवा नहीं है।",
+  },
+  publicData: { en: "Public GUJRERA records", gu: "જાહેર GUJRERA રેકોર્ડ", hi: "सार्वजनिक GUJRERA रिकॉर्ड" },
   loginNeededPromoter: {
     en: "Log in with a promoter or agent account to see your compliance dashboard.",
     gu: "તમારું અનુપાલન ડેશબોર્ડ જોવા પ્રમોટર અથવા એજન્ટ ખાતાથી લોગિન કરો.",
