@@ -58,9 +58,13 @@ def project_profile(repo: Repository, project_id: int, lang: str, *, focus: str 
     }
 
     if focus != "possession":
-        prof.add("project_intro", lang, [src, promoter["source"]], name=_name(p, lang),
-                 ptype=word(p["project_type"], lang), promoter=_name(promoter, lang),
-                 district=word(p["district"], lang), rera=p["rera_no"])
+        if promoter.get("promoter_type") == "unknown":  # imported public record without a promoter name
+            prof.add("project_intro_nopromoter", lang, [src], name=_name(p, lang),
+                     ptype=word(p["project_type"], lang), district=word(p["district"], lang), rera=p["rera_no"])
+        else:
+            prof.add("project_intro", lang, [src, promoter["source"]], name=_name(p, lang),
+                     ptype=word(p["project_type"], lang), promoter=_name(promoter, lang),
+                     district=word(p["district"], lang), rera=p["rera_no"])
         prof.add("project_status", lang, [src], status=word(p["status"], lang),
                  valid=fmt_date(p["reg_valid_until"], lang))
 
@@ -71,7 +75,9 @@ def project_profile(repo: Repository, project_id: int, lang: str, *, focus: str 
         if p["revised_completion"] and p["revised_completion"] != p["proposed_completion"]:
             prof.add("completion_extended", lang, [src], orig=fmt_date(p["proposed_completion"], lang),
                      revised=fmt_date(p["revised_completion"], lang))
-    if p["delay_days"] > 0 and not p["actual_completion"]:
+    if p["status"] == "unverified":
+        prof.add("completion_unverified", lang, [src])
+    elif p["delay_days"] > 0 and not p["actual_completion"]:
         prof.add("delay", lang, [src], days=p["delay_days"])
 
     progress = repo.project_progress(project_id)

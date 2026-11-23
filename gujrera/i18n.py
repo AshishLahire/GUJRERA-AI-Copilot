@@ -27,6 +27,8 @@ WORDS = {
     "completed": {"en": "completed", "gu": "પૂર્ણ", "hi": "पूर्ण"},
     "lapsed": {"en": "lapsed", "gu": "મુદત પૂરી થયેલ", "hi": "व्यपगत"},
     "revoked": {"en": "revoked", "gu": "રદ", "hi": "रद्द"},
+    "unverified": {"en": "completion not recorded in our data", "gu": "પૂર્ણતા અમારા ડેટામાં નોંધાયેલ નથી",
+                   "hi": "पूरा होना हमारे डेटा में दर्ज नहीं"},
     # districts
     "Ahmedabad": {"en": "Ahmedabad", "gu": "અમદાવાદ", "hi": "अहमदाबाद"},
     "Surat": {"en": "Surat", "gu": "સુરત", "hi": "सूरत"},
@@ -54,6 +56,11 @@ T: dict[str, dict[str, str]] = {
         "gu": "{name} એ {district}માં {promoter} નો {ptype} પ્રોજેક્ટ છે, નોંધણી નંબર {rera}.",
         "hi": "{name} {district} में {promoter} का {ptype} प्रोजेक्ट है, पंजीकरण संख्या {rera}।",
     },
+    "project_intro_nopromoter": {
+        "en": "{name} is a {ptype} project in {district}, registered as {rera}.",
+        "gu": "{name} એ {district}માં {ptype} પ્રોજેક્ટ છે, નોંધણી નંબર {rera}.",
+        "hi": "{name} {district} में {ptype} प्रोजेक्ट है, पंजीकरण संख्या {rera}।",
+    },
     "project_status": {
         "en": "Registration status: {status}, valid until {valid}.",
         "gu": "નોંધણીની સ્થિતિ: {status}, {valid} સુધી માન્ય.",
@@ -68,6 +75,11 @@ T: dict[str, dict[str, str]] = {
         "en": "The original completion date was {orig}; it was extended to {revised}.",
         "gu": "મૂળ પૂર્ણ થવાની તારીખ {orig} હતી; તે {revised} સુધી લંબાવવામાં આવી.",
         "hi": "मूल समापन तिथि {orig} थी; इसे {revised} तक बढ़ाया गया।",
+    },
+    "completion_unverified": {
+        "en": "The registered completion date has passed, but the public records we have do not show whether the project was completed; check its page on the GUJRERA portal.",
+        "gu": "નોંધાયેલ પૂર્ણ થવાની તારીખ વીતી ગઈ છે, પણ અમારી પાસેના જાહેર રેકોર્ડમાં પ્રોજેક્ટ પૂર્ણ થયો કે નહીં તે નથી; GUJRERA પોર્ટલ પર તેનું પેજ તપાસો.",
+        "hi": "पंजीकृत समापन तिथि बीत चुकी है, पर हमारे पास के सार्वजनिक रिकॉर्ड में यह नहीं है कि प्रोजेक्ट पूरा हुआ या नहीं; GUJRERA पोर्टल पर उसका पेज देखें।",
     },
     "completed_on": {
         "en": "The project was completed on {date}.",

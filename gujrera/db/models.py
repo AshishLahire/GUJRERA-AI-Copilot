@@ -28,7 +28,9 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 # --- Controlled vocabularies (stored as plain strings for portability) ---
 
 PROJECT_TYPES = ("residential", "commercial", "mixed", "plotted")
-PROJECT_STATUSES = ("ongoing", "completed", "lapsed", "revoked")
+# "unverified": imported public record whose registered completion date has passed, but the source does not
+# say whether it was completed. No delay or lapse is claimed for these; users are told to check the portal.
+PROJECT_STATUSES = ("ongoing", "completed", "lapsed", "revoked", "unverified")
 APPROVAL_KINDS = (
     "layout_plan",
     "building_permission",

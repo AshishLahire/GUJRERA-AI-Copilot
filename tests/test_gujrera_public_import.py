@@ -84,10 +84,10 @@ def test_excel_with_portal_columns_projects_and_agents(Session, tmp_path):
     })
     with Session() as s:
         reports = import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/")
-        assert [(r.sheet, r.kind, r.inserted) for r in reports] == [("Projects", "project", 2), ("Agents", "agent", 1)]
+        assert [(r.sheet, r.kind, r.inserted) for r in reports] == [("Projects", "project", 3), ("Agents", "agent", 1)]
         proj = reports[0]
-        assert len(proj.errors) == 2 and "row 4" in proj.errors[0] and "MOCK" in proj.errors[0]
-        assert "row 5" in proj.errors[1] and "promoter_name" in proj.errors[1]
+        assert len(proj.errors) == 1 and "row 4" in proj.errors[0] and "MOCK" in proj.errors[0]
+        assert proj.no_promoter == 1  # row 5 is kept, under the "not in imported records" placeholder
         assert proj.unmatched_columns == ["Extra column"]
 
         p = s.scalar(select(Project).where(Project.rera_no == P1))
@@ -158,7 +158,55 @@ def test_template_columns_are_all_understood(Session):
 def test_unexpected_number_format_is_imported_with_a_note(Session, tmp_path):
     path = _xlsx(tmp_path / "a.xlsx", {"Agents": [
         ["Agent Registration No", "Agent Name", "Registration Date", "Valid Upto"],
-        ["AG/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/AA90003/010124", "Ravi Patel", "01/01/2024", "31/12/2028"]]})
+        ["AG/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/X90003/010124", "Ravi Patel", "01/01/2024", "31/12/2028"]]})
     with Session() as s:
         (rep,) = import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/")
         assert rep.inserted == 1 and len(rep.warnings) == 1 and "unexpected code" in rep.warnings[0]
+
+
+def test_portal_search_results_are_imported_safely(Session, tmp_path):
+    """Shape of the portal's public search response: mixed entity types, 'pdate' ranges, no promoter or status."""
+    from gujrera.db.repository import Principal, Repository
+    from gujrera.ingest.public_import import UNKNOWN_PROMOTER
+    from gujrera.profile.summarise import project_profile
+    from gujrera.trust.checks import check_text
+
+    new = "PR/GJ/GANDHINAGAR/GANDHINAGAR/Gandhinagar Municipal Corporation/MAA90010/301124/311228"
+    old = "PR/GJ/GANDHINAGAR/KALOL/AUDA/PAA90011/280917"
+    rows = [
+        {"entityType": "PROJECT", "regNo": new, "entityName": " SKYVIEW TEST", "distName": "Gandhinagar",
+         "taluka": "Gandhinagar", "ptype": "Mixed Development", "pdate": "02/08/2024 - 30/04/2029"},
+        {"entityType": "PROJECT", "regNo": old, "entityName": "OLD TEST HOMES", "distName": "Gandhinagar",
+         "taluka": "Kalol", "ptype": "Residential/Group Housing", "pdate": "28/09/2017 - 31/03/2021"},
+        {"entityType": "PROMOTER", "regNo": "", "entityName": "Someone", "mobileNo": "9999999999",
+         "emailId": "x@example.invalid", "pdate": ""},
+    ]
+    path = tmp_path / "search.json"
+    path.write_text(json.dumps({"status": 200, "data": rows}), encoding="utf-8")
+    with Session() as s:
+        (rep,) = import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/", today=date(2026, 11, 23))
+        assert rep.kind == "project" and rep.rows == 2 and rep.inserted == 2 and not rep.errors
+        assert rep.no_promoter == 2
+        assert s.scalar(select(Promoter)).name == UNKNOWN_PROMOTER  # the promoter row's details are never stored
+        p_new = s.scalar(select(Project).where(Project.rera_no.like("%MAA90010%")))
+        p_old = s.scalar(select(Project).where(Project.rera_no.like("%PAA90011%")))
+        assert (p_new.status, p_new.reg_date, p_new.proposed_completion) == ("ongoing", date(2024, 8, 2), date(2029, 4, 30))
+        assert p_old.status == "unverified" and p_new.name == "SKYVIEW TEST"
+
+        repo = Repository(s, Principal.anonymous())
+        assert repo.get_project_by_id(p_old.id)["delay_days"] == 0  # no delay claimed without a completion record
+        text = " ".join(x.text for x in project_profile(repo, p_old.id, "en").sentences)
+        assert "do not show whether the project was completed" in text and "behind" not in text
+        report = check_text(f"OLD TEST HOMES by Some Builder, Kalol. RERA {old}", repo, as_of=date(2026, 11, 23))
+        checks = {c.id: c for c in report.checks}
+        assert checks["registration_valid"].status == "info" and checks["promoter_match"].status == "info"
+        assert "delay" not in checks and report.verdict != "lapsed_or_revoked"
+
+        # Gujarati question about an English-only registry name; no "by <placeholder>" in the summary
+        from gujrera.chat.orchestrator import ChatState, respond
+        out = respond("સ્કાયવ્યુ ટેસ્ટ નું પઝેશન ક્યારે મળશે?", ChatState(), repo).to_dict()
+        assert out["intent"] == "possession" and out["sources"][0]["id"].endswith("/MAA90010/301124/311228")
+        intro = respond(f"Tell me about {old}", ChatState(), repo).to_dict()["text"]
+        assert "OLD TEST HOMES" in intro and UNKNOWN_PROMOTER not in intro
+        listing = respond("Show me projects in Gandhinagar", ChatState(), repo).to_dict()["text"]
+        assert "completion not recorded" in listing and "lapsed" not in listing

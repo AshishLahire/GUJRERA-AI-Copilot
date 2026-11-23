@@ -63,6 +63,9 @@ LIST = {
              "gu": "{district}: {total} નોંધાયેલા પ્રોજેક્ટ ({ongoing} ચાલુ, {completed} પૂર્ણ{other}).",
              "hi": "{district}: {total} पंजीकृत प्रोजेक्ट ({ongoing} चालू, {completed} पूरे{other})।"},
     "other": {"en": ", {n} lapsed or revoked", "gu": ", {n} રદ કે મુદત પૂરી", "hi": ", {n} समाप्त या रद्द"},
+    "unverified": {"en": ", {n} past their completion date with completion not recorded in our data",
+                   "gu": ", {n} પૂર્ણ થવાની તારીખ વીતી ગઈ પણ પૂર્ણતા અમારા ડેટામાં નોંધાયેલ નથી",
+                   "hi": ", {n} समापन तिथि बीत चुकी पर पूरा होना हमारे डेटा में दर्ज नहीं"},
     "delayed": {"en": "Ongoing projects past their originally promised date: {n}, including {names}.",
                 "gu": "મૂળ વચન આપેલી તારીખ વીતી ગઈ હોય તેવા ચાલુ પ્રોજેક્ટ: {n}, જેમાં {names}.",
                 "hi": "मूल वादा की गई तारीख पार कर चुके चालू प्रोजेक्ट: {n}, जिनमें {names}।"},
@@ -102,13 +105,16 @@ def district_list(repo: Repository, district: str, lang: str, limit: int = 8, *,
     def t(key: str, **v: Any) -> str:
         return LIST[key].get(lang, LIST[key]["en"]).format(**v)
 
-    other = sum(n for st, n in counts.items() if st not in ("ongoing", "completed"))
+    other = sum(n for st, n in counts.items() if st not in ("ongoing", "completed", "unverified"))
+    unverified = counts.get("unverified", 0)
     names = ", ".join((p.name_gu if lang == "gu" and p.name_gu else p.name).replace(" (Demo)", "") for p in ongoing)
     stat = {"type": "district_stats", "id": district, "is_mock": True}
     total = sum(counts.values())
     out = [Sentence(t("head", district=district, total=total, projects="project" if total == 1 else "projects",
                       ongoing=counts.get("ongoing", 0),
-                      completed=counts.get("completed", 0), other=t("other", n=other) if other else ""), [stat], "district_head")]
+                      completed=counts.get("completed", 0),
+                      other=(t("other", n=other) if other else "") + (t("unverified", n=unverified) if unverified else "")),
+                    [stat], "district_head")]
     if ongoing:
         out.append(Sentence(t("delayed", n=n_delayed, names=names) if delayed else t("some", names=names), [{"type": "project", "id": p_.rera_no, "is_mock": bool(p_.is_mock)}
                                                     for p_ in ongoing[:3]], "district_some"))

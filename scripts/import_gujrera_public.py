@@ -98,6 +98,9 @@ def main() -> int:
                 print(f"  columns not used: {', '.join(rep.unmatched_columns)}")
             for err in rep.errors[:20]:
                 print(f"  {err}")
+            if rep.no_promoter:
+                print(f"  note: {rep.no_promoter} projects have no promoter name in the file; they are listed under "
+                      "'Promoter not in imported records' and the ad check does not compare promoter names for them")
             for w in rep.warnings[:5]:
                 print(f"  note: {w}")
             if len(rep.warnings) > 5:

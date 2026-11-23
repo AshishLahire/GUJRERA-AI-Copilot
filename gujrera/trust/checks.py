@@ -266,7 +266,12 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
 
     # Registration validity
     valid_until = project["reg_valid_until"]
-    if project["status"] == "revoked":
+    if project["status"] == "unverified":
+        out.append(Check("registration_valid", "info", "info", "Completion not recorded",
+                         f"The registered completion date ({valid_until.isoformat()}) has passed, and the public "
+                         "records imported here do not show whether the project was completed. Check the "
+                         "project's page on the GUJRERA portal before paying.", source=src))
+    elif project["status"] == "revoked":
         out.append(Check("registration_valid", "fail", "critical", "Registration revoked",
                          "The registry shows this registration as revoked.", source=src,
                          verdict_hint="lapsed_or_revoked"))
@@ -298,7 +303,14 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
 
     # Advertised possession vs registered completion
     if claim.possession:
-        if claim.possession.value > valid_until:
+        if claim.possession.value > valid_until and project["status"] == "unverified":
+            # Our copy may lack a later extension: ask the buyer to confirm rather than call it a mismatch.
+            out.append(Check(
+                "possession_date", "warn", "warning", "Advertised possession is after the registered date",
+                f"The document promises possession around {claim.possession.text!r}, later than the completion "
+                f"date in the imported records ({valid_until.isoformat()}). Check the GUJRERA portal for an "
+                "extension before paying.", evidence=claim.possession.text, source=src))
+        elif claim.possession.value > valid_until:
             out.append(Check(
                 "possession_date", "fail", "critical", "Advertised possession is after the registered date",
                 f"The document promises possession around {claim.possession.text!r}, later than the registered "
@@ -340,10 +352,15 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
 def _promoter_check(project: dict[str, Any], text_lc: str, repo: Repository) -> Check:
     src = project["source"]
     promoter = repo.s.get(Promoter, project["promoter_id"])
+    if promoter.promoter_type == "unknown":
+        return Check("promoter_match", "info", "info", "Promoter not in imported records",
+                     "The public records imported here do not name this project's promoter; compare the name in "
+                     "the document with the project's page on the GUJRERA portal.", source=src)
     if max(_mentioned(promoter.name, text_lc), _mentioned(promoter.name_gu, text_lc)) >= NAME_MATCH:
         return Check("promoter_match", "pass", "info", "Promoter matches",
                      f"The document names the registered promoter, {_core(promoter.name)}.", source=src)
-    for other in repo.s.scalars(select(Promoter).where(Promoter.id != promoter.id)):
+    for other in repo.s.scalars(select(Promoter).where(Promoter.id != promoter.id,
+                                                        Promoter.promoter_type != "unknown")):
         score = max(_mentioned(other.name, text_lc), _mentioned(other.name_gu, text_lc))
         if score >= OTHER_PROMOTER_MATCH:
             return Check(

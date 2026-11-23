@@ -39,6 +39,8 @@ def view_sql(dialect: str) -> dict[str, str]:
     # projects up to actual completion, otherwise up to today.
     end = f"COALESCE(p.actual_completion, {today})"
     delay = _greatest(_days(end, "p.proposed_completion", dialect), "0", dialect)
+    # No delay is claimed when the source does not say whether the project was completed.
+    delay = f"(CASE WHEN p.status = 'unverified' THEN 0 ELSE {delay} END)"
     open_statuses = "('filed','under_scrutiny','hearing_scheduled','order_reserved')"
     return {
         "v_project_delays": f"""

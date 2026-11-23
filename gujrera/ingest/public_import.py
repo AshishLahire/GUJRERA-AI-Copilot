@@ -29,7 +29,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from gujrera.db.models import Agent
+from gujrera.db.models import Agent, Promoter
 from gujrera.ingest.csv_import import ImportReport, import_project_row
 from gujrera.trust.rera_number import parse_rera_number
 
@@ -40,15 +40,16 @@ PROJECT_COLUMNS: dict[str, tuple[str, ...]] = {
     "rera_no": ("rera_no", "rera no", "rera number", "registration no", "registration number", "reg no",
                 "project registration no", "project reg no", "projectregno", "rera reg no", "rera registration no",
                 "gujrera no", "regno", "projectregistrationno"),
-    "project_name": ("project_name", "project name", "projectname", "name of project", "project", "name"),
+    "project_name": ("project_name", "project name", "projectname", "name of project", "project", "name",
+                     "entityname"),
     "project_name_gu": ("project_name_gu", "project name gujarati", "project name (gujarati)"),
     "promoter_name": ("promoter_name", "promoter name", "promotername", "promoter", "developer",
                       "developer name", "builder", "builder name", "name of promoter"),
     "promoter_name_gu": ("promoter_name_gu", "promoter name gujarati", "promoter name (gujarati)"),
-    "district": ("district", "district name", "districtname", "dist"),
+    "district": ("district", "district name", "districtname", "dist", "distname"),
     "taluka": ("taluka", "taluka name", "tehsil"),
     "planning_authority": ("planning_authority", "planning authority", "authority", "development authority"),
-    "project_type": ("project_type", "project type", "projecttype", "type", "type of project"),
+    "project_type": ("project_type", "project type", "projecttype", "type", "type of project", "ptype"),
     "status": ("status", "project status", "projectstatus"),
     "units": ("units", "total units", "no of units", "number of units", "totalunits", "unit count"),
     "reg_date": ("reg_date", "registration date", "date of registration", "approval date", "approved on",
@@ -62,6 +63,9 @@ PROJECT_COLUMNS: dict[str, tuple[str, ...]] = {
     "actual_completion": ("actual_completion", "actual completion", "actual completion date",
                           "completion certificate date", "occupancy date"),
     "source_url": ("source_url", "source url", "url", "link", "project url", "source"),
+    # "02/08/2024 - 30/04/2029" as in the portal's search results
+    "date_range": ("pdate", "project dates", "projectdates", "project duration", "project period", "duration"),
+    "entity_type": ("entitytype", "entity type", "record type"),
 }
 AGENT_COLUMNS: dict[str, tuple[str, ...]] = {
     "reg_no": ("reg_no", "agent registration no", "agent reg no", "registration no", "registration number",
@@ -89,6 +93,7 @@ class FileReport:
     updated: int = 0
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)  # imported, but worth a look
+    no_promoter: int = 0  # projects imported without a promoter name
     unmatched_columns: list[str] = field(default_factory=list)
 
 
@@ -145,7 +150,13 @@ def project_type(value: Any) -> str:
     return "residential"  # "Residential/Group Housing", blanks
 
 
-def project_status(value: Any, actual_completion: date | None) -> str:
+UNKNOWN_PROMOTER = "Promoter not in imported records"
+
+
+def project_status(value: Any, actual_completion: date | None, end: date | None = None,
+                   today: date | None = None) -> str:
+    """Status from the file; without one, 'unverified' once the registered end date has passed (the source does
+    not say whether the project was completed, so no delay or lapse is claimed), else 'ongoing'."""
     s = str(value or "").lower()
     if "revok" in s or "cancel" in s:
         return "revoked"
@@ -153,7 +164,19 @@ def project_status(value: Any, actual_completion: date | None) -> str:
         return "lapsed"
     if "complet" in s or actual_completion:
         return "completed"
+    if s:
+        return "ongoing"
+    if end and end < (today or date.today()):
+        return "unverified"
     return "ongoing"
+
+
+def split_range(value: Any) -> tuple[date | None, date | None]:
+    """'02/08/2024 - 30/04/2029' -> (start, end)."""
+    parts = [p for p in re.split(r"\s+(?:-|to)\s+", _s(value)) if p]
+    if len(parts) != 2:
+        return None, None
+    return parse_date(parts[0]), parse_date(parts[1])
 
 
 def agent_status(value: Any, valid_until: date | None, today: date) -> str:
@@ -258,6 +281,12 @@ def _has_number_column(records: list[dict[str, Any]]) -> bool:
 def import_records(session: Session, records: list[dict[str, Any]], *, kind: str | None = None,
                    source_url: str | None = None, today: date | None = None) -> FileReport:
     kind = kind or detect_kind(records)
+    # Mixed search results (projects, promoters, agents, professionals): keep only this kind. Other rows can hold
+    # personal contact details and are never read.
+    etype = next((k for k in records[0] if _key(k) in ("entitytype", "recordtype")), None) if records else None
+    if etype:
+        keep = {"project": "PROJECT", "agent": "AGENT"}[kind]
+        records = [r for r in records if _s(r.get(etype)).upper() == keep]
     report = FileReport(kind=kind, rows=len(records))
     if not records:
         report.errors.append("no rows found")
@@ -275,7 +304,7 @@ def import_records(session: Session, records: list[dict[str, Any]], *, kind: str
         try:
             with session.begin_nested():
                 if kind == "project":
-                    _project(session, row, source_url, report)
+                    _project(session, row, source_url, report, today)
                 else:
                     _agent(session, row, source_url, today, report)
         except (ValueError, KeyError) as exc:
@@ -288,30 +317,39 @@ def _s(value: Any) -> str:
     return "" if value is None else str(value).strip()
 
 
-def _project(session: Session, row: dict[str, Any], source_url: str | None, report: FileReport) -> None:
+def _project(session: Session, row: dict[str, Any], source_url: str | None, report: FileReport,
+             today: date | None = None) -> None:
     parsed = parse_rera_number(_s(row.get("rera_no")))
     actual = parse_date(row.get("actual_completion"))
-    reg = parse_date(row.get("reg_date")) or parse_date(row.get("start_date"))
+    start, end = split_range(row.get("date_range"))
+    reg = parse_date(row.get("reg_date")) or parse_date(row.get("start_date")) or start
+    proposed = parse_date(row.get("proposed_completion")) or end
+    revised = parse_date(row.get("revised_completion"))
+    promoter = _s(row.get("promoter_name"))
     canonical = {
         "rera_no": _s(row.get("rera_no")),
         "project_name": _s(row.get("project_name")),
         "project_name_gu": _s(row.get("project_name_gu")),
-        "promoter_name": _s(row.get("promoter_name")),
+        "promoter_name": promoter or UNKNOWN_PROMOTER,
         "promoter_name_gu": _s(row.get("promoter_name_gu")),
         "district": _s(row.get("district")).title() or ((parsed.district or "").title() if parsed else ""),
         "taluka": _s(row.get("taluka")),
         "planning_authority": _s(row.get("planning_authority")),
         "project_type": project_type(row.get("project_type")),
-        "status": project_status(row.get("status"), actual),
+        "status": project_status(row.get("status"), actual, revised or proposed, today),
         "units": _s(row.get("units")).split(".")[0],
         "reg_date": reg.isoformat() if reg else "",
-        "proposed_completion": _iso(row.get("proposed_completion")),
-        "revised_completion": _iso(row.get("revised_completion")),
+        "proposed_completion": proposed.isoformat() if proposed else "",
+        "revised_completion": revised.isoformat() if revised else "",
         "actual_completion": actual.isoformat() if actual else "",
         "source_url": _s(row.get("source_url")) or (source_url or ""),
     }
     inner = ImportReport()
     import_project_row(session, canonical, inner)
+    if not promoter:
+        placeholder = session.scalar(select(Promoter).where(Promoter.name == UNKNOWN_PROMOTER))
+        placeholder.promoter_type = "unknown"
+        report.no_promoter += 1
     report.inserted += inner.inserted
     report.updated += inner.updated
 

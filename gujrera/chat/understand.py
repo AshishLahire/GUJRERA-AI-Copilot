@@ -147,16 +147,74 @@ def gu_to_deva(text: str | None) -> str:
     return "".join(chr(ord(ch) - _GU_TO_DEVA) if _GU_START <= ord(ch) <= _GU_END else ch for ch in (text or ""))
 
 
+# Rough Hindi-script -> Latin letters, only for matching names (Gujarati is first mapped to Hindi script).
+# Public GUJRERA records name projects in English only, so "બંસરી સ્કાયવ્યુ" must find "BANSARI SKYVIEW".
+_DEVA_CONS = {
+    "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n", "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "n",
+    "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n", "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+    "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m", "य": "y", "र": "r", "ल": "l", "ळ": "l", "व": "v",
+    "श": "sh", "ष": "sh", "स": "s", "ह": "h",
+}
+_DEVA_VOWELS = {"अ": "a", "आ": "a", "इ": "i", "ई": "i", "उ": "u", "ऊ": "u", "ऋ": "ri", "ए": "e", "ऐ": "ai",
+                "ओ": "o", "औ": "au", "ऍ": "e", "ऑ": "o"}
+_DEVA_MATRAS = {"ा": "a", "ि": "i", "ी": "i", "ु": "u", "ू": "u", "ृ": "ri", "े": "e", "ै": "ai", "ो": "o",
+                "ौ": "au", "ॅ": "e", "ॉ": "o"}
+_VIRAMA, _NUKTA = "्", "़"
+_INDIC = re.compile(r"[ऀ-ॿ઀-૿]")
+
+
+def indic_to_latin(text: str | None) -> str:
+    """'બંસરી સ્કાયવ્યુ' -> 'bansari skayvyu'. Approximate; compare with sound_key, never show to users."""
+    s = gu_to_deva(text)
+    out: list[str] = []
+    for i, ch in enumerate(s):
+        nxt = s[i + 1] if i + 1 < len(s) else ""
+        if nxt == _NUKTA:
+            nxt = s[i + 2] if i + 2 < len(s) else ""
+        if ch in _DEVA_CONS:
+            out.append({"ज": "z", "फ": "f"}.get(ch, _DEVA_CONS[ch]) if s[i + 1:i + 2] == _NUKTA else _DEVA_CONS[ch])
+            if nxt not in _DEVA_MATRAS and nxt != _VIRAMA and nxt and not nxt.isspace() and nxt in _DEVA_CONS.keys() | {"ं", "ँ", "ः"}:
+                out.append("a")  # inherent vowel inside a word; dropped at the end of a word
+        elif ch in _DEVA_VOWELS:
+            out.append(_DEVA_VOWELS[ch])
+        elif ch in _DEVA_MATRAS:
+            out.append(_DEVA_MATRAS[ch])
+        elif ch in ("ं", "ँ"):
+            out.append("n")
+        elif ch == "ः":
+            out.append("h")
+        elif ch in (_VIRAMA, _NUKTA):
+            continue
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def _sounds_contained(name: str, query_key: list[str]) -> bool:
+    """All words of the name, by sound, appear in a row in the query (used for Gujarati/Hindi questions
+    about names the registry has only in English). Short names are skipped to avoid false matches."""
+    nk = sound_key(name).split()
+    if not nk or len("".join(nk)) < 5:
+        return False
+    return any(query_key[i:i + len(nk)] == nk for i in range(len(query_key) - len(nk) + 1))
+
+
 def find_candidates(session: Session, text_lc: str, threshold: float = FUZZY_THRESHOLD) -> list[Candidate]:
     found: list[Candidate] = []
-    for p in session.scalars(select(Promoter)):
+    # Gujarati/Hindi question, English-only registry name: compare by sound.
+    latin_key = sound_key(indic_to_latin(text_lc)).split() if _INDIC.search(text_lc) else []
+    for p in session.scalars(select(Promoter).where(Promoter.promoter_type != "unknown")):
         score = max(_score(_core(p.name), text_lc), _score(_core(p.name_gu), text_lc),
                     _score(gu_to_deva(_core(p.name_gu)), text_lc))
+        if score < threshold and latin_key and not p.name_gu and _sounds_contained(_core(p.name), latin_key):
+            score = threshold + 1
         if score >= threshold:
             found.append(Candidate("promoter", p.id, p.name, score, p.district))
     for p in session.scalars(select(Project)):
         score = max(_score(p.name.lower(), text_lc), _score((p.name_gu or "").lower(), text_lc),
                     _score(gu_to_deva(p.name_gu).lower(), text_lc))
+        if score < threshold and latin_key and not p.name_gu and _sounds_contained(_core(p.name), latin_key):
+            score = threshold + 1
         if score >= threshold:
             found.append(Candidate("project", p.id, p.name, score, p.district))
     if found:
