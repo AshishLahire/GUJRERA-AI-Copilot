@@ -202,6 +202,12 @@ export interface Overview {
   past_completion: number;
   past_completion_by_district: { district: string; count: number }[];
   ending_90_days: number;
+  charts?: {
+    standing: { on_schedule: number; ending_90_days: number; past_date: number; completed: number; lapsed_or_revoked: number };
+    start_years: { year: string; count: number }[];
+    past_age: Record<"under_6_months" | "6_to_12_months" | "1_to_2_years" | "2_to_4_years" | "over_4_years", number>;
+    types: { type: string; count: number }[];
+  };
   is_mock: boolean;
 }
 
@@ -413,6 +419,7 @@ export interface DeskResponse {
   total_projects: number;
   new_registrations: { last_30_days: number; last_90_days: number };
   sections: Record<"expiring" | "overdue" | "extensions" | "unknown_numbers" | "ad_cases" | "complaints", DeskSection>;
+  charts?: { ending_by_month: { month: string; count: number }[]; overdue_by_taluka: { taluka: string; count: number }[] };
 }
 
 export async function fetchOfficerDashboard(token: string): Promise<DeskResponse> {

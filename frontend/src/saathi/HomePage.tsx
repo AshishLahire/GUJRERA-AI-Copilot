@@ -4,6 +4,7 @@ import { Icon } from "./Brand";
 import { useSaathi } from "./context";
 import { En } from "./En";
 import { Journey } from "./Journey";
+import { RegistryCharts } from "./RegistryCharts";
 import { StringKey, tr } from "./strings";
 
 export type Page = "home" | "ask" | "check" | "calc" | "promoter" | "officer" | "risk" | "enforce" | "report" | "desk" | "orders" | "qpr" | "watch" | "agreement" | "today";
@@ -186,6 +187,8 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
           )}
         </div>
       )}
+
+      {data && <RegistryCharts data={data} lang={lang} />}
 
       {/* Charts */}
       {data && (

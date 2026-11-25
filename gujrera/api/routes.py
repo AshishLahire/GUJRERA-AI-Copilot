@@ -713,6 +713,36 @@ def officer_review(body: ReviewRequest, repo: Repository = Depends(user_repo)) -
     return _officer_or_403(review, repo, body.item_type, body.item_key, body.status, body.note)
 
 
+def _overview_charts(session: Session, today: date, by_status: dict[str, int], ending: int) -> dict[str, Any]:
+    """Counts for the home charts: where projects stand, start years, how long past their date, types."""
+    past_q = (Project.status == "unverified") | ((Project.status == "ongoing") & (Project.reg_valid_until < today))
+    ongoing_past = session.scalar(select(func.count()).select_from(Project).where(
+        Project.status == "ongoing", Project.reg_valid_until < today)) or 0
+    standing = {
+        "on_schedule": max(0, by_status.get("ongoing", 0) - ongoing_past - ending),
+        "ending_90_days": ending,
+        "past_date": by_status.get("unverified", 0) + ongoing_past,
+        "completed": by_status.get("completed", 0),
+        "lapsed_or_revoked": by_status.get("lapsed", 0) + by_status.get("revoked", 0),
+    }
+    years: dict[str, int] = {}
+    for (y, n) in session.execute(select(func.strftime("%Y", Project.reg_date), func.count())
+                                  .group_by(func.strftime("%Y", Project.reg_date))):
+        if y is None:
+            continue
+        key = y if int(y) > 2012 else "2012"  # earlier years are a handful each: fold them in
+        years[key] = years.get(key, 0) + n
+    start_years = [{"year": ("up to 2012" if y == "2012" else y), "count": n} for y, n in sorted(years.items())]
+    ages = {"under_6_months": 0, "6_to_12_months": 0, "1_to_2_years": 0, "2_to_4_years": 0, "over_4_years": 0}
+    for (end,) in session.execute(select(Project.reg_valid_until).where(past_q)):
+        d = (today - end).days
+        ages["under_6_months" if d < 183 else "6_to_12_months" if d < 365 else "1_to_2_years" if d < 730
+             else "2_to_4_years" if d < 1461 else "over_4_years"] += 1
+    types = [{"type": t, "count": n} for t, n in session.execute(
+        select(Project.project_type, func.count()).group_by(Project.project_type).order_by(func.count().desc()))]
+    return {"standing": standing, "start_years": start_years, "past_age": ages, "types": types}
+
+
 @router.get("/overview")
 def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
     """Registry totals for the dashboard home: counts only, no names or personal data."""
@@ -746,6 +776,7 @@ def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
         "past_completion": sum(n for _, n in past_by_district),
         "past_completion_by_district": [{"district": d, "count": n} for d, n in past_by_district],
         "ending_90_days": ending,
+        "charts": _overview_charts(session, today, by_status, ending),
         "is_mock": bool(session.scalar(select(func.count()).select_from(Project).where(Project.is_mock))),
     }
 

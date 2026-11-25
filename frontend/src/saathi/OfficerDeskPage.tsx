@@ -11,6 +11,7 @@ import {
   reviewDeskItem,
 } from "../api/gujrera";
 import { Icon } from "./Brand";
+import { ChartCard, ColumnChart, HBarChart } from "./Charts";
 import { useSaathi } from "./context";
 import { LoginPrompt } from "./RolePages";
 
@@ -94,6 +95,18 @@ const UI = {
   note: { en: "Note (optional)", gu: "નોંધ (વૈકલ્પિક)", hi: "नोट (वैकल्पिक)" } as L3,
   more: { en: "more", gu: "વધુ બતાવો", hi: "और दिखाएँ" } as L3,
   of: { en: "most urgent listed of", gu: "સૌથી તાત્કાલિક બતાવ્યા, કુલ", hi: "सबसे ज़रूरी दिखाए, कुल" } as L3,
+  chartEnding: { en: "Registrations ending, month by month", gu: "મહિના પ્રમાણે પૂરી થતી નોંધણીઓ", hi: "महीने के अनुसार समाप्त होने वाले पंजीकरण" } as L3,
+  chartEndingSub: { en: "Ongoing projects whose registration ends in each of the next six months: plan extension reminders ahead of the peaks.",
+    gu: "આગામી છ મહિનામાં દર મહિને નોંધણી પૂરી થતા ચાલુ પ્રોજેક્ટ: ટોચના મહિના પહેલાં મુદત વધારાની યાદ અપાવવાનું આયોજન કરો.",
+    hi: "अगले छह महीनों में हर महीने पंजीकरण समाप्त होने वाले चालू प्रोजेक्ट: चरम महीनों से पहले विस्तार की याद दिलाने की योजना बनाएँ।" } as L3,
+  chartTaluka: { en: "Past completion date, by taluka", gu: "તાલુકા પ્રમાણે પૂર્ણતા તારીખ વીતી ગયેલા", hi: "तालुका के अनुसार पूर्णता तिथि बीते" } as L3,
+  chartTalukaSub: { en: "Where the projects with a passed date and no completion on record are concentrated.",
+    gu: "તારીખ વીતી ગયેલા અને પૂર્ણતા નોંધ વિનાના પ્રોજેક્ટ ક્યાં કેન્દ્રિત છે.",
+    hi: "तिथि बीते और बिना पूर्णता रिकॉर्ड वाले प्रोजेक्ट कहाँ केंद्रित हैं।" } as L3,
+  month: { en: "Month", gu: "મહિનો", hi: "महीना" } as L3,
+  registrations: { en: "Registrations ending", gu: "પૂરી થતી નોંધણીઓ", hi: "समाप्त होने वाले पंजीकरण" } as L3,
+  taluka: { en: "Taluka", gu: "તાલુકો", hi: "तालुका" } as L3,
+  projectsCol: { en: "Projects", gu: "પ્રોજેક્ટ", hi: "प्रोजेक्ट" } as L3,
   loading: { en: "Loading the work queue…", gu: "કાર્યસૂચિ લોડ થઈ રહી છે…", hi: "कार्य सूची लोड हो रही है…" } as L3,
 };
 
@@ -213,6 +226,21 @@ export const OfficerDeskPage: React.FC = () => {
           <p className="text-xs text-muted">
             {data.total_projects.toLocaleString("en-IN")} {t3(UI.projects, lang)} · {data.new_registrations.last_90_days} {t3(UI.started, lang)}
           </p>
+          {data.charts && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ChartCard title={t3(UI.chartEnding, lang)} sub={t3(UI.chartEndingSub, lang)}>
+                <ColumnChart head={[t3(UI.month, lang), t3(UI.registrations, lang)]}
+                  data={data.charts.ending_by_month.map((m) => ({
+                    label: new Date(`${m.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+                    value: m.count,
+                  }))} />
+              </ChartCard>
+              <ChartCard title={t3(UI.chartTaluka, lang)} sub={t3(UI.chartTalukaSub, lang)}>
+                <HBarChart head={[t3(UI.taluka, lang), t3(UI.projectsCol, lang)]}
+                  data={data.charts.overdue_by_taluka.map((x) => ({ label: x.taluka, value: x.count }))} />
+              </ChartCard>
+            </div>
+          )}
           {SECTIONS.map((sec) => {
             const s = data.sections[sec.key];
             const items = all[sec.key] ? s.items : s.items.slice(0, 8);

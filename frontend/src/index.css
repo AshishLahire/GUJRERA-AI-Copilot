@@ -26,6 +26,12 @@
     --brand-soft: #FFF6D1;
     --on-brand: #14161B;
     --card-shadow: 0 1px 2px 0 rgba(20, 22, 27, 0.04);
+    /* Charts: one validated blue for single-series bars (3:1+ on the card), hairline grid and axis */
+    --chart-1: #2a78d6;
+    --chart-1-strong: #1c5cab;
+    --chart-grid: #ECECEF;
+    --chart-axis: #C9CBD1;
+    --chart-cursor: rgba(20, 22, 27, 0.05);
   }
 
   .dark {
@@ -48,6 +54,11 @@
     --brand-soft: #2D2510;
     --on-brand: #14161B;
     --card-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --chart-1: #3987e5;
+    --chart-1-strong: #86b6ef;
+    --chart-grid: #24272D;
+    --chart-axis: #3A3E46;
+    --chart-cursor: rgba(255, 255, 255, 0.06);
   }
 
   body {

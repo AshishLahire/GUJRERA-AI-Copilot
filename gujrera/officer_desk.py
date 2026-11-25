@@ -53,6 +53,12 @@ def _project_item(p: Project, kind: str, **extra: Any) -> dict[str, Any]:
             "is_mock": bool(p.is_mock), **extra}
 
 
+def _taluka_key(name: str | None) -> str:
+    """Spelling-insensitive key: lower case, letters only, no 'y', doubled letters collapsed."""
+    k = re.sub(r"[^a-z]", "", (name or "").lower()).replace("y", "")
+    return re.sub(r"(.)\1+", r"\1", k)
+
+
 def _extensions(rera_no: str) -> int:
     nums = [int(n) for n in _EX.findall(rera_no or "")]
     return max(nums) if nums else 0
@@ -161,10 +167,34 @@ def dashboard(repo: Repository, today: date | None = None) -> dict[str, Any]:
     new_90 = s.scalar(reg.where(Project.reg_date >= today - timedelta(days=90)))
     total = s.scalar(reg)
 
+    # 6. Charts: registrations ending month by month (next 6 months), overdue projects by taluka
+    months: list[dict[str, Any]] = []
+    y, m = today.year, today.month
+    for _ in range(6):
+        first = date(y, m, 1)
+        nxt = date(y + (m == 12), m % 12 + 1, 1)
+        n = s.scalar(scoped(select(func.count()).select_from(Project).where(
+            Project.status == "ongoing", Project.reg_valid_until >= max(first, today), Project.reg_valid_until < nxt)))
+        months.append({"month": first.isoformat()[:7], "count": n})
+        y, m = nxt.year, nxt.month
+    raw = s.execute(scoped(select(Project.taluka, func.count()).where(over_cond)).group_by(Project.taluka)).all()
+    merged: dict[str, list] = {}  # the registry spells some talukas two ways ("Chorasi", "Choryasi")
+    for t, n in raw:
+        key = _taluka_key(t)
+        entry = merged.setdefault(key, [t or "Not stated", 0, 0])
+        if n > entry[2]:
+            entry[0], entry[2] = t or "Not stated", n  # show the most used spelling
+        entry[1] += n
+    tal = sorted(((name, n) for name, n, _top in merged.values()), key=lambda x: -x[1])
+    by_taluka = [{"taluka": t, "count": n} for t, n in tal[:8]]
+    if len(tal) > 8:
+        by_taluka.append({"taluka": "Other", "count": sum(n for _t, n in tal[8:])})
+
     repo._audit("officer_dashboard", {"district": district})
     return {
         "district": district, "as_of": today.isoformat(), "total_projects": total,
         "new_registrations": {"last_30_days": new_30, "last_90_days": new_90},
+        "charts": {"ending_by_month": months, "overdue_by_taluka": by_taluka},
         "sections": {
             "expiring": {"count": exp_n, "items": mark(expiring)},
             "overdue": {"count": over_n, "age": buckets, "items": mark(overdue)},
