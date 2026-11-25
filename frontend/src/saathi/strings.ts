@@ -139,6 +139,7 @@ const STRINGS = {
   navData: { en: "Data onboarding", gu: "ડેટા ઓનબોર્ડિંગ", hi: "डेटा ऑनबोर्डिंग" },
   navUsers: { en: "Users and roles", gu: "વપરાશકર્તાઓ અને ભૂમિકાઓ", hi: "उपयोगकर्ता और भूमिकाएँ" },
   navAudit: { en: "Audit log", gu: "ઓડિટ લોગ", hi: "ऑडिट लॉग" },
+  navCirculars: { en: "Circulars", gu: "પરિપત્રો", hi: "परिपत्र" },
   overviewSub: {
     en: "Gujarat RERA registry at a glance, and quick answers for buyers, promoters and officers.",
     gu: "ગુજરાત RERA રજિસ્ટ્રી એક નજરે, અને ખરીદનાર, પ્રમોટર અને અધિકારીઓ માટે ઝડપી જવાબ.",

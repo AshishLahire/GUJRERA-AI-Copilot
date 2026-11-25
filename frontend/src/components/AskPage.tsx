@@ -42,6 +42,9 @@ const SOURCE_LABEL: Record<string, string> = {
   complaint_stats: "Complaint statistics",
   order: "Order",
   agent: "Agent registration",
+  circular: "GUJRERA circular",
+  legal_act: "RERA Act",
+  legal_rules: "Gujarat RERA Rules",
 };
 
 const VERDICT_TONE: Record<string, string> = {
@@ -632,7 +635,10 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
                   <ol className="mt-1 flex flex-col gap-0.5">
                     {m.reply.sources.map((s) => (
                       <li key={s.n} className="break-all">
-                        <span className="font-bold">[{s.n}]</span> {SOURCE_LABEL[s.type] ?? s.type}: <span className="font-mono">{s.id}</span>
+                        <span className="font-bold">[{s.n}]</span> {SOURCE_LABEL[s.type] ?? s.type}:{" "}
+                        {s.url ? (
+                          <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-mono underline text-brand-strong">{s.id}</a>
+                        ) : <span className="font-mono">{s.id}</span>}
                       </li>
                     ))}
                   </ol>

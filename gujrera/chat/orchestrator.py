@@ -245,6 +245,30 @@ def english_companion(message: str, state_before: ChatState, repo: Repository, r
     return en.to_dict()["text"]
 
 
+def _circular_reply(message: str, repo: Repository, lang: str) -> Reply:
+    from gujrera import circulars as circ
+
+    try:
+        intent, sentences, card = circ.answer(repo.s, message, lang)
+    except Exception:  # noqa: BLE001 - search model unavailable: say so rather than fail the chat
+        intent, sentences, card = "circular_unavailable", [Sentence(circ._t("none", lang), [], "circ_none")], None
+    repo._audit("circular_answer", {"question": message[:300], "intent": intent})
+    return Reply(lang, intent, sentences, cards=[card] if card else [], suggestions=SUGGESTIONS["start"][lang])
+
+
+def _with_circular(sentences: list[Sentence], question: str, repo: Repository, lang: str) -> list[Sentence]:
+    """A law answer, plus one line pointing to a closely matching published circular (before the disclaimer)."""
+    from gujrera import circulars as circ
+
+    try:
+        extra = circ.related(repo.s, question, lang)
+    except Exception:  # noqa: BLE001
+        extra = []
+    if not extra:
+        return sentences
+    return sentences[:-1] + extra + sentences[-1:] if sentences else extra
+
+
 def _report(question: str, state: ChatState, repo: Repository, lang: str) -> Reply:
     """Officer analytics; a standard report is remembered so the next message can narrow it."""
     a = analytics_answer(question, repo, lang, generate=analytics_generate)
@@ -393,10 +417,15 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
             return reply
 
     # 6. Questions about the law: RAG over the RERA Act, Gujarat Rules and orders
+    # 6. Circulars ("what does the circular on QPR say", "તાજેતરના પરિપત્રો"), then the law itself
+    from gujrera import circulars as circ
+
+    if circ.wants_circular(text_lc) and not u.candidates and not u.project_numbers:
+        return _circular_reply(message, repo, lang)
     if "legal" in u.intents and not u.candidates and not u.project_numbers and "complaint_file" not in u.intents:
         la = legal_answer(message, lang, use_llm=False if _EN_PASS.get() is not None else None)
-        return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
-                     suggestions=SUGGESTIONS["start"][lang])
+        return Reply(lang, la.intent, _with_circular(la.sentences, message, repo, lang),
+                     cards=[la.card] if la.card else [], suggestions=SUGGESTIONS["start"][lang])
 
     # 6a'. Orders: what an order directs and whether it was complied with (orders are public)
     order_no = ORDER_RE.search(message or "")
@@ -568,8 +597,8 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
         query = routed.english or message
         la = legal_answer(message, lang, search_query=query,
                           use_llm=False if _EN_PASS.get() is not None else None)
-        return Reply(lang, la.intent, la.sentences, cards=[la.card] if la.card else [],
-                     suggestions=SUGGESTIONS["start"][lang])
+        return Reply(lang, la.intent, _with_circular(la.sentences, query, repo, lang),
+                     cards=[la.card] if la.card else [], suggestions=SUGGESTIONS["start"][lang])
     if intent == "file_complaint":
         return _from_flow(start_filing(message, state, repo, lang), lang)
     if intent == "track_complaint":

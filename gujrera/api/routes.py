@@ -93,6 +93,14 @@ class UpdateUserRequest(BaseModel):
     is_active: bool | None = None
 
 
+class CircularUpdate(BaseModel):
+    number: str | None = Field(default=None, max_length=120)
+    subject: str | None = Field(default=None, max_length=400)
+    issued_on: date | None = None
+    clear_date: bool = False
+    status: str | None = Field(default=None, max_length=20)
+
+
 class SaveReportRequest(BaseModel):
     name: str = Field(default="", max_length=120)
     question: str = Field(max_length=500)
@@ -1129,4 +1137,72 @@ def admin_audit_csv(username: str | None = Query(None, max_length=80), role: str
     text = _officer_or_403(audit_csv, repo, **_audit_filters(username, role, category, action, since, until, q))
     return Response("\ufeff" + text, media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="gujrera_audit_log.csv"'})
+
+
+# ------------------------------------------------------------ circulars
+@router.post("/admin/circulars")
+async def admin_circular_upload(file: UploadFile = File(...), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Upload a circular PDF: text read (OCR for scanned pages), details guessed, saved as a draft."""
+    from starlette.concurrency import run_in_threadpool
+
+    from gujrera.circulars import MAX_BYTES, upload
+
+    data = await file.read(MAX_BYTES + 1)
+    return await run_in_threadpool(_officer_or_403, upload, repo, file.filename or "circular.pdf", data)
+
+
+@router.get("/admin/circulars")
+def admin_circulars(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.circulars import list_all
+
+    return _officer_or_403(list_all, repo)
+
+
+@router.patch("/admin/circulars/{cid}")
+def admin_circular_update(cid: int, body: CircularUpdate, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.circulars import update
+
+    return _officer_or_403(update, repo, cid, number=body.number, subject=body.subject, issued_on=body.issued_on,
+                           clear_date=body.clear_date, status=body.status)
+
+
+@router.delete("/admin/circulars/{cid}")
+def admin_circular_delete(cid: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.circulars import delete
+
+    return _officer_or_403(delete, repo, cid)
+
+
+@router.get("/circulars")
+def circulars_public(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Published circulars (public)."""
+    from gujrera.circulars import list_published
+
+    return {"circulars": list_published(session)}
+
+
+@router.get("/circulars/{cid}/pdf")
+def circular_pdf(cid: int, token: str | None = Query(None, max_length=600), repo: Repository = Depends(user_repo)):
+    """The circular's PDF. Published circulars are public; drafts only for state-level officers."""
+    from fastapi.responses import FileResponse
+
+    from gujrera.auth import principal_for, read_token
+    from gujrera.circulars import pdf_path
+    from gujrera.db.models import Circular
+
+    c = repo.s.get(Circular, cid)
+    if c is None:
+        raise HTTPException(404, "No such circular.")
+    if c.status != "published":
+        p = repo.p
+        if token and p.role != "officer":  # a link opened in a new tab carries the token in the query
+            user = read_token(token, repo.s)
+            p = principal_for(user) if user else p
+        if p.role != "officer" or p.district_scope:
+            raise HTTPException(404, "No such circular.")
+    path = pdf_path(repo.s, c)
+    if not path.exists():
+        raise HTTPException(404, "The PDF file is missing.")
+    return FileResponse(path, media_type="application/pdf",
+                        headers={"Content-Disposition": f'inline; filename="{c.filename}"'})
 

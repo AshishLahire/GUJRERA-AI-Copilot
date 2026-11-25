@@ -19,6 +19,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -505,4 +506,38 @@ class SavedReport(Base):
     lang: Mapped[str] = mapped_column(String(5), default="en")
     created_at: Mapped[datetime] = mapped_column(DateTime)
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class Circular(Base):
+    """A GUJRERA circular or notification (PDF) the department shared: searchable once an admin publishes it."""
+
+    __tablename__ = "circulars"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    number: Mapped[str | None] = mapped_column(String(120))  # as printed, e.g. "GUJRERA/Circular/45/2023"
+    subject: Mapped[str | None] = mapped_column(String(400))
+    issued_on: Mapped[date | None] = mapped_column(Date)
+    language: Mapped[str] = mapped_column(String(10), default="en")  # gu | en | hi | mixed
+    filename: Mapped[str] = mapped_column(String(200))
+    stored_as: Mapped[str] = mapped_column(String(60))
+    pages: Mapped[int] = mapped_column(Integer, default=0)
+    ocr_pages: Mapped[int] = mapped_column(Integer, default=0)  # scanned pages read with OCR
+    status: Mapped[str] = mapped_column(String(20), default="draft")  # draft | published
+    uploaded_by: Mapped[str | None] = mapped_column(String(80))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class CircularChunk(Base):
+    """A passage of a circular, with its page and search vector (multilingual-e5)."""
+
+    __tablename__ = "circular_chunks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    circular_id: Mapped[int] = mapped_column(ForeignKey("circulars.id", ondelete="CASCADE"), index=True)
+    page: Mapped[int] = mapped_column(Integer)
+    seq: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(Text)
+    tokens: Mapped[str] = mapped_column(Text)  # JSON list, for keyword ranking
+    vector: Mapped[bytes] = mapped_column(LargeBinary)  # float32
 

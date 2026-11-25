@@ -15,6 +15,8 @@ export interface RecordSource {
   type: string;
   id: string;
   is_mock: boolean;
+  /** A link to the source itself, e.g. a circular's PDF at the cited page. */
+  url?: string;
 }
 
 export interface TrustCheck {
@@ -597,6 +599,35 @@ export async function downloadAuditCsv(token: string, f: AuditFilters): Promise<
   a.download = "gujrera_audit_log.csv";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ------------------------------------------------------------ circulars
+export interface CircularRec {
+  id: number; number: string | null; subject: string | null; issued_on: string | null; language: string;
+  filename: string; pages: number; ocr_pages: number; status: "draft" | "published"; uploaded_by: string | null;
+  uploaded_at: string; published_at: string | null; pdf_url: string; preview?: string[];
+}
+export function fetchAdminCirculars(token: string): Promise<{ circulars: CircularRec[]; published: number; drafts: number }> {
+  return adminCall(token, "/circulars");
+}
+export async function uploadCircular(token: string, file: File): Promise<{ circular: CircularRec }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/api/gujrera/admin/circulars`, { method: "POST", body: form, headers: authHeaders(token) });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+export function updateCircular(token: string, id: number,
+  body: { number?: string; subject?: string; issued_on?: string | null; clear_date?: boolean; status?: "draft" | "published" }):
+  Promise<{ circular: CircularRec }> {
+  return adminCall(token, `/circulars/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+export function deleteCircular(token: string, id: number): Promise<{ deleted: number }> {
+  return adminCall(token, `/circulars/${id}`, { method: "DELETE" });
+}
+/** A circular's PDF link; drafts need the admin's token (opened in a new tab). */
+export function circularPdfLink(c: CircularRec, token: string | null): string {
+  return `${API_BASE}${c.pdf_url}${c.status === "draft" && token ? `?token=${encodeURIComponent(token)}` : ""}`;
 }
 
 /** Ask the shell to switch page (used by chat cards). */
