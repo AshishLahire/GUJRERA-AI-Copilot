@@ -278,6 +278,13 @@ export const ComplaintDeskPage: React.FC = () => {
       {allowed && error && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 text-red-900 p-4 text-sm">{error}</div>}
       {allowed && s && (
         <>
+          {s.open === 0 && (
+            <p className="rounded-xl border border-dashed border-warm-strong p-4 text-sm text-muted print:hidden">
+              {{ en: "No open complaints in your area. Complaints that citizens file through Ask Saathi appear here, ranked by the 60-day deadline.",
+                 gu: "તમારા વિસ્તારમાં કોઈ ખુલ્લી ફરિયાદ નથી. નાગરિકો આસ્ક સાથી દ્વારા કરેલી ફરિયાદો 60 દિવસની મર્યાદા પ્રમાણે અહીં દેખાય છે.",
+                 hi: "आपके क्षेत्र में कोई खुली शिकायत नहीं। नागरिक आस्क साथी से जो शिकायतें दर्ज करते हैं, वे 60 दिन की सीमा के अनुसार यहाँ दिखती हैं।" }[lang]}
+            </p>
+          )}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 print:hidden">
             {([["deskOpen", s.open, "complaint"], ["deskOverdue", s.overdue, "alert"], ["deskDue", s.due_15, "clock"], ["deskGroups", s.groups, "user"]] as [StringKey, number, string][]).map(([k, v, icon]) => (
               <div key={k} className="rounded-xl border border-warm-border bg-card p-4">

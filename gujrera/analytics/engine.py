@@ -27,6 +27,11 @@ from gujrera.i18n import word
 from gujrera.profile.summarise import Sentence
 
 S = {
+    "capped": {
+        "en": "Only the first {n} rows are shown; there are more. Ask for one district or a shorter period to narrow it.",
+        "gu": "ફક્ત પ્રથમ {n} પંક્તિઓ બતાવી છે; વધુ છે. ઓછી કરવા એક જિલ્લો કે ટૂંકો સમયગાળો પૂછો.",
+        "hi": "केवल पहली {n} पंक्तियाँ दिखाई हैं; और भी हैं। कम करने के लिए एक जिला या छोटी अवधि पूछें।",
+    },
     "result": {
         "en": "{title}: {n} {rows}.{scope}",
         "gu": "{title}: {n} પંક્તિઓ.{scope}",
@@ -257,6 +262,9 @@ def answer(question: str, repo: Repository, lang: str, *,
                                     value=top[y_idx]), citations, "an_top"))
     elif not result.rows:
         sentences.append(Sentence(s("empty", lang), [], "an_empty"))
+    cap = int(guarded.sql.rsplit("LIMIT", 1)[1])
+    if result.rows and len(result.rows) >= cap:
+        sentences.append(Sentence(s("capped", lang, n=cap), [], "an_capped"))
     if report and report.period:
         sentences.append(Sentence(s("period", lang, p=report.period.describe(lang)), [], "an_period"))
     if report and report.note:

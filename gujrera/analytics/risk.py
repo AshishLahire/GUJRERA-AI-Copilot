@@ -227,10 +227,14 @@ def score_projects(repo: Repository, lang: str = "en", *, district: str | None =
                                                DueNotice.amount.is_not(None))):
         if d.due_date is None or d.due_date < today:
             dues[d.promoter_id].append(d)
-    siblings: dict[int, list[Project]] = defaultdict(list)
-    for x in s.scalars(select(Project).where(Project.promoter_id.in_(promoter_ids))):
-        siblings[x.promoter_id].append(x)
     promoters = {x.id: x for x in s.scalars(select(Promoter).where(Promoter.id.in_(promoter_ids)))}
+    # Public records leave many promoters unnamed; their projects sit under one placeholder promoter
+    # (type "unknown"). They are not one promoter's track record, and comparing each of thousands of
+    # projects with all the others would take minutes.
+    named = [pid for pid in promoter_ids if pid in promoters and promoters[pid].promoter_type != "unknown"]
+    siblings: dict[int, list[Project]] = defaultdict(list)
+    for x in s.scalars(select(Project).where(Project.promoter_id.in_(named))):
+        siblings[x.promoter_id].append(x)
 
     out: list[ProjectRisk] = []
     for pr in projects:

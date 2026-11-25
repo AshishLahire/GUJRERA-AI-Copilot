@@ -79,9 +79,9 @@ TITLES = {
                              "hi": "सबसे अधिक नोटिस वाले प्रमोटर"},
     "defaulting_promoters": {"en": "Defaulting developers", "gu": "ડિફોલ્ટ કરનાર ડેવલપર્સ",
                              "hi": "डिफ़ॉल्ट करने वाले डेवलपर्स"},
-    "past_completion": {"en": "Ongoing projects past their completion date",
-                        "gu": "પૂર્ણ થવાની તારીખ વીતી ગઈ હોય તેવા ચાલુ પ્રોજેક્ટ",
-                        "hi": "समापन तिथि बीत चुके चालू प्रोजेक्ट"},
+    "past_completion": {"en": "Projects past their completion date, not completed",
+                        "gu": "પૂર્ણ થવાની તારીખ વીતી ગઈ હોય તેવા અધૂરા પ્રોજેક્ટ",
+                        "hi": "समापन तिथि बीत चुके अधूरे प्रोजेक्ट"},
     "penalty_orders": {"en": "Orders with penalties", "gu": "દંડ સાથેના આદેશો", "hi": "दंड वाले आदेश"},
     "adverse_orders": {"en": "Promoters with show-cause, penalty or revocation orders",
                        "gu": "કારણદર્શક, દંડ અથવા રદ કરવાના આદેશ ધરાવતા પ્રમોટર",
@@ -211,11 +211,13 @@ def match_report(text_lc: str) -> Report | None:
                       "SELECT promoter_name, project_name, district, notice_type, issued_on, status "
                       f"FROM v_notices{w(where_d, when('issued_on'))} ORDER BY issued_on DESC", d, period)
     if _has(text_lc, "past_completion") and not _has(text_lc, "complaint"):  # "overdue complaints" = triage
-        overdue = "proposed_completion < date('now')"  # the completion date declared at registration
+        # Past the completion date declared at registration; public records mark a project whose date
+        # has passed with no completion recorded as 'unverified'.
+        overdue = "((status = 'ongoing' AND proposed_completion < date('now')) OR status = 'unverified')"
         return Report("past_completion",
                       "SELECT project_name, promoter_name, district, locality, proposed_completion, "
                       "revised_completion, delay_days "
-                      f"FROM v_project_delays{w(ONGOING, overdue, where_d, where_l)} ORDER BY proposed_completion",
+                      f"FROM v_project_delays{w(overdue, where_d, where_l)} ORDER BY proposed_completion",
                       d, locality=loc)
     if _has(text_lc, "penalty") and not _has(text_lc, "promoter"):
         penalty = "order_type = 'penalty_order'"
@@ -267,6 +269,8 @@ def match_report(text_lc: str) -> Report | None:
     if (_has(text_lc, "project") and (_has(text_lc, "district") or _has(text_lc, "count"))):
         return Report("projects_by_district",
                       "SELECT district, COUNT(*) AS projects, SUM(is_delayed) AS delayed_projects, "
-                      "ROUND(AVG(CASE WHEN is_delayed = 1 THEN delay_days END), 0) AS avg_delay_days "
+                      "ROUND(AVG(CASE WHEN is_delayed = 1 THEN delay_days END), 0) AS avg_delay_days, "
+                      "SUM(CASE WHEN status = 'unverified' OR (status = 'ongoing' AND proposed_completion < date('now')) "
+                      "THEN 1 ELSE 0 END) AS past_completion_date "
                       f"FROM v_project_delays{w(where_d)} GROUP BY district ORDER BY projects DESC", d)
     return None

@@ -92,8 +92,9 @@ const UI = {
   started: { en: "started in the last 90 days", gu: "છેલ્લા 90 દિવસમાં શરૂ", hi: "पिछले 90 दिनों में शुरू" } as L3,
   open: { en: "Open record", gu: "રેકોર્ડ ખોલો", hi: "रिकॉर्ड खोलें" } as L3,
   note: { en: "Note (optional)", gu: "નોંધ (વૈકલ્પિક)", hi: "नोट (वैकल्पिक)" } as L3,
-  more: { en: "Show all", gu: "બધું બતાવો", hi: "सब दिखाएँ" } as L3,
-  of: { en: "showing", gu: "બતાવ્યા", hi: "दिखाए" } as L3,
+  more: { en: "more", gu: "વધુ બતાવો", hi: "और दिखाएँ" } as L3,
+  of: { en: "most urgent listed of", gu: "સૌથી તાત્કાલિક બતાવ્યા, કુલ", hi: "सबसे ज़रूरी दिखाए, कुल" } as L3,
+  loading: { en: "Loading the work queue…", gu: "કાર્યસૂચિ લોડ થઈ રહી છે…", hi: "कार्य सूची लोड हो रही है…" } as L3,
 };
 
 const fmt = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
@@ -192,10 +193,11 @@ export const OfficerDeskPage: React.FC = () => {
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
       <div>
         <h2 className="font-heading text-xl font-bold text-body">
-          {t3(UI.title, lang)} · {data?.district ? `${data.district} ${t3(UI.scope, lang)}` : t3(UI.statewide, lang)}
+          {t3(UI.title, lang)} · {(() => { const d = data ? data.district : user?.district_scope; return d ? `${d} ${t3(UI.scope, lang)}` : t3(UI.statewide, lang); })()}
         </h2>
         <p className="text-sm text-muted mt-1 max-w-3xl">{t3(UI.lead, lang)}{data ? ` ${fmt(data.as_of)}.` : ""}</p>
       </div>
+      {!data && !error && <p role="status" className="text-sm text-muted">{t3(UI.loading, lang)}</p>}
       {error && <div role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</div>}
       {data && (
         <>
@@ -246,11 +248,11 @@ export const OfficerDeskPage: React.FC = () => {
                     </ul>
                     {s.items.length > items.length && (
                       <button type="button" onClick={() => setAll((a) => ({ ...a, [sec.key]: true }))} className="mt-2 text-xs font-semibold text-brand-strong">
-                        {t3(UI.more, lang)} ({s.items.length})
+                        + {s.items.length - items.length} {t3(UI.more, lang)}
                       </button>
                     )}
                     {s.count > s.items.length && (
-                      <p className="text-[11px] text-muted mt-1">{t3(UI.of, lang)} {s.items.length} / {s.count.toLocaleString("en-IN")}</p>
+                      <p className="text-[11px] text-muted mt-1">{s.items.length} {t3(UI.of, lang)} {s.count.toLocaleString("en-IN")}</p>
                     )}
                   </>
                 )}

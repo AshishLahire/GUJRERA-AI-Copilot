@@ -75,7 +75,7 @@ function initialDark(): boolean {
 }
 
 const Shell: React.FC = () => {
-  const { lang, setLang, user } = useSaathi();
+  const { lang, setLang, user, restoring } = useSaathi();
   const [page, setPage] = useState<Page>(initialPage);
   const [dark, setDark] = useState<boolean>(initialDark);
   // A question from the overview page; the counter remounts the chat so each one starts fresh.
@@ -87,14 +87,15 @@ const Shell: React.FC = () => {
   useEffect(() => {
     fetchHealth().then((h) => setDemo(h.mock_projects > 0 || h.projects === 0)).catch(() => setDemo(true));
   }, []);
-  const NAV = navFor(user?.role, demo);
-  const current = ITEM[page] ?? NAV[0];
+  const NAV = restoring ? [] : navFor(user?.role, demo);
+  const current = ITEM[page] ?? ITEM.home;
   // An officer lands on their own work queue; leaving a role returns to that role's first page.
   const role = user?.role;
   useEffect(() => {
+    if (restoring) return; // wait until the saved session is checked
     if (role === "officer") setPage((p) => (p === "home" ? "today" : p));
     else setPage((p) => (p === "today" ? "home" : p));
-  }, [role]);
+  }, [role, restoring]);
 
   useEffect(() => {
     const open = (e: Event) => {
@@ -248,6 +249,8 @@ const Shell: React.FC = () => {
         </header>
 
         <main id="main" className="flex-1">
+          {restoring && <div className="max-w-7xl mx-auto px-6 py-10 text-sm text-muted" role="status">Loading your account…</div>}
+          {!restoring && (<>
           {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
           {page === "today" && <OfficerDeskPage />}
           {/* Chat and ad check stay mounted so a conversation survives switching pages. */}
@@ -268,6 +271,7 @@ const Shell: React.FC = () => {
           {page === "qpr" && <QprPage />}
           {page === "watch" && <WatchPage />}
           {page === "agreement" && <AgreementPage />}
+          </>)}
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">

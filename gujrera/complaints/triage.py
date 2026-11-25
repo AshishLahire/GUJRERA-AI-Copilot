@@ -140,7 +140,7 @@ def triage(repo: Repository, lang: str = "en", *, as_of: date | None = None, dis
     for c in rows:
         if c.project_id:
             per_project[c.project_id].append(c)
-    risks = _risks(repo, lang, today)
+    risks = _risks(repo, lang, today) if rows else {}  # nothing to rank: skip scoring every project
 
     items = []
     for c in rows:

@@ -27,6 +27,8 @@ interface SaathiState {
   setLang: (lang: Lang) => void;
   token: string | null;
   user: AuthUser | null;
+  /** A saved session is being checked after a reload: the role is not known yet. */
+  restoring: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
 }
@@ -70,7 +72,8 @@ export const SaathiProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     write(TOKEN_KEY, null);
   }, []);
 
-  const value = useMemo(() => ({ lang, setLang, token, user, login, logout }), [lang, setLang, token, user, login, logout]);
+  const restoring = !!token && !user;
+  const value = useMemo(() => ({ lang, setLang, token, user, restoring, login, logout }), [lang, setLang, token, user, restoring, login, logout]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };
 

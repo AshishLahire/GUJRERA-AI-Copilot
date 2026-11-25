@@ -6,7 +6,7 @@ import {
   fetchSelfServiceSummary,
   runAnalytics,
 } from "../api/gujrera";
-import { navigateTo } from "../api/gujrera";
+import { fetchHealth, navigateTo } from "../api/gujrera";
 import { AnalyticsCard, AnalyticsCardData } from "../components/AnalyticsCard";
 import { AccountBar } from "../components/AccountBar";
 import { Icon } from "./Brand";
@@ -172,6 +172,13 @@ const REPORTS = [
   "District-wise projects and delays",
   "Promoters with penalty or show-cause orders",
 ];
+/** Public GUJRERA records have registrations only: no complaints, agents, orders or promoter names for many
+ * projects. Offer the reports those records can answer. */
+const PUBLIC_REPORTS = [
+  "Lapsed or soon-ending registrations",
+  "Projects past their completion date",
+  "District-wise projects and delays",
+];
 
 export const OfficerPage: React.FC = () => {
   const { user, token, lang, logout } = useSaathi();
@@ -180,6 +187,10 @@ export const OfficerPage: React.FC = () => {
   const [result, setResult] = useState<AnalyticsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const allowed = user?.role === "officer";
+  const [demo, setDemo] = useState(true);
+  useEffect(() => {
+    fetchHealth().then((h) => setDemo(h.mock_projects > 0)).catch(() => setDemo(true));
+  }, []);
 
   const run = async (question: string) => {
     if (!token || !question.trim()) return;
@@ -225,7 +236,7 @@ export const OfficerPage: React.FC = () => {
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">{tr("reports", lang)}<En k="reports" className="normal-case tracking-normal" /></div>
             <div className="flex flex-wrap gap-2">
-              {REPORTS.map((r) => (
+              {(demo ? REPORTS : PUBLIC_REPORTS).map((r) => (
                 <button key={r} type="button" onClick={() => void run(r)} disabled={busy}
                   className="text-xs px-3 py-1.5 rounded-full border border-warm-border bg-card text-body hover:border-brand disabled:opacity-50">
                   {r}

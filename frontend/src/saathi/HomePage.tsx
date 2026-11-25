@@ -162,18 +162,28 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <Kpi k="kpiProjects" icon="building" value={data?.projects ?? null} />
           <Kpi k="kpiOngoing" icon="clock" value={ongoing} />
-          <Kpi
-            k="kpiDelayed"
-            icon="alert"
-            value={data?.ongoing_delayed ?? null}
-            note={data && ongoing ? `${Math.round((100 * data.ongoing_delayed) / ongoing)}% ${tr("ofTotal", "en")} ${ongoing}` : undefined}
-          />
-          <Kpi
-            k="kpiComplaintsOpen"
-            icon="complaint"
-            value={data?.complaints_open ?? null}
-            note={data ? `${tr("ofTotal", "en")} ${data.complaints}` : undefined}
-          />
+          {data && !data.is_mock ? (
+            <>
+              <Kpi k="kpiPastCompletion" icon="alert" value={data.past_completion}
+                note={ongoing !== null ? `${Math.round((100 * data.past_completion) / Math.max(1, data.projects))}% ${tr("ofTotal", "en")} ${data.projects.toLocaleString("en-IN")}` : undefined} />
+              <Kpi k="kpiEnding90" icon="calendar" value={data.ending_90_days} />
+            </>
+          ) : (
+            <>
+              <Kpi
+                k="kpiDelayed"
+                icon="alert"
+                value={data?.ongoing_delayed ?? null}
+                note={data && ongoing ? `${Math.round((100 * data.ongoing_delayed) / ongoing)}% ${tr("ofTotal", "en")} ${ongoing}` : undefined}
+              />
+              <Kpi
+                k="kpiComplaintsOpen"
+                icon="complaint"
+                value={data?.complaints_open ?? null}
+                note={data ? `${tr("ofTotal", "en")} ${data.complaints}` : undefined}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -183,6 +193,11 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
           <Panel title="byDistrict">
             <Bars rows={data.projects_by_district.map((d) => ({ label: d.district, value: d.count }))} />
           </Panel>
+          {!data.is_mock ? (
+            <Panel title="pastByDistrict">
+              <Bars rows={data.past_completion_by_district.map((d) => ({ label: d.district, value: d.count }))} />
+            </Panel>
+          ) : (
           <Panel title="complaintsByStatus">
             <Bars
               rows={COMPLAINT_STATUS.filter(([st]) => data.complaints_by_status[st]).map(([st, k]) => ({
@@ -196,6 +211,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
               }))}
             />
           </Panel>
+          )}
         </div>
       )}
 

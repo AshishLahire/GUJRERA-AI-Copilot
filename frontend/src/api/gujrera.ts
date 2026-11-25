@@ -199,6 +199,9 @@ export interface Overview {
   complaints_open: number;
   complaints_by_status: Record<string, number>;
   projects_by_district: { district: string; count: number }[];
+  past_completion: number;
+  past_completion_by_district: { district: string; count: number }[];
+  ending_90_days: number;
   is_mock: boolean;
 }
 

@@ -9,6 +9,7 @@ Alerts are built from the registry's own dated records, so no background job is 
   order_overdue  an order's deadline passed without compliance (gujrera.orders)
   reg_ending     the registration ends within 90 days and the project is not complete (Section 6)
   reg_expired    the registration ended while the project is still under construction
+  reg_passed     public records: the registered end date passed and no completion is on record
   complaints     new complaints filed on the project in a month (counts only)
 
 Unread = dated after the buyer last opened their alerts. Delivery by SMS or WhatsApp is a hand-off
@@ -57,6 +58,11 @@ T: dict[str, dict[str, str]] = {
     "reg_expired": {"en": "The registration ended on {date} while the project is still under construction.",
                     "gu": "પ્રોજેક્ટ હજી બાંધકામ હેઠળ છે ત્યારે નોંધણી {date} એ પૂરી થઈ ગઈ.",
                     "hi": "प्रोजेक्ट अभी निर्माणाधीन है और पंजीकरण {date} को समाप्त हो गया।"},
+    "reg_passed": {"en": "The registered completion date {date} has passed and no completion is on record{ext}. Ask the promoter for the completion certificate or the extension order. If your possession is late, you can claim interest for the delay (Section 18).",
+                   "gu": "નોંધાયેલી પૂર્ણતા તારીખ {date} વીતી ગઈ છે અને પૂર્ણતા નોંધાયેલ નથી{ext}. પ્રમોટર પાસે પૂર્ણતા પ્રમાણપત્ર અથવા મુદત વધારાનો આદેશ માંગો. પઝેશન મોડું હોય તો તમે વિલંબનું વ્યાજ માંગી શકો (કલમ 18).",
+                   "hi": "पंजीकृत पूर्णता तिथि {date} बीत चुकी है और पूर्णता दर्ज नहीं है{ext}। प्रमोटर से पूर्णता प्रमाणपत्र या विस्तार आदेश माँगें। कब्ज़ा देर से मिले तो आप देरी का ब्याज माँग सकते हैं (धारा 18)।"},
+    "ext_note": {"en": "; the registration number shows {n} extension(s)", "gu": "; નોંધણી નંબરમાં {n} મુદત વધારા દેખાય છે",
+                 "hi": "; पंजीकरण संख्या में {n} विस्तार दिखते हैं"},
     "complaints": {"en": "{n} new complaint(s) filed on this project in {month}.",
                    "gu": "{month} માં આ પ્રોજેક્ટ પર {n} નવી ફરિયાદ નોંધાઈ.",
                    "hi": "{month} में इस प्रोजेक्ट पर {n} नई शिकायतें दर्ज हुईं।"},
@@ -126,6 +132,14 @@ def project_events(session, project: Project, lang: str, *, since: date, today: 
             _t("order_overdue", lang, no=o.order_no, date=fmt_date(rec_c.due_on, lang)),
             [{"type": "order", "id": o.order_no, "is_mock": bool(o.is_mock)}, _act("63")])
 
+    if project.status == "unverified":
+        from gujrera.officer_desk import _extensions
+
+        n_ext = _extensions(project.rera_no)
+        ext = _t("ext_note", lang, n=n_ext) if n_ext else ""
+        # A standing condition, not a one-off event: keep it visible however long ago the date passed.
+        add(max(since, min(project.reg_valid_until, today)), "reg_passed", BAD,
+            _t("reg_passed", lang, date=fmt_date(project.reg_valid_until, lang), ext=ext), [rec, _act("18")])
     if project.status == "ongoing":
         if project.reg_valid_until < today:
             add(project.reg_valid_until, "reg_expired", BAD, _t("reg_expired", lang, date=fmt_date(project.reg_valid_until, lang)), [rec])

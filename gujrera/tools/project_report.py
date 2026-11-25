@@ -78,6 +78,14 @@ T: dict[str, dict[str, str]] = {
     "q_qpr": {"en": "Ask why {n} quarterly progress report(s) were not filed (Section 11).",
               "gu": "{n} ત્રિમાસિક પ્રગતિ અહેવાલ કેમ ફાઈલ થયા નથી તે પૂછો (કલમ 11).",
               "hi": "{n} तिमाही प्रगति रिपोर्ट क्यों दाखिल नहीं हुईं, यह पूछें (धारा 11)।"},
+    "past_unverified": {"en": "The completion date {date} has passed and no completion is on record{ext}.",
+                        "gu": "પૂર્ણતા તારીખ {date} વીતી ગઈ છે અને પૂર્ણતા નોંધાયેલ નથી{ext}.",
+                        "hi": "पूर्णता तिथि {date} बीत चुकी है और पूर्णता दर्ज नहीं है{ext}।"},
+    "ext_note": {"en": "; the registration number shows {n} extension(s)", "gu": "; નોંધણી નંબરમાં {n} મુદત વધારા દેખાય છે",
+                 "hi": "; पंजीकरण संख्या में {n} विस्तार दिखते हैं"},
+    "q_unverified": {"en": "Ask for the completion or occupancy certificate, or the extension order with the new date (Sections 6 and 7). If possession is late, you are entitled to interest (Section 18).",
+                     "gu": "પૂર્ણતા કે વપરાશ પ્રમાણપત્ર, અથવા નવી તારીખ સાથેનો મુદત વધારાનો આદેશ માંગો (કલમ 6 અને 7). પઝેશન મોડું હોય તો તમને વ્યાજનો હક છે (કલમ 18).",
+                     "hi": "पूर्णता या अधिभोग प्रमाणपत्र, या नई तारीख वाला विस्तार आदेश माँगें (धारा 6 और 7)। कब्ज़ा देर से मिले तो आपको ब्याज का हक है (धारा 18)।"},
     "q_delay": {"en": "Ask for the new possession date in writing in your agreement; for delay you are entitled to interest (Section 18).",
                 "gu": "નવી પઝેશન તારીખ કરારમાં લેખિતમાં માંગો; વિલંબ માટે તમને વ્યાજનો હક છે (કલમ 18).",
                 "hi": "नई पज़ेशन तारीख अनुबंध में लिखित में माँगें; देरी के लिए आपको ब्याज का हक है (धारा 18)।"},
@@ -192,6 +200,12 @@ def build_report(repo: Repository, project_id: int, lang: str = "en", *, as_of: 
             add("overdue", BAD if overdue > 180 else WARN, [rec], orig=fmt_date(proposed, lang), days=overdue)
         if moved <= 0 and overdue <= 0:
             add("on_time", GOOD, [rec], date=fmt_date(target, lang))
+    elif p["status"] == "unverified":  # public records: date passed, no completion recorded
+        from gujrera.officer_desk import _extensions
+
+        n_ext = _extensions(p["rera_no"])
+        add("past_unverified", BAD, [rec], date=fmt_date(valid_until, lang),
+            ext=_t("ext_note", lang, n=n_ext) if n_ext else "")
 
     # progress reports
     filed = [r for r in progress if r.get("filed_on")]
@@ -239,6 +253,8 @@ def build_report(repo: Repository, project_id: int, lang: str = "en", *, as_of: 
         ask("q_qpr", [r["source"] for r in missing[:4]] + [_act("11")], n=len(missing))
     if p["status"] == "ongoing" and (target > proposed or today > proposed):
         ask("q_delay", [rec, _act("18")])
+    if p["status"] == "unverified":
+        ask("q_unverified", [rec, _act("18")])
     if p["status"] == "ongoing" and valid_until <= today + timedelta(days=180):
         ask("q_reg", [rec, _act("6")], date=fmt_date(valid_until, lang))
     if complaints["open"]:

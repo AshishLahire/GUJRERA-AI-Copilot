@@ -723,6 +723,16 @@ def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
     complaints = dict(session.execute(select(Complaint.status, func.count()).group_by(Complaint.status)).all())
     districts = session.execute(select(Project.district, func.count()).group_by(Project.district)
                                 .order_by(func.count().desc())).all()
+    # Public records: the registered end date has passed and no completion is on record.
+    from datetime import timedelta
+
+    today = date.today()
+    past = (Project.status == "unverified") | ((Project.status == "ongoing") & (Project.reg_valid_until < today))
+    past_by_district = session.execute(select(Project.district, func.count()).where(past).group_by(Project.district)
+                                       .order_by(func.count().desc())).all()
+    ending = session.scalar(select(func.count()).select_from(Project).where(
+        Project.status == "ongoing", Project.reg_valid_until >= today,
+        Project.reg_valid_until <= today + timedelta(days=90))) or 0
     return {
         "projects": sum(by_status.values()),
         "projects_by_status": by_status,
@@ -733,6 +743,9 @@ def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
         "complaints_open": sum(n for st, n in complaints.items() if st not in CLOSED_COMPLAINT_STATUSES),
         "complaints_by_status": complaints,
         "projects_by_district": [{"district": d, "count": n} for d, n in districts],
+        "past_completion": sum(n for _, n in past_by_district),
+        "past_completion_by_district": [{"district": d, "count": n} for d, n in past_by_district],
+        "ending_90_days": ending,
         "is_mock": bool(session.scalar(select(func.count()).select_from(Project).where(Project.is_mock))),
     }
 

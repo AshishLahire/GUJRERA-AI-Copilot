@@ -18,10 +18,9 @@ const ROLE_SUGGESTIONS: Record<string, string[]> = {
   agent: ["My registration status", "My complaints"],
   citizen: ["My complaints", "File a complaint"],
   officer: [
-    "Which promoters have the most delayed projects?",
-    "Complaints by category",
-    "Oldest open complaints",
     "Lapsed or soon-ending registrations",
+    "Projects past their completion date",
+    "District-wise projects and delays",
   ],
 };
 
