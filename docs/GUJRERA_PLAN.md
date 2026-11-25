@@ -37,7 +37,16 @@ From the AI CoE AI Innovation Challenge page (gujarat.coe-iot.com). The jury eva
 | Scalability potential | 10% | Stateless API, Postgres-ready schema, async OCR/speech workers |
 | Implementation readiness | 10% | **A working demo, not slides**: this is why the prototype matters |
 | Security and privacy | 5% | Role scoping in code, read-only analytics, audit log, DPDP |
-| Cost and timeline | 5% | Already set in the deck: 16 weeks, ₹26 L |
+| Cost and timeline | 5% | The officials capped the paid POC at ₹7.5 L for about one month (meeting, Nov 2026); the proposal quotes ₹7.0 L over 4 weeks. The Stage 1 deck's 16 weeks / ₹26 L no longer applies. |
+
+### 1.1a Terms from the officials' meeting (Nov 2026)
+
+- Paid POC capped at ₹7.5 lakh, about one month, not going live; 10–20 test users (50+ officers overall).
+- Scope: a citizen assistant on public data (no sign-in to the RERA portal) and an authority assistant on internal data (CSV dumps or API). Out of scope: compliance, QPR processing, workflow automation, integration with existing systems.
+- Gujarati first. Open-weight models on-premise preferred (state data centre or GCP). Standalone login, no SSO.
+- "Analytics" means accurate data-driven answers, not charts. Sample questions are examples; officers may ask others.
+- Development data and a test set are shared only after the award. Proposals due 30 November.
+- Public search results carry no project address or promoter, so locality answers on public data match project names and say so; exact answers need the department's address field.
 
 ### 1.2 Commitments made in the Stage 1 deck
 
@@ -243,7 +252,7 @@ Scripts go in `scripts/eval_gujrera_*.py` and results in `docs/gujrera_eval.md`,
 
 ## 10. Milestones
 
-Build steps for the jury prototype, mapped to the four phases of the 16-week PoC promised in the deck. The prototype runs the same steps faster, on mock and public data; the PoC repeats them on GUJRERA's real data.
+Build steps for the jury prototype, mapped to the four phases of the 16-week PoC promised in the Stage 1 deck (since replaced by the 4-week, ₹7.0 L POC plan in the proposal). The prototype runs the same steps faster, on mock and public data; the PoC repeats them on GUJRERA's real data.
 
 | Step | Deliverable | Depends on | Effort | Deck PoC phase |
 |:-:|:--|:--|:-:|:--|

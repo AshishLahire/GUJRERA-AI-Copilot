@@ -44,15 +44,46 @@ LOCALITIES: dict[tuple[str, str], list[tuple[str, str, str]]] = {
 }
 
 
+# More well-known areas, recognised in questions but never assigned to test projects (the seed above uses
+# LOCALITIES only). On public records, which carry no address, they drive a name-based answer.
+MORE_LOCALITIES: dict[str, list[tuple[str, str, str]]] = {
+    "Ahmedabad": [("Gota", "ગોતા", "गोता"), ("Chandkheda", "ચાંદખેડા", "चांदखेडा"),
+                  ("Vastrapur", "વસ્ત્રાપુર", "वस्त्रापुर"), ("Bodakdev", "બોડકદેવ", "बोडकदेव"),
+                  ("Naranpura", "નારણપુરા", "नारणपुरा"), ("Maninagar", "મણિનગર", "मणिनगर"),
+                  ("Nikol", "નિકોલ", "निकोल"), ("Naroda", "નરોડા", "नरोडा"), ("Vatva", "વટવા", "वटवा"),
+                  ("Shilaj", "શીલજ", "शीलज"), ("Science City", "સાયન્સ સિટી", "साइंस सिटी")],
+    "Gandhinagar": [("Koba", "કોબા", "कोबा"), ("Randesan", "રાંદેસણ", "रांदेसन"), ("Vavol", "વાવોલ", "वावोल"),
+                    ("Adalaj", "અડાલજ", "अडालज")],
+    "Surat": [("Varachha", "વરાછા", "वराछा"), ("Katargam", "કતારગામ", "कतारगाम"), ("Althan", "અલથાણ", "अलथान"),
+              ("Dumas", "ડુમસ", "डुमस"), ("Udhna", "ઉધના", "उधना"), ("Jahangirpura", "જહાંગીરપુરા", "जहांगीरपुरा")],
+    "Vadodara": [("Manjalpur", "માંજલપુર", "मांजलपुर"), ("Gorwa", "ગોરવા", "गोरवा"), ("Harni", "હરણી", "हरणी")],
+    "Rajkot": [("Kothariya", "કોઠારિયા", "कोठारिया"), ("Nana Mava", "નાના મવા", "नाना मवा")],
+}
+
+
+def _all_localities() -> list[tuple[str, tuple[str, str, str]]]:
+    """(district, (en, gu, hi)) for every known locality."""
+    out = [(d, names) for (d, _t), group in LOCALITIES.items() for names in group]
+    out += [(d, names) for d, group in MORE_LOCALITIES.items() for names in group]
+    return out
+
+
 def locality_names() -> dict[str, str]:
     """Every spelling (English lower-case, Gujarati, Hindi) -> locality name in the registry."""
     out: dict[str, str] = {}
-    for names in LOCALITIES.values():
-        for en, gu, hi in names:
-            out[en.lower()] = en
-            out[gu] = en
-            out[hi] = en
+    for _d, (en, gu, hi) in _all_localities():
+        out[en.lower()] = en
+        out[gu] = en
+        out[hi] = en
     return out
+
+
+def locality_info(name: str) -> tuple[str, str, str, str] | None:
+    """(district, en, gu, hi) for a locality name."""
+    for d, (en, gu, hi) in _all_localities():
+        if en == name:
+            return d, en, gu, hi
+    return None
 
 
 def seed_authority(session: Session, as_of: date = DEFAULT_AS_OF, seed: int = 2027) -> dict[str, int]:

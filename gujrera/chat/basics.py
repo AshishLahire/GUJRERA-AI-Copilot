@@ -138,6 +138,12 @@ LOCAL = {
     "more": {"en": "Showing {shown} of {n}; ask for a narrower list, e.g. only ongoing ones.",
              "gu": "{n} માંથી {shown} બતાવ્યા; ટૂંકી યાદી માટે પૂછો, દા.ત. ફક્ત ચાલુ પ્રોજેક્ટ.",
              "hi": "{n} में से {shown} दिखाए; छोटी सूची के लिए पूछें, जैसे केवल चालू प्रोजेक्ट।"},
+    "public_head": {"en": "{place}: the public GUJRERA search results do not give project addresses, so these are the {n} registered {projects} in {district} district whose name mentions {place}. Projects in {place} with other names are not listed.",
+                    "gu": "{place}: GUJRERA ના જાહેર શોધ પરિણામોમાં પ્રોજેક્ટનું સરનામું નથી, તેથી આ {district} જિલ્લાના એવા {n} નોંધાયેલા પ્રોજેક્ટ છે જેમના નામમાં {place} છે. {place} માં બીજા નામવાળા પ્રોજેક્ટ અહીં નથી.",
+                    "hi": "{place}: GUJRERA के सार्वजनिक खोज परिणामों में प्रोजेक्ट का पता नहीं है, इसलिए ये {district} जिले के वे {n} पंजीकृत प्रोजेक्ट हैं जिनके नाम में {place} है। {place} में दूसरे नाम वाले प्रोजेक्ट यहाँ नहीं हैं।"},
+    "public_none": {"en": "The public GUJRERA search results do not give project addresses, so I cannot list projects in {place} yet. {district} district has {total} registered projects, {ongoing} of them ongoing. Ask about a project by name or RERA number.",
+                    "gu": "GUJRERA ના જાહેર શોધ પરિણામોમાં પ્રોજેક્ટનું સરનામું નથી, તેથી હજી {place} ના પ્રોજેક્ટની યાદી આપી શકતો નથી. {district} જિલ્લામાં {total} નોંધાયેલા પ્રોજેક્ટ છે, તેમાંથી {ongoing} ચાલુ છે. પ્રોજેક્ટના નામ કે RERA નંબરથી પૂછો.",
+                    "hi": "GUJRERA के सार्वजनिक खोज परिणामों में प्रोजेक्ट का पता नहीं है, इसलिए अभी {place} के प्रोजेक्ट की सूची नहीं दे सकता। {district} जिले में {total} पंजीकृत प्रोजेक्ट हैं, जिनमें से {ongoing} चालू हैं। प्रोजेक्ट के नाम या RERA नंबर से पूछें।"},
     "none": {"en": "No RERA-registered projects found in {place} in the records available to me.",
              "gu": "મારી પાસેના રેકોર્ડમાં {place} માં કોઈ RERA નોંધાયેલ પ્રોજેક્ટ મળ્યો નથી.",
              "hi": "मेरे पास के रिकॉर्ड में {place} में कोई RERA पंजीकृत प्रोजेक्ट नहीं मिला।"},
@@ -182,12 +188,12 @@ def _clean(name: str | None) -> str:
 
 def _place(locality: str, lang: str) -> str:
     """The locality in the answer's language (from the fixed list), else as stored."""
-    from gujrera.authority_seed import LOCALITIES
+    from gujrera.authority_seed import locality_info
 
-    for names in LOCALITIES.values():
-        for en, gu, hi in names:
-            if en == locality:
-                return {"gu": gu, "hi": hi}.get(lang, en)
+    info = locality_info(locality)
+    if info:
+        _d, en, gu, hi = info
+        return {"gu": gu, "hi": hi}.get(lang, en)
     return locality
 
 
@@ -223,11 +229,45 @@ def locality_list(repo: Repository, locality: str, lang: str, limit: int = 10
     card: dict[str, Any] = {"type": "locality", "locality": locality,
                             "projects": [{"id": p.id, "name": p.name, "rera_no": p.rera_no, "status": p.status}
                                          for p in projects]}
+    district = None
+    if not projects:
+        from sqlalchemy import func, or_
+
+        from gujrera.authority_seed import locality_info
+
+        info = locality_info(locality)
+        # Public search results carry no address: if no project in the district has a locality, match names.
+        if info and not repo.s.scalar(select(func.count()).select_from(Project).where(
+                Project.district == info[0], Project.locality.is_not(None))):
+            district, en, gu, _hi = info
+            projects = repo.s.scalars(select(Project).where(
+                Project.district == district,
+                or_(func.upper(Project.name).like(f"%{en.upper()}%"), Project.name_gu.like(f"%{gu}%")))
+                .order_by(Project.status != "ongoing", Project.name)).all()
+            card["projects"] = [{"id": p.id, "name": p.name, "rera_no": p.rera_no, "status": p.status} for p in projects]
+            card["match"] = "name"
+            if not projects:
+                from gujrera.i18n import word
+
+                total = repo.s.scalar(select(func.count()).select_from(Project).where(Project.district == district))
+                ongoing = repo.s.scalar(select(func.count()).select_from(Project).where(
+                    Project.district == district, Project.status == "ongoing"))
+                return [Sentence(_lt("public_none", lang, place=_place(locality, lang), district=word(district, lang),
+                                     total=total, ongoing=ongoing),
+                                 [{"type": "district_projects", "id": district, "is_mock": False}],
+                                 "locality_public_none")], card, []
     if not projects:
         return [Sentence(_lt("none", lang, place=_place(locality, lang)), [], "locality_none")], card, []
     stat = {"type": "locality", "id": locality, "is_mock": any(p.is_mock for p in projects)}
-    out = [Sentence(_lt("head", lang, place=_place(locality, lang), n=len(projects),
-                        projects="project" if len(projects) == 1 else "projects"), [stat], "locality_head")]
+    if district:
+        from gujrera.i18n import word
+
+        out = [Sentence(_lt("public_head", lang, place=_place(locality, lang), n=len(projects),
+                            district=word(district, lang),
+                            projects="project" if len(projects) == 1 else "projects"), [stat], "locality_head")]
+    else:
+        out = [Sentence(_lt("head", lang, place=_place(locality, lang), n=len(projects),
+                            projects="project" if len(projects) == 1 else "projects"), [stat], "locality_head")]
     out += _project_lines(repo, list(projects), lang, limit)
     if len(projects) > limit:
         out.append(Sentence(_lt("more", lang, shown=limit, n=len(projects)), [], "locality_more"))
