@@ -83,11 +83,12 @@ const Shell: React.FC = () => {
   const [calcSeed, setCalcSeed] = useState<{ seed: CalcSeed; n: number } | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
   // Label the data honestly: demo records, or records imported from the public GUJRERA portal.
-  const [demo, setDemo] = useState<boolean>(true);
+  // null until the health check answers: show neither label nor demo-only pages before we know.
+  const [demo, setDemo] = useState<boolean | null>(null);
   useEffect(() => {
     fetchHealth().then((h) => setDemo(h.mock_projects > 0 || h.projects === 0)).catch(() => setDemo(true));
   }, []);
-  const NAV = restoring ? [] : navFor(user?.role, demo);
+  const NAV = restoring ? [] : navFor(user?.role, demo === true);
   const current = ITEM[page] ?? ITEM.home;
   // An officer lands on their own work queue; leaving a role returns to that role's first page.
   const role = user?.role;
@@ -177,10 +178,12 @@ const Shell: React.FC = () => {
           })}
         </nav>
         <div className="px-5 py-4 border-t border-warm-border text-[11px] text-muted leading-relaxed">
+          {demo !== null && (<>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-border bg-accent-surface px-2 py-0.5 font-semibold text-accent-amber-strong mb-2">
             <span className="w-1.5 h-1.5 rounded-full bg-brand" /> {tr(demo ? "demoData" : "publicData", "en")}
           </span>
           <p>{tr(demo ? "footer" : "footerPublic", "en")}</p>
+          </>)}
         </div>
       </aside>
 
@@ -275,7 +278,7 @@ const Shell: React.FC = () => {
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">
-          <div className="px-4 sm:px-6 py-4 text-xs text-muted">{tr(demo ? "footer" : "footerPublic", lang)}</div>
+          <div className="px-4 sm:px-6 py-4 text-xs text-muted">{demo !== null && tr(demo ? "footer" : "footerPublic", lang)}</div>
         </footer>
       </div>
     </div>
