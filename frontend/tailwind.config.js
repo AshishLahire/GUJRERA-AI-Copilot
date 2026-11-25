@@ -47,6 +47,7 @@ export default {
         page: v("--bg-page"),
         card: v("--bg-card"),
         subtle: v("--bg-subtle"),
+        sidebar: v("--bg-sidebar"),
         skeleton: v("--bg-skeleton"),
         warm: {
           border: v("--border-warm"),

@@ -41,7 +41,7 @@ const TableView: React.FC<{ rows: { label: string; value: number }[]; head: [str
 };
 
 export const ChartCard: React.FC<{ title: string; sub?: string; children: React.ReactNode; className?: string }> = ({ title, sub, children, className = "" }) => (
-  <section className={`rounded-xl border border-warm-border bg-card p-5 ${className}`}>
+  <section className={`warm-card p-5 ${className}`}>
     <h3 className="font-heading text-sm font-bold text-body">{title}</h3>
     {sub && <p className="text-xs text-muted mt-0.5 leading-relaxed">{sub}</p>}
     <div className="mt-4">{children}</div>

@@ -145,7 +145,7 @@ const Shell: React.FC = () => {
       </a>
 
       {/* Sidebar (desktop) */}
-      <aside className="print:!hidden hidden lg:flex w-64 shrink-0 flex-col border-r border-warm-border bg-card sticky top-0 h-screen">
+      <aside className="print:!hidden hidden lg:flex w-64 shrink-0 flex-col border-r border-warm-border bg-sidebar sticky top-0 h-screen">
         <button type="button" onClick={() => setPage(role === "officer" ? "today" : "home")} className="h-16 px-5 flex items-center gap-3 border-b border-warm-border text-left">
           <BrandMark className="w-8 h-8" />
           <span className="flex flex-col leading-tight">
@@ -163,7 +163,7 @@ const Shell: React.FC = () => {
                 onClick={() => setPage(n.page)}
                 aria-current={active ? "page" : undefined}
                 className={`relative flex items-start gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                  active ? "bg-subtle text-body font-semibold" : "text-muted hover:text-body hover:bg-subtle"
+                  active ? "bg-card text-body font-semibold shadow-sm ring-1 ring-warm-border" : "text-muted hover:text-body hover:bg-card/70"
                 }`}
               >
                 {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand" aria-hidden="true" />}

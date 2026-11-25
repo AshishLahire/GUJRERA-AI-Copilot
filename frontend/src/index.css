@@ -3,16 +3,19 @@
 @tailwind utilities;
 
 @layer base {
-  /* GujRERA Saathi palette: an all-white, neutral dashboard. Yellow is an accent only (active menu
-     marker, icon badges, logo, chart bars, small tags); main buttons are near-black.
+  /* GujRERA Saathi palette: a warm, light-yellow dashboard. Cream page, pale-yellow sidebar, white cards
+     with warm hairlines; saffron yellow for accents (active menu, icon badges, logo, charts); main
+     buttons are near-black.
      Token names are kept from the Pramaan theme so existing components restyle without changes. */
   :root {
-    --bg-page: #FFFFFF;
+    --bg-page: #FFFCF0;
     --bg-card: #FFFFFF;
-    --bg-subtle: #F7F7F8;
-    --bg-skeleton: #EEEEF0;
-    --border-warm: #E6E6EA;
-    --border-warm-strong: #D3D3D9;
+    --bg-subtle: #FFF6D9;
+    --bg-skeleton: #F6EED3;
+    --bg-sidebar: #FFF7DC;
+    --bg-hero: linear-gradient(120deg, #FFF1BF 0%, #FFF8DD 55%, #FFFCF0 100%);
+    --border-warm: #F0E5C4;
+    --border-warm-strong: #E3D09A;
     --text-body: #14161B;
     --text-muted: #5E6370;
     --accent-surface: #FFF8DB;
@@ -25,13 +28,13 @@
     --brand-strong: #8A5D00;
     --brand-soft: #FFF6D1;
     --on-brand: #14161B;
-    --card-shadow: 0 1px 2px 0 rgba(20, 22, 27, 0.04);
-    /* Charts: one validated blue for single-series bars (3:1+ on the card), hairline grid and axis */
-    --chart-1: #2a78d6;
-    --chart-1-strong: #1c5cab;
-    --chart-grid: #ECECEF;
-    --chart-axis: #C9CBD1;
-    --chart-cursor: rgba(20, 22, 27, 0.05);
+    --card-shadow: 0 1px 2px 0 rgba(122, 81, 0, 0.05), 0 6px 16px -10px rgba(122, 81, 0, 0.18);
+    /* Charts: one validated amber for single-series bars (3:1+ on the card), hairline grid and axis */
+    --chart-1: #C98500;
+    --chart-1-strong: #8A5D00;
+    --chart-grid: #F3ECD6;
+    --chart-axis: #E0D3A8;
+    --chart-cursor: rgba(201, 133, 0, 0.08);
   }
 
   .dark {
@@ -39,6 +42,8 @@
     --bg-card: #16181C;
     --bg-subtle: #1C1E23;
     --bg-skeleton: #26292F;
+    --bg-sidebar: #16181C;
+    --bg-hero: linear-gradient(120deg, #2D2510 0%, #1F1C14 55%, #16181C 100%);
     --border-warm: #2A2D34;
     --border-warm-strong: #3A3E47;
     --text-body: #ECEDEF;
@@ -54,11 +59,11 @@
     --brand-soft: #2D2510;
     --on-brand: #14161B;
     --card-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-    --chart-1: #3987e5;
-    --chart-1-strong: #86b6ef;
+    --chart-1: #C98500;
+    --chart-1-strong: #F5C842;
     --chart-grid: #24272D;
     --chart-axis: #3A3E46;
-    --chart-cursor: rgba(255, 255, 255, 0.06);
+    --chart-cursor: rgba(245, 180, 0, 0.08);
   }
 
   body {
@@ -89,4 +94,11 @@
   .report-sheet > section, .report-sheet > div { margin-top: 0.9rem !important; }
   .report-sheet footer { margin-top: 0.6rem !important; break-before: avoid; }
   .report-sheet h3 { margin-bottom: 0.5rem !important; }
+}
+
+/* Hero band at the top of a dashboard */
+.hero-band {
+  background: var(--bg-hero);
+  border: 1px solid var(--border-warm);
+  border-radius: 16px;
 }

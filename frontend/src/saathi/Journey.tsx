@@ -85,11 +85,11 @@ export const Journey: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pag
   const { lang } = useSaathi();
   return (
     <section aria-labelledby="journey-h">
-      <h2 id="journey-h" className="font-heading text-base font-bold text-body">{t3(HEAD, lang)}</h2>
+      <h2 id="journey-h" className="font-heading text-base font-bold text-body"><span className="inline-block w-1 h-4 rounded-full bg-brand mr-2 align-[-2px]" aria-hidden="true" />{t3(HEAD, lang)}</h2>
       <p className="text-xs text-muted mt-0.5 mb-3">{t3(SUB, lang)}</p>
       <ol className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         {STEPS.map((s, i) => (
-          <li key={i} className="rounded-xl border border-warm-border bg-card p-4 flex flex-col gap-2">
+          <li key={i} className="warm-card p-4 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="w-7 h-7 shrink-0 rounded-full bg-brand text-primary-text font-bold text-sm flex items-center justify-center" aria-hidden="true">{i + 1}</span>
               <span className="w-7 h-7 shrink-0 rounded-lg bg-brand-soft text-brand-strong flex items-center justify-center"><Icon name={s.icon} className="w-4 h-4" /></span>

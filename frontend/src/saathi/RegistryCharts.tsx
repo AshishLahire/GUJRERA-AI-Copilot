@@ -58,7 +58,7 @@ export const RegistryCharts: React.FC<{ data: Overview; lang: Lang }> = ({ data,
   const thisYear = String(new Date().getFullYear());
   return (
     <section aria-labelledby="registry-charts" className="flex flex-col gap-4">
-      <h2 id="registry-charts" className="font-heading text-base font-bold text-body">{t(T.section, lang)}</h2>
+      <h2 id="registry-charts" className="font-heading text-base font-bold text-body"><span className="inline-block w-1 h-4 rounded-full bg-brand mr-2 align-[-2px]" aria-hidden="true" />{t(T.section, lang)}</h2>
       <ChartCard title={t(T.standing, lang)} sub={t(T.standingSub, lang)}>
         <SegmentedBar parts={parts} total={total} />
       </ChartCard>

@@ -27,7 +27,7 @@ const COMPLAINT_STATUS: [string, StringKey][] = [
 const Panel: React.FC<{ title: StringKey; children: React.ReactNode; className?: string }> = ({ title, children, className = "" }) => {
   const { lang } = useSaathi();
   return (
-    <section className={`rounded-xl border border-warm-border bg-card ${className}`}>
+    <section className={`warm-card ${className}`}>
       <h2 className="px-5 pt-4 pb-3 border-b border-warm-border font-heading text-sm font-bold text-body">
         {tr(title, lang)}
         <En k={title} className="text-muted" />
@@ -40,7 +40,7 @@ const Panel: React.FC<{ title: StringKey; children: React.ReactNode; className?:
 const Kpi: React.FC<{ k: StringKey; icon: string; value: number | null; note?: string }> = ({ k, icon, value, note }) => {
   const { lang } = useSaathi();
   return (
-    <div className="rounded-xl border border-warm-border bg-card p-4 flex flex-col gap-3">
+    <div className="warm-card p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div className="text-xs font-medium text-muted leading-snug">
           {tr(k, lang)}
@@ -101,41 +101,41 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
 
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      {/* Intro */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-2xl">
-          <p className="text-sm text-muted leading-relaxed">{tr("overviewSub", lang)}</p>
-          {lang !== "en" && <p lang="en" className="text-xs text-muted opacity-80 mt-0.5">{tr("overviewSub", "en")}</p>}
-        </div>
-        {data?.is_mock && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-border bg-accent-surface px-2.5 py-1 text-xs font-semibold text-accent-amber-strong">
+      {/* Hero: what this is, which data, and the question box */}
+      <section className="hero-band p-6 sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent-amber-strong">
+              {{ en: "Gujarat Real Estate Regulatory Authority", gu: "ગુજરાત રિયલ એસ્ટેટ નિયમનકારી સત્તામંડળ", hi: "गुजरात रियल एस्टेट विनियामक प्राधिकरण" }[lang]}
+            </p>
+            <h2 className="mt-2 font-heading text-2xl sm:text-3xl font-bold text-body leading-tight">
+              {{ en: "Every RERA answer, in your language", gu: "તમારા ઘરનો દરેક જવાબ, તમારી ભાષામાં", hi: "हर RERA जवाब, आपकी भाषा में" }[lang]}
+            </h2>
+            <p className="mt-2 text-sm text-muted leading-relaxed">{tr("overviewSub", lang)}</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-border bg-card px-3 py-1 text-xs font-semibold text-accent-amber-strong shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-brand" />
-            {tr("demoData", lang)}{lang !== "en" && ` · ${tr("demoData", "en")}`}
+            {data?.is_mock
+              ? tr("demoData", lang)
+              : `${tr("publicData", lang)}${data ? ` · ${data.projects.toLocaleString("en-IN")} ${{ en: "projects", gu: "પ્રોજેક્ટ", hi: "प्रोजेक्ट" }[lang]}` : ""}`}
           </span>
-        )}
-      </div>
-
-      {/* Ask */}
-      <section className="rounded-xl border border-warm-border bg-card p-5">
-        <label htmlFor="overview-ask" className="block font-heading text-sm font-bold text-body">
-          {tr("askTitle", lang)}
-          <En k="askTitle" className="text-muted" />
-        </label>
+        </div>
         <form
-          className="mt-3 flex gap-2"
+          className="mt-5 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             if (q.trim()) onAsk(q.trim());
           }}
         >
+          <label htmlFor="overview-ask" className="sr-only">{tr("askTitle", lang)}</label>
           <input
             id="overview-ask"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={withName(tr("heroPlaceholder", lang))}
-            className="flex-1 min-w-0 rounded-lg border border-warm-border bg-card text-body px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+            className="flex-1 min-w-0 rounded-xl border border-warm-strong bg-card text-body px-4 py-3 text-sm shadow-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/40"
           />
-          <button type="submit" className="px-5 rounded-lg bg-primary-bg text-primary-text text-sm font-semibold leading-tight hover:opacity-90">
+          <button type="submit" className="px-6 rounded-xl bg-primary-bg text-primary-text text-sm font-semibold leading-tight hover:opacity-90 shadow-sm">
             {tr("ask", lang)}
             <En k="ask" className="font-normal" />
           </button>
@@ -146,7 +146,7 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
               key={ex}
               type="button"
               onClick={() => onAsk(ex)}
-              className="text-xs px-3 py-1.5 rounded-full border border-warm-border text-muted hover:text-body hover:border-warm-strong"
+              className="text-xs px-3 py-1.5 rounded-full border border-warm-border bg-card/80 text-body hover:border-brand"
             >
               {ex}
             </button>

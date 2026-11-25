@@ -204,8 +204,11 @@ export const OfficerDeskPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      <div>
-        <h2 className="font-heading text-xl font-bold text-body">
+      <div className="hero-band p-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-accent-amber-strong">
+          {{ en: "GUJRERA officer", gu: "GUJRERA અધિકારી", hi: "GUJRERA अधिकारी" }[lang]}
+        </p>
+        <h2 className="mt-1 font-heading text-2xl font-bold text-body">
           {t3(UI.title, lang)} · {(() => { const d = data ? data.district : user?.district_scope; return d ? `${d} ${t3(UI.scope, lang)}` : t3(UI.statewide, lang); })()}
         </h2>
         <p className="text-sm text-muted mt-1 max-w-3xl">{t3(UI.lead, lang)}{data ? ` ${fmt(data.as_of)}.` : ""}</p>
@@ -216,7 +219,7 @@ export const OfficerDeskPage: React.FC = () => {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
             {SECTIONS.map((sec) => (
-              <a key={sec.key} href={`#desk-${sec.key}`} className="rounded-xl border border-warm-border bg-card p-3 hover:border-warm-strong">
+              <a key={sec.key} href={`#desk-${sec.key}`} className="warm-card p-3 hover:border-warm-strong">
                 <div className="flex items-center gap-2 text-muted"><Icon name={sec.icon} className="w-4 h-4" /></div>
                 <div className="font-heading text-2xl font-bold text-body mt-1">{data.sections[sec.key].count.toLocaleString("en-IN")}</div>
                 <div className="text-xs text-muted leading-snug">{t3(sec.title, lang)}</div>
@@ -245,7 +248,7 @@ export const OfficerDeskPage: React.FC = () => {
             const s = data.sections[sec.key];
             const items = all[sec.key] ? s.items : s.items.slice(0, 8);
             return (
-              <section key={sec.key} id={`desk-${sec.key}`} className="rounded-2xl border border-warm-border bg-card p-5">
+              <section key={sec.key} id={`desk-${sec.key}`} className="warm-card p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="font-heading font-bold text-body flex items-center gap-2">
