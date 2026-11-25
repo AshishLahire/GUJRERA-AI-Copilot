@@ -589,6 +589,36 @@ def looks_like_report_request(text_lc: str) -> bool:
     return any(c in text_lc for c in ANALYTICS_CUES)
 
 
+def _name_in_question(name: str, message: str) -> bool:
+    """The name the model picked out is really the one asked about: written in the question (romanised or by
+    sound for Gujarati/Hindi), and not just part of a longer name in it. A one-word name like "Skyline" must not
+    stand for "Sunrise Skyline Towers"."""
+    from rapidfuzz import fuzz
+
+    from gujrera.chat.understand import _INDIC, _stands_alone, indic_to_latin, sound_key
+
+    nl = re.sub(r"\s+", " ", name or "").strip().lower()
+    ml = re.sub(r"\s+", " ", message or "").strip().lower()
+    if not nl:
+        return False
+    words = nl.split()
+    if re.search(rf"(?<!\w){re.escape(nl)}(?!\w)", ml):
+        return len(words) > 1 or _stands_alone(nl, ml)
+    if _INDIC.search(ml):
+        key = sound_key(indic_to_latin(ml)).split()
+        nk = sound_key(nl).split()
+        hits = [i for i in range(len(key) - len(nk) + 1) if nk and key[i:i + len(nk)] == nk]
+        if not hits:
+            return False
+        if len(nk) > 1:
+            return True
+        filler = {sound_key(indic_to_latin(w)) for w in ("નું", "ની", "નો", "ના", "માં", "વિશે", "का", "की", "के",
+                                                          "में", "बारे", "પ્રોજેક્ટ", "प्रोजेक्ट")} | {""}
+        return any(all(key[j] in filler for j in (i - 1, i + 1) if 0 <= j < len(key)) for i in hits)
+    # romanised question with a small typo the model corrected ("bansari skyveiw")
+    return len(words) > 1 and fuzz.partial_ratio(nl, ml) >= 90
+
+
 def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Repository, lang: str) -> Reply | None:
     """Turn the model's classification into a normal, record-based answer (or None to fall back)."""
     intent = routed.intent
@@ -609,6 +639,8 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
         if not routed.name:
             return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])
         cands = find_candidates(repo.s, routed.name.lower(), threshold=90)
+        if not _name_in_question(routed.name, message):
+            cands = []  # the model shortened or changed the name ("Sunrise Skyline Towers" -> "Skyline")
         if intent == "promoter" and any(c.kind == "promoter" for c in cands):
             cands = [c for c in cands if c.kind == "promoter"]
         focus = {"possession": "possession", "complaints": "complaints"}.get(intent)

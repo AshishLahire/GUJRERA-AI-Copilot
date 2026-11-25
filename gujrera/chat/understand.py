@@ -120,7 +120,12 @@ DISTRICT_WORDS = {
 
 
 def _core(name: str | None) -> str:
-    return re.sub(r"\s*\((?:demo|ડેમો)\)\s*$", "", name or "", flags=re.IGNORECASE).strip().lower()
+    name = re.sub(r"\s+", " ", name or "")  # the registry has names with double spaces
+    return re.sub(r"\s*\((?:demo|ડેમો)\)\s*$", "", name, flags=re.IGNORECASE).strip().lower()
+
+
+def _spaced(text: str | None) -> str:
+    return re.sub(r"\s+", " ", text or "").strip().lower()
 
 
 def _score(variant: str, text_lc: str) -> float:
@@ -129,7 +134,14 @@ def _score(variant: str, text_lc: str) -> float:
     if re.search(rf"(?<![\w]){re.escape(variant)}(?![\w])", text_lc):
         return 100.0
     if len(variant) >= 8 and stem_present(variant, text_lc):
-        return float(fuzz.partial_ratio(variant, text_lc))
+        # Every word of the name must be (nearly) a word of the question: typos pass ("mangal sqare"), but
+        # "Sunrise Skyz" is not in "sunrise skyline towers".
+        q_words = _WORD.findall(text_lc)
+        for w in _WORD.findall(variant):
+            if len(w) >= 3 and not any(fuzz.ratio(w, q) >= 80 for q in q_words):
+                return 0.0
+        # "RHYTHM SKY" inside "the rhythm skyline": a candidate, but below the name written in full
+        return min(99.0, float(fuzz.partial_ratio(variant, text_lc)))
     return 0.0
 
 
@@ -190,12 +202,31 @@ def indic_to_latin(text: str | None) -> str:
     return "".join(out)
 
 
+# Words in many project names. A name made only of these (and numbers), such as "86 Residency", is matched by
+# sound only if written out in full: otherwise "બ્લૂ લગૂન રેસિડેન્સી" (a made-up "Blue Lagoon Residency") would
+# be answered as the real project "86 Residency".
+GENERIC_NAME_WORDS = """residency residence residences heights height towers tower homes home apartment apartments
+park plaza city greens green enclave avenue complex arcade square villa villas bungalow bungalows bunglows palace
+skyline sky view hub mall market point house houses nagar society township estate gardens garden residential
+commercial shops shop flats flat tenament tenaments duplex rowhouse row ews lig mig plots plot business centre
+center corporate hights avenue elegance paradise royal galaxy""".split()
+
+
+def _generic_sounds() -> set[str]:
+    return {sound_key(w) for w in GENERIC_NAME_WORDS}
+
+
 def _sounds_contained(name: str, query_key: list[str]) -> bool:
     """All words of the name, by sound, appear in a row in the query (used for Gujarati/Hindi questions
-    about names the registry has only in English). Short names are skipped to avoid false matches."""
+    about names the registry has only in English). Short names are skipped to avoid false matches, and so
+    are names made only of generic words and numbers."""
     nk = sound_key(name).split()
     if not nk or len("".join(nk)) < 5:
         return False
+    if re.search(r"\d", name):
+        return False  # the sound key drops numbers: "86 Residency" would match any "... Residency"
+    if all(w in _generic_sounds() for w in nk) and len(nk) == 1:
+        return False  # a one-word generic name ("Residency") is not matched by sound
     return any(query_key[i:i + len(nk)] == nk for i in range(len(query_key) - len(nk) + 1))
 
 
@@ -250,7 +281,7 @@ def _name_index(session: Session) -> _NameIndex:
                               None if p.name_gu else tuple(sound_key(_core(p.name)).split())))
     for p in session.scalars(select(Project)):
         entries.append(_Entry("project", p.id, p.name, p.district,
-                              (p.name.lower(), (p.name_gu or "").lower(), gu_to_deva(p.name_gu).lower()), _core(p.name),
+                              (_spaced(p.name), _spaced(p.name_gu), _spaced(gu_to_deva(p.name_gu))), _core(p.name),
                               None if p.name_gu else tuple(sound_key(_core(p.name)).split())))
     by_prefix: dict[str, set[int]] = {}
     by_sound: dict[str, set[int]] = {}
@@ -291,6 +322,7 @@ def _stands_alone(word: str, text_lc: str) -> bool:
 
 
 def find_candidates(session: Session, text_lc: str, threshold: float = FUZZY_THRESHOLD) -> list[Candidate]:
+    text_lc = _spaced(text_lc)
     idx = _name_index(session)
     # Gujarati/Hindi question, English-only registry name: compare by sound.
     latin_key = sound_key(indic_to_latin(text_lc)).split() if _INDIC.search(text_lc) else []

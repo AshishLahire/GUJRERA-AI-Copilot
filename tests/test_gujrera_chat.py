@@ -249,9 +249,13 @@ def test_router_only_classifies_facts_come_from_records(repo, monkeypatch):
     p = _unique_project(repo)
     monkeypatch.setattr(orch, "router_generate",
                         lambda prompt: f'{{"intent": "possession", "name": "{p.name}", "english": "x"}}')
-    out = ask(repo, ChatState(), "kab tak milega bhai woh wala flat??")
-    assert out["intent"] == "possession" and out["understood_by"] == "llm"
+    out = ask(repo, ChatState(), f"bhai {p.name.lower()} wala flat kab tak milega??")
+    assert out["intent"] == "possession"
     assert out["sources"][0]["id"] == p.rera_no  # the answer is still the registry record
+
+    # a name the model supplies that is not in the question is never answered as if asked
+    out = ask(repo, ChatState(), "kab tak milega bhai woh wala flat??")
+    assert out["intent"] != "possession" and not any(s["id"] == p.rera_no for s in out["sources"])
 
     monkeypatch.setattr(orch, "router_generate",
                         lambda prompt: '{"intent": "project", "name": "Imaginary Palace", "english": "x"}')
