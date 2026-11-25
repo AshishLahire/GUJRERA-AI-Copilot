@@ -541,3 +541,80 @@ class CircularChunk(Base):
     tokens: Mapped[str] = mapped_column(Text)  # JSON list, for keyword ranking
     vector: Mapped[bytes] = mapped_column(LargeBinary)  # float32
 
+
+class AnswerFeedback(Base):
+    """A user's thumbs up or down on an answer, with a reason; down-votes are reviewed by the admin."""
+
+    __tablename__ = "answer_feedback"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer)
+    role: Mapped[str] = mapped_column(String(20))
+    surface: Mapped[str] = mapped_column(String(20), default="chat")  # chat | report
+    lang: Mapped[str | None] = mapped_column(String(5))
+    question: Mapped[str] = mapped_column(String(1000))
+    answer: Mapped[str] = mapped_column(Text)
+    intent: Mapped[str | None] = mapped_column(String(60))
+    sources: Mapped[str | None] = mapped_column(Text)  # JSON list of cited source ids
+    rating: Mapped[str] = mapped_column(String(10))  # up | down
+    reason: Mapped[str | None] = mapped_column(String(40))
+    comment: Mapped[str | None] = mapped_column(String(1000))
+    status: Mapped[str] = mapped_column(String(20), default="new", index=True)  # new | added | dismissed | noted
+    reviewed_by: Mapped[str | None] = mapped_column(String(80))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class TestCase(Base):
+    """A question with what a correct answer must show; run as a set to measure accuracy."""
+
+    __tablename__ = "test_cases"
+    __test__ = False  # not a pytest class
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    question: Mapped[str] = mapped_column(String(1000))
+    lang: Mapped[str | None] = mapped_column(String(5))
+    role: Mapped[str] = mapped_column(String(20), default="citizen")  # citizen | officer
+    expect_intent: Mapped[str | None] = mapped_column(String(300))  # "a|b": any of these
+    must_contain: Mapped[str | None] = mapped_column(Text)  # JSON list
+    must_not_contain: Mapped[str | None] = mapped_column(Text)  # JSON list
+    expected_source: Mapped[str | None] = mapped_column(String(300))  # text a cited source must contain
+    category: Mapped[str] = mapped_column(String(60), default="general")
+    origin: Mapped[str] = mapped_column(String(20), default="manual")  # generated | imported | feedback | manual
+    note: Mapped[str | None] = mapped_column(Text)  # e.g. the department's model answer
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str | None] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class TestRun(Base):
+    __tablename__ = "test_runs"
+    __test__ = False
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    started_by: Mapped[str | None] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(20), default="running")  # running | done | failed
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    done: Mapped[int] = mapped_column(Integer, default=0)
+    passed: Mapped[int] = mapped_column(Integer, default=0)
+    unjudged: Mapped[int] = mapped_column(Integer, default=0)
+    summary: Mapped[str | None] = mapped_column(Text)  # JSON: by language, category, role, latency
+
+
+class TestResult(Base):
+    __tablename__ = "test_results"
+    __test__ = False
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("test_runs.id", ondelete="CASCADE"), index=True)
+    case_id: Mapped[int] = mapped_column(Integer, index=True)
+    passed: Mapped[bool | None] = mapped_column(Boolean)  # None: no expectation, review by hand
+    intent: Mapped[str | None] = mapped_column(String(60))
+    lang: Mapped[str | None] = mapped_column(String(5))
+    answer: Mapped[str] = mapped_column(Text)
+    sources: Mapped[str | None] = mapped_column(Text)
+    problems: Mapped[str | None] = mapped_column(Text)  # JSON list
+    ms: Mapped[int] = mapped_column(Integer, default=0)
+

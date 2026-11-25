@@ -630,6 +630,78 @@ export function circularPdfLink(c: CircularRec, token: string | null): string {
   return `${API_BASE}${c.pdf_url}${c.status === "draft" && token ? `?token=${encodeURIComponent(token)}` : ""}`;
 }
 
+// ------------------------------------------------------------ accuracy: feedback, test set, runs
+export async function sendFeedback(token: string | null, body: {
+  question: string; answer: string; rating: "up" | "down"; reason?: string | null; comment?: string | null;
+  intent?: string; lang?: string; sources?: string[]; surface?: "chat" | "report";
+}): Promise<{ id: number; status: string }> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/feedback`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders(token) }, body: JSON.stringify(body),
+  }));
+}
+export interface FeedbackItem {
+  id: number; at: string; role: string; surface: string; lang: string | null; question: string; answer: string;
+  intent: string | null; sources: string[]; rating: "up" | "down"; reason: string | null; comment: string | null;
+  status: string; reviewed_by: string | null;
+}
+export interface TestCaseRec {
+  id: number; question: string; lang: string | null; role: string; expect_intent: string[]; must_contain: string[];
+  must_not_contain: string[]; expected_source: string | null; category: string; origin: string; note: string | null;
+  active: boolean; judged: boolean;
+}
+type Bucket = Record<string, { total: number; judged: number; passed: number }>;
+export interface TestRunRec {
+  id: number; status: "running" | "done" | "failed"; started_at: string; finished_at: string | null; started_by: string | null;
+  total: number; done: number; passed: number; unjudged: number; judged: number; accuracy: number | null;
+  summary: { lang: Bucket; category: Bucket; role: Bucket; origin: Bucket; latency_ms: { p50: number; p95: number; max: number } } | null;
+}
+export interface TestResultRec {
+  case_id: number; question: string; lang: string | null; role: string; category: string; origin: string;
+  passed: boolean | null; intent: string | null; answer: string; sources: string[]; problems: string[]; ms: number;
+  expected: { intent: string | null; must_contain: string[]; expected_source: string | null; note: string | null };
+}
+export function fetchFeedback(token: string, status = "new"): Promise<{ feedback: FeedbackItem[]; counts: Record<string, number>; ratings: Record<string, number>; reasons: Record<string, number> }> {
+  return adminCall(token, `/feedback?status=${encodeURIComponent(status)}`);
+}
+export function dismissFeedback(token: string, id: number): Promise<FeedbackItem> {
+  return adminCall(token, `/feedback/${id}/dismiss`, { method: "POST" });
+}
+export function feedbackToTest(token: string, id: number, body: { must_contain?: string; must_not_contain?: string; expected_source?: string; category?: string }): Promise<TestCaseRec> {
+  return adminCall(token, `/feedback/${id}/to-test`, { method: "POST", body: JSON.stringify({ question: "-", ...body }) });
+}
+export function fetchTests(token: string): Promise<{ cases: TestCaseRec[]; active: number; by_origin: Record<string, number>; by_lang: Record<string, number>; by_role: Record<string, number> }> {
+  return adminCall(token, "/tests");
+}
+export function generateTests(token: string): Promise<{ generated: number; by_lang: Record<string, number> }> {
+  return adminCall(token, "/tests/generate", { method: "POST" });
+}
+export async function importTests(token: string, file: File): Promise<{ added: number; rejected: number; errors: { row: number; error: string }[] }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/api/gujrera/admin/tests/import`, { method: "POST", body: form, headers: authHeaders(token) });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+export function startTestRun(token: string): Promise<{ run: TestRunRec; results: TestResultRec[] }> {
+  return adminCall(token, "/tests/run", { method: "POST" });
+}
+export function fetchTestRuns(token: string): Promise<{ runs: TestRunRec[] }> {
+  return adminCall(token, "/tests/runs");
+}
+export function fetchTestRun(token: string, id: number, show: "failed" | "unjudged" | "all" = "failed"): Promise<{ run: TestRunRec; results: TestResultRec[] }> {
+  return adminCall(token, `/tests/runs/${id}?show=${show}`);
+}
+export async function downloadTestRunCsv(token: string, id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/gujrera/admin/tests/runs/${id}/csv`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error("Could not download the results.");
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `gujrera_test_run_${id}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Ask the shell to switch page (used by chat cards). */
 export const NAVIGATE_EVENT = "saathi:navigate";
 export function navigateTo(page: string): void {

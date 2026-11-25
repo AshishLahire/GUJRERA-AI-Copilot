@@ -1,3 +1,4 @@
+import { AnswerFeedback } from "./AnswerFeedback";
 import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openReport, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
@@ -644,6 +645,10 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
                   </ol>
                 </details>
               )}
+              <AnswerFeedback
+                question={(() => { const prev = messages[i - 1]; return prev && prev.role === "user" ? prev.text : ""; })()}
+                answer={m.reply.text} intent={m.reply.intent} lang={m.reply.lang}
+                sources={m.reply.sources.map((x) => x.id)} />
             </div>
           )
         )}

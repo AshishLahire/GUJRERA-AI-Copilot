@@ -8,6 +8,7 @@ import {
 } from "../api/gujrera";
 import { SavedReport, deleteSavedReport, fetchHealth, fetchSavedReports, navigateTo, saveReport } from "../api/gujrera";
 import { AnalyticsCard, AnalyticsCardData } from "../components/AnalyticsCard";
+import { AnswerFeedback } from "../components/AnswerFeedback";
 import { AccountBar } from "../components/AccountBar";
 import { Icon } from "./Brand";
 import { useSaathi } from "./context";
@@ -319,6 +320,8 @@ export const OfficerPage: React.FC = () => {
                   )}
                   {result.sentences.map((s, i) => <p key={i} className="text-sm text-body">{s.text}</p>)}
                   {result.card && <AnalyticsCard card={result.card as unknown as AnalyticsCardData} question={result.question} />}
+                  <AnswerFeedback surface="report" question={result.question ?? q} lang={lang}
+                    answer={result.sentences.map((x) => x.text).join(" ")} intent={result.intent} />
                   {current && result.intent === "analytics" && (
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       {isSaved ? (

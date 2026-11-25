@@ -54,6 +54,7 @@ def ensure_tables(engine: Engine) -> None:
     from sqlalchemy import text as sql_text
 
     from gujrera.db.models import (
+        AnswerFeedback,
         AuthorityNotice,
         Circular,
         CircularChunk,
@@ -66,6 +67,9 @@ def ensure_tables(engine: Engine) -> None:
         ProjectWatch,
         QprSubmission,
         SavedReport,
+        TestCase,
+        TestResult,
+        TestRun,
         UnknownNumberLookup,
     )
     from gujrera.db.views import create_views
@@ -76,7 +80,9 @@ def ensure_tables(engine: Engine) -> None:
                            QprSubmission.__table__, ProjectWatch.__table__, ProjectScrutiny.__table__,
                            ComplianceEvent.__table__, AuthorityNotice.__table__, OrderPenalty.__table__,
                            UnknownNumberLookup.__table__, OfficerReview.__table__, ImportRun.__table__,
-                           SavedReport.__table__, Circular.__table__, CircularChunk.__table__)
+                           SavedReport.__table__, Circular.__table__, CircularChunk.__table__,
+                           AnswerFeedback.__table__, TestCase.__table__, TestRun.__table__,
+                           TestResult.__table__)
                if t.name not in names]
     if missing:
         Base.metadata.create_all(engine, tables=missing)

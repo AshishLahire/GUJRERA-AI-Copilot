@@ -101,6 +101,30 @@ class CircularUpdate(BaseModel):
     status: str | None = Field(default=None, max_length=20)
 
 
+class FeedbackRequest(BaseModel):
+    question: str = Field(max_length=1000)
+    answer: str = Field(default="", max_length=8000)
+    rating: str = Field(max_length=10)
+    reason: str | None = Field(default=None, max_length=40)
+    comment: str | None = Field(default=None, max_length=1000)
+    intent: str | None = Field(default=None, max_length=60)
+    lang: str | None = Field(default=None, max_length=5)
+    sources: list[str] = Field(default_factory=list, max_length=20)
+    surface: str = Field(default="chat", max_length=20)
+
+
+class CaseRequest(BaseModel):
+    question: str = Field(max_length=1000)
+    lang: str | None = Field(default=None, max_length=5)
+    role: str = Field(default="citizen", max_length=20)
+    expect_intent: str | None = Field(default=None, max_length=300)
+    must_contain: list[str] | str | None = None
+    must_not_contain: list[str] | str | None = None
+    expected_source: str | None = Field(default=None, max_length=300)
+    category: str | None = Field(default=None, max_length=60)
+    note: str | None = Field(default=None, max_length=2000)
+
+
 class SaveReportRequest(BaseModel):
     name: str = Field(default="", max_length=120)
     question: str = Field(max_length=500)
@@ -1205,4 +1229,111 @@ def circular_pdf(cid: int, token: str | None = Query(None, max_length=600), repo
         raise HTTPException(404, "The PDF file is missing.")
     return FileResponse(path, media_type="application/pdf",
                         headers={"Content-Disposition": f'inline; filename="{c.filename}"'})
+
+
+# ------------------------------------------------------------ accuracy: feedback, test set, runs
+@router.post("/feedback")
+def feedback(body: FeedbackRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """A thumbs up or down on an answer (anyone). Down-votes go to the admin's review queue."""
+    from gujrera.accuracy import give_feedback
+
+    return _officer_or_403(give_feedback, repo, question=body.question, answer=body.answer, rating=body.rating,
+                           reason=body.reason, comment=body.comment, intent=body.intent, lang=body.lang,
+                           sources=body.sources, surface=body.surface)
+
+
+@router.get("/admin/feedback")
+def admin_feedback(status: str | None = Query("new", max_length=20), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import list_feedback
+
+    return _officer_or_403(list_feedback, repo, status or None)
+
+
+@router.post("/admin/feedback/{fid}/dismiss")
+def admin_feedback_dismiss(fid: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import review_feedback
+
+    return _officer_or_403(review_feedback, repo, fid, "dismissed")
+
+
+@router.post("/admin/feedback/{fid}/to-test")
+def admin_feedback_to_test(fid: int, body: CaseRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import feedback_to_case
+
+    return _officer_or_403(feedback_to_case, repo, fid, must_contain=body.must_contain,
+                           must_not_contain=body.must_not_contain, expect_intent=body.expect_intent,
+                           expected_source=body.expected_source, category=body.category, note=body.note)
+
+
+@router.get("/admin/tests")
+def admin_tests(origin: str | None = Query(None, max_length=20), q: str | None = Query(None, max_length=100),
+                repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import list_cases
+
+    return _officer_or_403(list_cases, repo, origin, q)
+
+
+@router.post("/admin/tests")
+def admin_test_add(body: CaseRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import add_case
+
+    return _officer_or_403(add_case, repo, **body.model_dump())
+
+
+@router.post("/admin/tests/generate")
+def admin_tests_generate(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import generate_cases
+
+    return _officer_or_403(generate_cases, repo)
+
+
+@router.post("/admin/tests/import")
+async def admin_tests_import(file: UploadFile = File(...), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import import_cases
+
+    data = await file.read(5 * 1024 * 1024 + 1)
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(400, "The test set file is larger than 5 MB.")
+    return _officer_or_403(import_cases, repo, file.filename or "tests.csv", data)
+
+
+@router.post("/admin/tests/{cid}/active")
+def admin_test_active(cid: int, active: bool = Query(...), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import set_case_active
+
+    return _officer_or_403(set_case_active, repo, cid, active)
+
+
+@router.post("/admin/tests/run")
+def admin_tests_run(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Start a run in the background; poll /admin/tests/runs/{id} for progress."""
+    from gujrera.accuracy import start_run
+
+    return _officer_or_403(start_run, repo)
+
+
+@router.get("/admin/tests/runs")
+def admin_tests_runs(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import list_runs
+
+    return _officer_or_403(list_runs, repo)
+
+
+@router.get("/admin/tests/runs/{run_id}")
+def admin_tests_run_detail(run_id: int, show: str = Query("failed", pattern="^(failed|unjudged|all)$"),
+                           repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import run_detail
+
+    return _officer_or_403(run_detail, repo, run_id, show=show)
+
+
+@router.get("/admin/tests/runs/{run_id}/csv")
+def admin_tests_run_csv(run_id: int, repo: Repository = Depends(user_repo)):
+    from fastapi.responses import Response
+
+    from gujrera.accuracy import run_csv
+
+    text = _officer_or_403(run_csv, repo, run_id)
+    return Response("\ufeff" + text, media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="gujrera_test_run_{run_id}.csv"'})
 

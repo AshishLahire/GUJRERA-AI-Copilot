@@ -77,6 +77,18 @@ def build_gold(session: Session, seed: int = 300) -> list[GoldQuestion]:
     repo = Repository(session, Principal.anonymous())
     projects = session.scalars(select(Project).order_by(Project.id)).all()
     promoters = session.scalars(select(Promoter).order_by(Promoter.id)).all()
+    # Public records: one placeholder for unnamed promoters, and some project names used twice. Ask only about
+    # named promoters and uniquely named projects, so the expected answer is unambiguous. (On the demo
+    # registry this keeps every record, so the 300 questions are unchanged.)
+    promoters = [b for b in promoters if b.promoter_type != "unknown"]
+    seen: dict[str, int] = {}
+    for p in projects:
+        seen[p.name.strip().lower()] = seen.get(p.name.strip().lower(), 0) + 1
+    projects = [p for p in projects if seen[p.name.strip().lower()] == 1]
+
+    def sample(items: list, k: int) -> list:
+        return rng.sample(items, min(k, len(items)))
+
     out: list[GoldQuestion] = []
     for lang in ("gu", "hi", "en"):
         n = 0
@@ -86,18 +98,18 @@ def build_gold(session: Session, seed: int = 300) -> list[GoldQuestion]:
             n += 1
             out.append(GoldQuestion(f"{lang}-{kind}-{n:03d}", lang, kind, question, intents, must))
 
-        for p in rng.sample(projects, COUNTS["possession"]):
+        for p in sample(projects, COUNTS["possession"]):
             date_ = p.actual_completion or p.reg_valid_until
             add("possession", rng.choice(Q["possession"][lang]).format(p=_pname(p, lang)), ("possession",),
                 [fmt_date(date_, lang)])
-        for b in rng.sample(promoters, COUNTS["promoter"]):
+        for b in sample(promoters, COUNTS["promoter"]):
             n_projects = sum(1 for p in projects if p.promoter_id == b.id)
             add("promoter", rng.choice(Q["promoter"][lang]).format(b=_pname(b, lang)), ("promoter_profile",),
                 [str(n_projects)])
-        for p in rng.sample(projects, COUNTS["project"]):
+        for p in sample(projects, COUNTS["project"]):
             add("project", rng.choice(Q["project"][lang]).format(p=_pname(p, lang)), ("project_profile",),
                 [p.rera_no])
-        for p in rng.sample(projects, COUNTS["complaints"]):
+        for p in sample(projects, COUNTS["complaints"]):
             total = repo.complaint_counts(project_id=p.id)["total"]
             add("complaints", rng.choice(Q["complaints"][lang]).format(p=_pname(p, lang)), ("complaints",),
                 [str(total)] if total else [t("no_complaints", lang)])
