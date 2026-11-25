@@ -540,6 +540,65 @@ export async function downloadRejected(token: string, id: string, filename: stri
   URL.revokeObjectURL(url);
 }
 
+// ------------------------------------------------------------ administration (state-level officers)
+export interface AdminUser {
+  id: number; username: string; display_name: string | null; role: string; role_label: string;
+  district_scope: string | null; organisation: string | null; is_active: boolean; is_demo: boolean;
+  created_at: string | null; last_login_at: string | null;
+}
+export interface AdminUsers { users: AdminUser[]; counts: Record<string, number>; districts: string[]; creatable_roles: string[] }
+export interface AuditEntry {
+  id: number; at: string; user: string | null; role: string; action: string; label: string; category: string;
+  detail: Record<string, unknown>;
+}
+export interface AuditLogResponse {
+  since: string; until: string | null; total: number; entries: AuditEntry[];
+  summary: { by_category: Record<string, number>; distinct_users: number; failed_logins: number; out_of_scope: number;
+             write_attempts: number; blocked_queries: number; access_denied: number };
+  categories: Record<string, string>; actions: string[];
+}
+export interface AuditFilters { username?: string; role?: string; category?: string; action?: string; since?: string; until?: string; q?: string; offset?: number }
+
+async function adminCall<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}/api/gujrera/admin${path}`,
+    { ...init, headers: { "Content-Type": "application/json", ...authHeaders(token) } });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+const qs = (f: object) => {
+  const p = new URLSearchParams();
+  Object.entries(f).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== "") p.set(k, String(v)); });
+  const t = p.toString();
+  return t ? `?${t}` : "";
+};
+export function fetchAdminUsers(token: string, role?: string, q?: string): Promise<AdminUsers> {
+  return adminCall(token, `/users${qs({ role, q })}`);
+}
+export function createAdminUser(token: string, body: { username: string; display_name: string; role: string; district_scope: string | null }):
+  Promise<{ user: AdminUser; temporary_password: string }> {
+  return adminCall(token, "/users", { method: "POST", body: JSON.stringify(body) });
+}
+export function updateAdminUser(token: string, id: number, body: { display_name?: string; district_scope?: string | null; set_scope?: boolean; is_active?: boolean }):
+  Promise<{ user: AdminUser }> {
+  return adminCall(token, `/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+export function resetAdminPassword(token: string, id: number): Promise<{ user: AdminUser; temporary_password: string }> {
+  return adminCall(token, `/users/${id}/reset-password`, { method: "POST" });
+}
+export function fetchAuditLog(token: string, f: AuditFilters): Promise<AuditLogResponse> {
+  return adminCall(token, `/audit${qs(f)}`);
+}
+export async function downloadAuditCsv(token: string, f: AuditFilters): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/gujrera/admin/audit.csv${qs(f)}`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error("Could not download the audit log.");
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "gujrera_audit_log.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Ask the shell to switch page (used by chat cards). */
 export const NAVIGATE_EVENT = "saathi:navigate";
 export function navigateTo(page: string): void {

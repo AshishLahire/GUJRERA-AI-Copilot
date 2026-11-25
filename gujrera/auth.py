@@ -63,7 +63,7 @@ def _sign(payload: str) -> str:
 
 def issue_token(user: User, *, now: float | None = None) -> str:
     now = now or time.time()
-    body = _b64(json.dumps({"uid": user.id, "role": user.role,
+    body = _b64(json.dumps({"uid": user.id, "role": user.role, "v": user.token_version or 0,
                             "exp": int(now + get_gujrera_settings().GUJRERA_TOKEN_HOURS * 3600)}).encode())
     return f"{body}.{_sign(body)}"
 
@@ -84,6 +84,9 @@ def read_token(token: str, session: Session, *, now: float | None = None) -> Use
         return None
     user = session.get(User, data.get("uid"))
     if user is None or user.role != data.get("role"):
+        return None
+    # A disabled account, or one whose password was reset, loses every session it had.
+    if user.is_active is False or data.get("v", 0) != (user.token_version or 0):
         return None
     return user
 
@@ -122,9 +125,10 @@ LIMITER = LoginLimiter()
 
 
 class LoginError(Exception):
-    def __init__(self, message: str, locked: bool = False):
+    def __init__(self, message: str, locked: bool = False, disabled: bool = False):
         super().__init__(message)
         self.locked = locked
+        self.disabled = disabled
 
 
 def authenticate(session: Session, username: str, password: str, limiter: LoginLimiter = LIMITER) -> User:
@@ -137,6 +141,8 @@ def authenticate(session: Session, username: str, password: str, limiter: LoginL
     if not (user and ok):
         limiter.fail(username)
         raise LoginError("Wrong username or password.")
+    if user.is_active is False:
+        raise LoginError("This account is disabled. Contact the GUJRERA administrator.", disabled=True)
     limiter.success(username)
     return user
 

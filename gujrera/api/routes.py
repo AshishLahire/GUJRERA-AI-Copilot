@@ -79,6 +79,20 @@ class AnalyticsRequest(BaseModel):
     previous: str | None = Field(default=None, max_length=500)  # the last report's question, for follow-ups
 
 
+class NewUserRequest(BaseModel):
+    username: str = Field(max_length=40)
+    display_name: str = Field(default="", max_length=200)
+    role: str = Field(max_length=20)
+    district_scope: str | None = Field(default=None, max_length=60)
+
+
+class UpdateUserRequest(BaseModel):
+    display_name: str | None = Field(default=None, max_length=200)
+    district_scope: str | None = Field(default=None, max_length=60)
+    set_scope: bool = False  # true: apply district_scope (None = statewide)
+    is_active: bool | None = None
+
+
 class SaveReportRequest(BaseModel):
     name: str = Field(default="", max_length=120)
     question: str = Field(max_length=500)
@@ -311,7 +325,14 @@ def login(body: LoginRequest, session: Session = Depends(get_session)) -> dict[s
     try:
         user = authenticate(session, body.username, body.password)
     except LoginError as exc:
+        action = "login_locked" if exc.locked else "login_disabled" if exc.disabled else "login_failed"
+        Repository(session, Principal.anonymous(), audit_sink=_commit_now(session))._audit(
+            action, {"username": (body.username or "").strip().lower()[:80]})  # never the password
         raise HTTPException(429 if exc.locked else 401, str(exc)) from None
+    from datetime import datetime as _dt
+
+    user.last_login_at = _dt.now()
+    session.flush()
     Repository(session, principal_for(user), audit_sink=_commit_now(session))._audit("login", {"username": user.username})
     return {"token": issue_token(user), "user": _user_dict(session, user)}
 
@@ -437,6 +458,8 @@ def _officer_or_403(fn, *args, **kwargs):
     try:
         return fn(*args, **kwargs)
     except AccessDenied as exc:
+        if args and isinstance(args[0], Repository):
+            args[0]._audit("access_denied", {"what": getattr(fn, "__name__", "?")})
         raise HTTPException(403, str(exc)) from None
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
@@ -1043,4 +1066,67 @@ def admin_import_rejected(run_id: str = Path_(..., pattern=r"^[0-9a-f]{32}$"),
     name, text = _officer_or_403(rejected_csv, repo, run_id)
     return Response("\ufeff" + text, media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+# ------------------------------------------------------------ administration (state-level officers)
+@router.get("/admin/users")
+def admin_users(role: str | None = Query(None, max_length=20), q: str | None = Query(None, max_length=80),
+                repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.admin import list_users
+
+    return _officer_or_403(list_users, repo, role, q)
+
+
+@router.post("/admin/users")
+def admin_create_user(body: NewUserRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Create an officer or citizen account; the one-time password is in the response only."""
+    from gujrera.admin import create_user
+
+    return _officer_or_403(create_user, repo, body.username, body.display_name, body.role, body.district_scope)
+
+
+@router.patch("/admin/users/{user_id}")
+def admin_update_user(user_id: int, body: UpdateUserRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.admin import update_user
+
+    return _officer_or_403(update_user, repo, user_id, display_name=body.display_name,
+                           district_scope=body.district_scope, set_scope=body.set_scope, is_active=body.is_active)
+
+
+@router.post("/admin/users/{user_id}/reset-password")
+def admin_reset_password(user_id: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.admin import reset_password
+
+    return _officer_or_403(reset_password, repo, user_id)
+
+
+def _audit_filters(username, role, category, action, since, until, q) -> dict[str, Any]:
+    return {"username": username or None, "role": role or None, "category": category or None,
+            "action": action or None, "since": since, "until": until, "q": q or None}
+
+
+@router.get("/admin/audit")
+def admin_audit(username: str | None = Query(None, max_length=80), role: str | None = Query(None, max_length=20),
+                category: str | None = Query(None, max_length=20), action: str | None = Query(None, max_length=60),
+                since: date | None = Query(None), until: date | None = Query(None),
+                q: str | None = Query(None, max_length=100), limit: int = Query(100, ge=1, le=500),
+                offset: int = Query(0, ge=0), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.admin import audit_log
+
+    return _officer_or_403(audit_log, repo, **_audit_filters(username, role, category, action, since, until, q),
+                           limit=limit, offset=offset)
+
+
+@router.get("/admin/audit.csv")
+def admin_audit_csv(username: str | None = Query(None, max_length=80), role: str | None = Query(None, max_length=20),
+                    category: str | None = Query(None, max_length=20), action: str | None = Query(None, max_length=60),
+                    since: date | None = Query(None), until: date | None = Query(None),
+                    q: str | None = Query(None, max_length=100), repo: Repository = Depends(user_repo)):
+    from fastapi.responses import Response
+
+    from gujrera.admin import audit_csv
+
+    text = _officer_or_403(audit_csv, repo, **_audit_filters(username, role, category, action, since, until, q))
+    return Response("\ufeff" + text, media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="gujrera_audit_log.csv"'})
 

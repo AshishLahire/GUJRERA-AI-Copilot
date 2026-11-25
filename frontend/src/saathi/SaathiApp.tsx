@@ -19,14 +19,17 @@ import { WatchBell, WatchPage } from "./WatchPage";
 import { AgreementPage } from "./AgreementPage";
 import { OfficerDeskPage } from "./OfficerDeskPage";
 import { DataOnboardingPage } from "./DataOnboardingPage";
+import { AuditPage, UsersPage } from "./AdminPages";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today", "data"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today", "data", "users", "audit"];
 type NavItem = { page: Page; key: StringKey; icon: string };
 const ITEM: Record<Page, NavItem> = {
   home: { page: "home", key: "navOverview", icon: "grid" },
   today: { page: "today", key: "navToday", icon: "clock" },
   data: { page: "data", key: "navData", icon: "server" },
+  users: { page: "users", key: "navUsers", icon: "user" },
+  audit: { page: "audit", key: "navAudit", icon: "lock" },
   ask: { page: "ask", key: "navAsk", icon: "chat" },
   check: { page: "check", key: "navCheck", icon: "shield" },
   calc: { page: "calc", key: "navCalc", icon: "calc" },
@@ -47,7 +50,7 @@ function navFor(role: string | undefined, demo: boolean, statewide = false): Nav
   const pages: Page[] =
     role === "officer"
       ? ["today", "ask", "officer", "enforce", "desk", "report", "check", ...(demo ? (["risk", "orders"] as Page[]) : []),
-         ...(statewide ? (["data"] as Page[]) : [])]
+         ...(statewide ? (["data", "users", "audit"] as Page[]) : [])]
       : role === "promoter"
         ? ["home", "ask", "promoter", "qpr", "check"]
         : role === "agent"
@@ -260,6 +263,8 @@ const Shell: React.FC = () => {
           {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
           {page === "today" && <OfficerDeskPage />}
           {page === "data" && <DataOnboardingPage />}
+          {page === "users" && <UsersPage />}
+          {page === "audit" && <AuditPage />}
           {/* Chat and ad check stay mounted so a conversation survives switching pages. */}
           <div hidden={page !== "ask"}>
             <AskPage key={askSeed?.n ?? 0} initialQuestion={askSeed?.q ?? null} />

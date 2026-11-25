@@ -83,6 +83,11 @@ def ensure_tables(engine: Engine) -> None:
         for name, ddl in (("locality", "VARCHAR(80)"), ("address", "VARCHAR(400)")):
             if cols and name not in cols:
                 conn.execute(sql_text(f"ALTER TABLE projects ADD COLUMN {name} {ddl}"))
+        ucols = {c["name"] for c in insp.get_columns("users")} if "users" in names else set()
+        for name, ddl in (("is_active", "BOOLEAN NOT NULL DEFAULT 1"), ("token_version", "INTEGER NOT NULL DEFAULT 0"),
+                          ("created_at", "DATETIME"), ("last_login_at", "DATETIME")):
+            if ucols and name not in ucols:
+                conn.execute(sql_text(f"ALTER TABLE users ADD COLUMN {name} {ddl}"))
         if "projects" in names:
             create_views(conn)
 

@@ -162,6 +162,10 @@ class User(Base):
     display_name: Mapped[str | None] = mapped_column(String(200))
     password_hash: Mapped[str | None] = mapped_column(String(200))  # PBKDF2; see gujrera/auth.py
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # a disabled account cannot log in
+    token_version: Mapped[int] = mapped_column(Integer, default=0)  # bumped to end every open session
+    created_at: Mapped[datetime | None] = mapped_column(DateTime)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class Complaint(Base):
