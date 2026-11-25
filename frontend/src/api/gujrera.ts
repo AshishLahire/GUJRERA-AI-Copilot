@@ -250,16 +250,59 @@ export interface AnalyticsResponse {
   sentences: { text: string }[];
   card: (Record<string, unknown> & { type: "analytics" }) | null;
   suggestions: string[];
+  /** The question that was answered: the follow-up merged into the previous report, when it was one. */
+  question?: string;
+  refined?: { kind: "district" | "locality" | "period" | "top"; value: string }[] | null;
 }
 
-export async function runAnalytics(token: string, question: string, lang: Lang): Promise<AnalyticsResponse> {
+export async function runAnalytics(token: string, question: string, lang: Lang,
+                                   previous: string | null = null): Promise<AnalyticsResponse> {
   const res = await fetch(`${API_BASE}/api/gujrera/analytics/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ question, lang, previous }),
+  });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
+/** Download the report as Excel, re-run on the server (current, district-scoped, logged). */
+export async function exportReport(token: string, question: string, lang: Lang): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/gujrera/analytics/export`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ question, lang }),
   });
   if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  if (!res.ok) {
+    let msg = "Could not export the report.";
+    try { msg = ((await res.json()) as { detail?: string }).detail ?? msg; } catch { /* keep default */ }
+    throw new Error(msg);
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "report.xlsx";
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export interface SavedReport { id: number; name: string; question: string; lang: Lang; created_at: string; last_run_at: string | null }
+async function savedFetch<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}/api/gujrera/analytics/saved${path}`,
+    { ...init, headers: { "Content-Type": "application/json", ...authHeaders(token) } });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
   return parse(res);
+}
+export function fetchSavedReports(token: string): Promise<{ saved: SavedReport[] }> {
+  return savedFetch(token, "");
+}
+export function saveReport(token: string, name: string, question: string, lang: Lang): Promise<SavedReport> {
+  return savedFetch(token, "", { method: "POST", body: JSON.stringify({ name, question, lang }) });
+}
+export function deleteSavedReport(token: string, id: number): Promise<{ deleted: number }> {
+  return savedFetch(token, `/${id}`, { method: "DELETE" });
 }
 
 

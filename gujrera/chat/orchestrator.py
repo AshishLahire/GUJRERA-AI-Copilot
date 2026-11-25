@@ -110,6 +110,7 @@ class ChatState:
     complaint: Any = None  # gujrera.complaints.flow.FilingState while a complaint is being filed
     tracking: Any = None  # gujrera.complaints.flow.TrackingState while a complaint is being tracked
     last_list: list[int] | None = None  # project ids of the last list shown, for "which of these ..." follow-ups
+    last_report: str | None = None  # an officer's last report question, for "only Bopal", "last 3 months"
 
 
 @dataclass
@@ -244,7 +245,29 @@ def english_companion(message: str, state_before: ChatState, repo: Repository, r
     return en.to_dict()["text"]
 
 
+def _report(question: str, state: ChatState, repo: Repository, lang: str) -> Reply:
+    """Officer analytics; a standard report is remembered so the next message can narrow it."""
+    a = analytics_answer(question, repo, lang, generate=analytics_generate)
+    if a.intent == "analytics" and match_report(question.lower()):
+        state.last_report = question
+        if a.card is not None:
+            a.card["question"] = question
+    return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
+
+
 def _route(message: str, u: Understanding, state: ChatState, repo: Repository, lang: str) -> Reply:
+    # 0. An officer narrowing the last report: "only Bopal", "last 3 months", "in Surat instead", "top 5"
+    if repo.p.role == "officer" and state.last_report:
+        from gujrera.analytics.followup import refine
+
+        refined = refine(state.last_report, message)
+        if refined:
+            reply = _report(refined.question, state, repo, lang)
+            narrowed = {"en": "Narrowed the last report: {q}", "gu": "છેલ્લો રિપોર્ટ ટૂંકો કર્યો: {q}",
+                        "hi": "पिछली रिपोर्ट छोटी की: {q}"}.get(lang, "Narrowed the last report: {q}")
+            reply.sentences.insert(0, Sentence(narrowed.format(q=refined.question), [], "an_refined"))
+            return reply
+
     # 1. Answer to a "which one did you mean?" question
     if state.options:
         choice = _pick_option(message, state.options, u)
@@ -338,8 +361,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     text_lc = (message or "").lower()
     if repo.p.role == "officer" and (WRITE_INTENT.search(text_lc) or (
             not u.candidates and (rep := match_report(text_lc)) and rep.key in AUTHORITY_REPORTS)):
-        a = analytics_answer(message, repo, lang, generate=analytics_generate)
-        return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
+        return _report(message, state, repo, lang)
     if (repo.p.role == "officer" and any(w in text_lc for w in ORDER_WORDS) and not ORDER_RE.search(message or "")
             and not REF_RE.search(message or "") and not u.candidates):  # orders to enforce (officers only)
         return _orders_to_enforce(repo, lang)
@@ -360,8 +382,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
                                      district=district)
         return Reply(lang, "risk", sentences, cards=[card] if card else [])
     if repo.p.role == "officer" and (match_report(text_lc) or (looks_like_analytics(text_lc) and not u.candidates)):
-        a = analytics_answer(message, repo, lang, generate=analytics_generate)
-        return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
+        return _report(message, state, repo, lang)
     if repo.p.role != "officer" and match_report(text_lc) and looks_like_report_request(text_lc)             and not u.candidates:
         return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
 

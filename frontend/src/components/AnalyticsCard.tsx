@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
+import { exportReport } from "../api/gujrera";
+import { useSaathi } from "../saathi/context";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 type Cell = string | number | null;
@@ -15,6 +17,8 @@ export interface AnalyticsCardData {
   chart?: { x: string; y: string } | null;
   elapsed_ms?: number;
   refused?: string;
+  /** The question that produced the card (chat cards carry it); enables the Excel export. */
+  question?: string;
 }
 
 function toCsv(columns: string[], rows: Cell[][]): string {
@@ -39,6 +43,26 @@ function download(card: AnalyticsCardData) {
 
 const label = (c: string) => c.replace(/_/g, " ");
 
+const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch] as string));
+
+/** A clean printable page (Save as PDF from the print dialog): title, question, scope, time, table. */
+function printReport(card: AnalyticsCardData, question?: string) {
+  const w = window.open("", "_blank", "noopener=no,width=1000,height=800");
+  if (!w) return;
+  const head = card.columns.map((c) => `<th>${esc(label(c))}</th>`).join("");
+  const body = card.rows.map((r) => `<tr>${r.map((v) => `<td>${v === null ? "—" : esc(v)}</td>`).join("")}</tr>`).join("");
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(card.title)}</title>
+<style>body{font:12px system-ui,sans-serif;color:#14161B;margin:24px}h1{font-size:18px;margin:0 0 4px}
+.meta{color:#5E6370;margin:0 0 12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #E3D09A;padding:4px 6px;text-align:left;vertical-align:top}
+th{background:#FFF1BF}tr:nth-child(even) td{background:#FFFCF0}.foot{margin-top:10px;color:#5E6370;font-size:10px}</style></head><body>
+<h1>${esc(card.title)}</h1>
+<p class="meta">${question ? `Question: ${esc(question)} · ` : ""}${card.scoped_to ? `${esc(card.scoped_to)} only · ` : "All districts · "}${card.rows.length} rows · ${esc(new Date().toLocaleString("en-IN"))}</p>
+<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+<p class="foot">GujRERA Saathi · read-only query on the reporting views, logged.</p>
+<script>window.onload=function(){window.print()}</script></body></html>`);
+  w.document.close();
+}
+
 /** SVG fill attributes cannot read CSS variables, so resolve the theme colours when rendering. */
 function themeColor(name: string, fallback: string): string {
   try {
@@ -48,9 +72,31 @@ function themeColor(name: string, fallback: string): string {
   }
 }
 
-export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) => {
+export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: string }> = ({ card, question }) => {
+  const { token, lang } = useSaathi();
+  const asked = question ?? card.question;
+  const [sort, setSort] = useState<{ col: number; dir: 1 | -1 } | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const rows = useMemo(() => {
+    if (!sort) return card.rows;
+    const { col, dir } = sort;
+    return [...card.rows].sort((a, b) => {
+      const x = a[col], y = b[col];
+      if (x === null || x === undefined) return 1;
+      if (y === null || y === undefined) return -1;
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "en", { numeric: true })) * dir;
+    });
+  }, [card.rows, sort]);
+  const toggle = (col: number) => setSort((s) => (s && s.col === col ? (s.dir === 1 ? { col, dir: -1 } : null) : { col, dir: 1 }));
+  const toExcel = async () => {
+    if (!token || !asked) return;
+    setExporting(true);
+    setExportError(null);
+    try { await exportReport(token, asked, lang); } catch (e) { setExportError((e as Error).message); } finally { setExporting(false); }
+  };
   const chartData =
-    card.chart && card.rows.length > 0
+    card.chart && card.rows.length > 1
       ? card.rows.slice(0, 15).map((r) => ({
           x: String(r[card.columns.indexOf(card.chart!.x)] ?? "").replace(" (Demo)", "").replace(/_/g, " "),
           y: Number(r[card.columns.indexOf(card.chart!.y)] ?? 0),
@@ -76,16 +122,25 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) =
           </span>
         )}
         {card.rows.length > 0 && (
-          <button
-            type="button"
-            onClick={() => download(card)}
-            className="ml-auto px-2.5 py-1 rounded-md border border-warm-border bg-card text-body font-semibold hover:bg-page"
-          >
-            Download CSV
-          </button>
+          <span className="ml-auto flex flex-wrap gap-1.5">
+            {asked && token && (
+              <button type="button" onClick={() => void toExcel()} disabled={exporting}
+                className="px-2.5 py-1 rounded-md bg-primary-bg text-primary-text font-semibold disabled:opacity-60">
+                {exporting ? "Preparing…" : "Excel"}
+              </button>
+            )}
+            <button type="button" onClick={() => printReport({ ...card, rows }, asked)}
+              className="px-2.5 py-1 rounded-md border border-warm-border bg-card text-body font-semibold hover:border-brand">
+              Print / PDF
+            </button>
+            <button type="button" onClick={() => download({ ...card, rows })}
+              className="px-2.5 py-1 rounded-md border border-warm-border bg-card text-body font-semibold hover:border-brand">
+              CSV
+            </button>
+          </span>
         )}
       </div>
-
+      {exportError && <div role="alert" className="text-red-700 dark:text-red-300">{exportError}</div>}
       {chartData && (
         <div className="h-56 w-full" aria-label={`Bar chart of ${label(card.chart!.y)} by ${label(card.chart!.x)}`}>
           <ResponsiveContainer width="100%" height="100%">
@@ -96,7 +151,7 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) =
                 formatter={(v: number) => [v, label(card.chart!.y)]}
                 contentStyle={{ backgroundColor: themeColor("--bg-card", "#fff"), border: `1px solid ${themeColor("--border-warm", "#DCE4EF")}`, fontSize: 11 }}
               />
-              <Bar dataKey="y" fill={themeColor("--brand", "#F5B400")} radius={[0, 3, 3, 0]} isAnimationActive={false} />
+              <Bar dataKey="y" fill={themeColor("--chart-1", "#C98500")} maxBarSize={24} radius={[0, 3, 3, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -107,15 +162,19 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) =
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 bg-card">
               <tr>
-                {card.columns.map((c) => (
-                  <th key={c} className="px-2 py-1.5 font-semibold text-muted border-b border-warm-border whitespace-nowrap capitalize">
-                    {label(c)}
+                {card.columns.map((c, i) => (
+                  <th key={c} className="px-0 py-0 font-semibold text-muted border-b border-warm-border whitespace-nowrap capitalize"
+                    aria-sort={sort?.col === i ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
+                    <button type="button" onClick={() => toggle(i)} title="Sort by this column"
+                      className="w-full text-left px-2 py-1.5 hover:text-body capitalize">
+                      {label(c)}{sort?.col === i ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
+                    </button>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {card.rows.slice(0, 100).map((r, i) => (
+              {rows.slice(0, 100).map((r, i) => (
                 <tr key={i} className="border-b border-warm-border last:border-0">
                   {r.map((v, j) => (
                     <td key={j} className={`px-2 py-1 whitespace-nowrap ${typeof v === "number" ? "text-right tabular-nums" : "text-body"}`}>
@@ -128,7 +187,7 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData }> = ({ card }) =
           </table>
         </div>
       )}
-      {card.rows.length > 100 && <div className="text-muted">Showing 100 of {card.rows.length} rows; the CSV has all of them.</div>}
+      {card.rows.length > 100 && <div className="text-muted">Showing 100 of {card.rows.length} rows; Excel, CSV and print have all of them.</div>}
       {card.truncated && <div className="text-muted">Results were capped at the row limit.</div>}
 
       <details>

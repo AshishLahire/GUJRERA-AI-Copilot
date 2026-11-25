@@ -488,3 +488,17 @@ class ImportRun(Base):
     loaded_by: Mapped[str | None] = mapped_column(String(80))
     loaded_at: Mapped[datetime | None] = mapped_column(DateTime)
 
+
+class SavedReport(Base):
+    """An officer's saved report question, to run again with one click. Private to that officer."""
+
+    __tablename__ = "saved_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    question: Mapped[str] = mapped_column(String(500))
+    lang: Mapped[str] = mapped_column(String(5), default="en")
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
+

@@ -76,6 +76,13 @@ class LoginRequest(BaseModel):
 class AnalyticsRequest(BaseModel):
     question: str
     lang: str = "en"
+    previous: str | None = Field(default=None, max_length=500)  # the last report's question, for follow-ups
+
+
+class SaveReportRequest(BaseModel):
+    name: str = Field(default="", max_length=120)
+    question: str = Field(max_length=500)
+    lang: str = "en"
 
 
 class PaymentIn(BaseModel):
@@ -668,10 +675,61 @@ def analytics_query(body: AnalyticsRequest, repo: Repository = Depends(user_repo
     if len(question) > 500:
         raise HTTPException(400, "Question exceeds 500 characters.")
     from gujrera.analytics.engine import answer as analytics_answer
+    from gujrera.analytics.export import touch
+    from gujrera.analytics.followup import refine
 
-    a = analytics_answer(question, repo, _lang(body.lang))
+    refined = refine(body.previous, question)  # "only Bopal", "last 3 months" after a report
+    asked = refined.question if refined else question
+    a = analytics_answer(asked, repo, _lang(body.lang))
+    if a.intent == "analytics":
+        touch(repo, asked)
     return {"intent": a.intent, "sentences": [{"text": x.text} for x in a.sentences], "card": a.card,
-            "suggestions": a.suggestions}
+            "suggestions": a.suggestions, "question": asked,
+            "refined": refined.changes if refined else None}
+
+
+@router.post("/analytics/export")
+def analytics_export(body: AnalyticsRequest, repo: Repository = Depends(user_repo)):
+    """The report as an Excel file, re-run on the server so it is current, district-scoped and logged."""
+    from fastapi.responses import Response
+
+    from gujrera.analytics.engine import answer as analytics_answer
+    from gujrera.analytics.export import to_xlsx
+
+    if repo.p.role != "officer":
+        raise HTTPException(403, "Analytics is available to GUJRERA officers only.")
+    question = (body.question or "").strip()
+    if not question or len(question) > 500:
+        raise HTTPException(400, "Please give the report question.")
+    a = analytics_answer(question, repo, _lang(body.lang))
+    if a.intent != "analytics" or not a.card:
+        raise HTTPException(400, a.sentences[0].text if a.sentences else "This question did not produce a report.")
+    repo._audit("analytics_export", {"question": question, "rows": len(a.card.get("rows") or [])})
+    data = to_xlsx(repo, question, a.card, [x.text for x in a.sentences])
+    stem = "".join(ch if ch.isalnum() else "_" for ch in (a.card.get("title") or "report"))[:60].strip("_") or "report"
+    return Response(data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{stem}.xlsx"'})
+
+
+@router.get("/analytics/saved")
+def analytics_saved(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.analytics.export import list_saved
+
+    return _officer_or_403(list_saved, repo)
+
+
+@router.post("/analytics/saved")
+def analytics_save(body: SaveReportRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.analytics.export import save
+
+    return _officer_or_403(save, repo, body.name, body.question, _lang(body.lang))
+
+
+@router.delete("/analytics/saved/{saved_id}")
+def analytics_unsave(saved_id: int, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.analytics.export import delete
+
+    return _officer_or_403(delete, repo, saved_id)
 
 
 @router.post("/chat")
