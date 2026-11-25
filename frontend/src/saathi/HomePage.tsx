@@ -3,9 +3,10 @@ import { Overview, fetchChatStarters, fetchOverview } from "../api/gujrera";
 import { Icon } from "./Brand";
 import { useSaathi } from "./context";
 import { En } from "./En";
+import { Journey } from "./Journey";
 import { StringKey, tr } from "./strings";
 
-export type Page = "home" | "ask" | "check" | "calc" | "promoter" | "officer" | "risk" | "enforce" | "report" | "desk" | "orders" | "qpr" | "watch" | "agreement";
+export type Page = "home" | "ask" | "check" | "calc" | "promoter" | "officer" | "risk" | "enforce" | "report" | "desk" | "orders" | "qpr" | "watch" | "agreement" | "today";
 
 const EXAMPLES: Record<"en" | "gu" | "hi", string[]> = {
   gu: ["મંગલ સ્ક્વેર નું પઝેશન ક્યારે મળશે?", "પઝેશનમાં વિલંબ થાય તો શું મને વ્યાજ મળે?", "મારે ફરિયાદ નોંધાવવી છે"],
@@ -95,16 +96,6 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
       ? text.replace("Mangal Square", names.en).replace("મંગલ સ્ક્વેર", names.gu).replace("मंगल स्क्वेयर", names.en)
       : text;
 
-  const actions: { icon: string; key: StringKey; body: StringKey; page: Page; prompt?: string }[] = [
-    { icon: "building", key: "tileProjectTitle", body: "tileProjectBody", page: "ask" },
-    { icon: "shield", key: "tileCheckTitle", body: "tileCheckBody", page: "check" },
-    {
-      icon: "complaint", key: "tileComplaintTitle", body: "tileComplaintBody", page: "ask",
-      prompt: { en: "I want to file a complaint", gu: "મારે ફરિયાદ નોંધાવવી છે", hi: "मुझे शिकायत दर्ज करनी है" }[lang],
-    },
-    { icon: "law", key: "tileRightsTitle", body: "tileRightsBody", page: "ask" },
-    { icon: "calc", key: "navCalc", body: "calcIntro", page: "calc" },
-  ];
   const ongoing = data?.projects_by_status.ongoing ?? null;
 
   return (
@@ -162,7 +153,9 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
         </div>
       </section>
 
-      {/* KPIs */}
+      <Journey onAsk={onAsk} onNavigate={onNavigate} />
+
+      {/* Registry at a glance */}
       {failed ? (
         <p className="text-sm text-muted">Registry figures are unavailable: is the API running?</p>
       ) : (
@@ -205,36 +198,6 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
           </Panel>
         </div>
       )}
-
-      {/* Quick actions */}
-      <section>
-        <h2 className="font-heading text-sm font-bold text-body mb-3">
-          {tr("quickActions", lang)}
-          <En k="quickActions" className="text-muted" />
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {actions.map((a) => (
-            <button
-              key={a.key}
-              type="button"
-              onClick={() => (a.prompt ? onAsk(a.prompt) : onNavigate(a.page))}
-              className="group text-left rounded-xl border border-warm-border bg-card p-4 hover:border-warm-strong hover:shadow-sm transition"
-            >
-              <div className="flex items-center justify-between">
-                <span className="w-8 h-8 rounded-lg bg-brand-soft text-brand-strong flex items-center justify-center">
-                  <Icon name={a.icon} className="w-4 h-4" />
-                </span>
-                <Icon name="arrow" className="w-4 h-4 text-muted group-hover:text-body" />
-              </div>
-              <span className="block mt-3 text-sm font-semibold text-body">
-                {tr(a.key, lang)}
-                <En k={a.key} className="font-normal text-muted" />
-              </span>
-              <span className="block mt-1 text-xs text-muted leading-relaxed line-clamp-3">{tr(a.body, lang)}</span>
-            </button>
-          ))}
-        </div>
-      </section>
 
       {/* Trust */}
       <Panel title="trustTitle">

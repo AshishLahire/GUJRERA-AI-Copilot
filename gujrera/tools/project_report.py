@@ -148,9 +148,13 @@ def build_report(repo: Repository, project_id: int, lang: str = "en", *, as_of: 
     progress = repo.project_progress(project_id)
     orders = repo.list_orders(project_id=project_id)
     complaints = repo.complaint_counts(project_id=project_id)
-    card = repo.promoter_scorecard(p["promoter_id"]) or {}
-    siblings = [x for x in repo.promoter_projects(p["promoter_id"]) if x["id"] != project_id]
-    promoter_orders = [o for o in repo.list_orders(promoter_id=p["promoter_id"]) if o["order_type"] in ADVERSE]
+    # Public records do not name every promoter; the placeholder groups thousands of unrelated
+    # projects, so it has no track record to report.
+    known = p.get("promoter_name") != "Promoter not in imported records"
+    card = (repo.promoter_scorecard(p["promoter_id"]) or {}) if known else {}
+    siblings = [x for x in repo.promoter_projects(p["promoter_id"]) if x["id"] != project_id] if known else []
+    promoter_orders = ([o for o in repo.list_orders(promoter_id=p["promoter_id"]) if o["order_type"] in ADVERSE]
+                       if known else [])
 
     valid_until, proposed = _d(p["reg_valid_until"]), _d(p["proposed_completion"])
     revised, actual = _d(p.get("revised_completion")), _d(p.get("actual_completion"))

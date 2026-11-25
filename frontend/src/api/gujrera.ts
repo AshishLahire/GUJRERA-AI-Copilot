@@ -372,6 +372,63 @@ export async function fetchRisk(token: string, lang: Lang, district: string | nu
   return parse(res);
 }
 
+// ------------------------------------------------------------ officer work queue
+export interface DeskReview { status: "reviewed" | "actioned" | "dismissed"; note: string | null; by: string | null; at: string }
+export interface DeskItem {
+  type: "expiring" | "overdue" | "extensions" | "unknown_number" | "ad_case" | "complaint";
+  key: string;
+  review: DeskReview | null;
+  project_id?: number;
+  name?: string;
+  rera_no?: string;
+  district?: string | null;
+  taluka?: string | null;
+  completion?: string;
+  days_left?: number;
+  days_over?: number;
+  extensions?: number;
+  number?: string;
+  lookups?: number;
+  first_seen?: string;
+  last_seen?: string;
+  channels?: string;
+  ref_no?: string;
+  title?: string;
+  kind?: string;
+  claimed_rera?: string | null;
+  status?: string;
+  opened_on?: string;
+  category?: string;
+  filed_on?: string;
+  age_days?: number;
+  channel?: string;
+}
+export interface DeskSection { count: number; items: DeskItem[]; age?: Record<string, number> }
+export interface DeskResponse {
+  district: string | null;
+  as_of: string;
+  total_projects: number;
+  new_registrations: { last_30_days: number; last_90_days: number };
+  sections: Record<"expiring" | "overdue" | "extensions" | "unknown_numbers" | "ad_cases" | "complaints", DeskSection>;
+}
+
+export async function fetchOfficerDashboard(token: string): Promise<DeskResponse> {
+  const res = await fetch(`${API_BASE}/api/gujrera/officer/dashboard`, { headers: authHeaders(token) });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
+export async function reviewDeskItem(token: string, item_type: string, item_key: string,
+  status: DeskReview["status"], note: string): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/gujrera/officer/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ item_type, item_key, status, note }),
+  });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+
 /** Ask the shell to switch page (used by chat cards). */
 export const NAVIGATE_EVENT = "saathi:navigate";
 export function navigateTo(page: string): void {

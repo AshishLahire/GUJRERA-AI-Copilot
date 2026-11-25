@@ -326,6 +326,9 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if u.project_numbers:
         project = repo.get_project(u.project_numbers[0].normalised)
         if project is None:
+            from gujrera.officer_desk import record_unknown_number
+
+            record_unknown_number(repo.s, u.project_numbers[0].normalised, "chat")  # citizen signal for officers
             return Reply(lang, "not_found", [_say("not_found", lang, q=u.project_numbers[0].normalised)],
                          suggestions=SUGGESTIONS["start"][lang])
         state.entity = {"kind": "project", "id": project["id"]}

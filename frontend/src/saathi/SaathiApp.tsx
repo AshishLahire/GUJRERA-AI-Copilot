@@ -17,25 +17,41 @@ import { OrderTrackerPage } from "./OrderTrackerPage";
 import { QprPage } from "./QprPage";
 import { WatchBell, WatchPage } from "./WatchPage";
 import { AgreementPage } from "./AgreementPage";
+import { OfficerDeskPage } from "./OfficerDeskPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement"];
-const NAV: { page: Page; key: StringKey; icon: string }[] = [
-  { page: "home", key: "navOverview", icon: "grid" },
-  { page: "ask", key: "navAsk", icon: "chat" },
-  { page: "check", key: "navCheck", icon: "shield" },
-  { page: "calc", key: "navCalc", icon: "calc" },
-  { page: "report", key: "navReport", icon: "doc" },
-  { page: "agreement", key: "navAgreement", icon: "law" },
-  { page: "orders", key: "navOrders", icon: "law" },
-  { page: "watch", key: "navWatch", icon: "eye" },
-  { page: "promoter", key: "navPromoter", icon: "briefcase" },
-  { page: "qpr", key: "navQpr", icon: "calendar" },
-  { page: "officer", key: "navOfficer", icon: "chart" },
-  { page: "desk", key: "navDesk", icon: "complaint" },
-  { page: "risk", key: "navRisk", icon: "alert" },
-  { page: "enforce", key: "navEnforce", icon: "flag" },
-];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today"];
+type NavItem = { page: Page; key: StringKey; icon: string };
+const ITEM: Record<Page, NavItem> = {
+  home: { page: "home", key: "navOverview", icon: "grid" },
+  today: { page: "today", key: "navToday", icon: "clock" },
+  ask: { page: "ask", key: "navAsk", icon: "chat" },
+  check: { page: "check", key: "navCheck", icon: "shield" },
+  calc: { page: "calc", key: "navCalc", icon: "calc" },
+  report: { page: "report", key: "navReport", icon: "doc" },
+  agreement: { page: "agreement", key: "navAgreement", icon: "law" },
+  orders: { page: "orders", key: "navOrders", icon: "law" },
+  watch: { page: "watch", key: "navWatch", icon: "eye" },
+  promoter: { page: "promoter", key: "navPromoter", icon: "briefcase" },
+  qpr: { page: "qpr", key: "navQpr", icon: "calendar" },
+  officer: { page: "officer", key: "navOfficer", icon: "chart" },
+  desk: { page: "desk", key: "navDesk", icon: "complaint" },
+  risk: { page: "risk", key: "navRisk", icon: "alert" },
+  enforce: { page: "enforce", key: "navEnforce", icon: "flag" },
+};
+/** Each role sees the tools for its own job. Pages that only make sense on GUJRERA's internal data
+ * (penalty orders, the risk score) are hidden when the app runs on public records. */
+function navFor(role: string | undefined, demo: boolean): NavItem[] {
+  const pages: Page[] =
+    role === "officer"
+      ? ["today", "ask", "officer", "enforce", "desk", "report", "check", ...(demo ? (["risk", "orders"] as Page[]) : [])]
+      : role === "promoter"
+        ? ["home", "ask", "promoter", "qpr", "check"]
+        : role === "agent"
+          ? ["home", "ask", "check", "report"]
+          : ["home", "check", "ask", "report", "agreement", "watch", "calc", ...(demo ? (["orders"] as Page[]) : [])];
+  return pages.map((p) => ITEM[p]);
+}
 const LANGS: { id: Lang; label: string; name: string }[] = [
   { id: "gu", label: "ગુ", name: "Gujarati" },
   { id: "hi", label: "हि", name: "Hindi" },
@@ -59,7 +75,7 @@ function initialDark(): boolean {
 }
 
 const Shell: React.FC = () => {
-  const { lang, setLang } = useSaathi();
+  const { lang, setLang, user } = useSaathi();
   const [page, setPage] = useState<Page>(initialPage);
   const [dark, setDark] = useState<boolean>(initialDark);
   // A question from the overview page; the counter remounts the chat so each one starts fresh.
@@ -71,7 +87,14 @@ const Shell: React.FC = () => {
   useEffect(() => {
     fetchHealth().then((h) => setDemo(h.mock_projects > 0 || h.projects === 0)).catch(() => setDemo(true));
   }, []);
-  const current = NAV.find((n) => n.page === page) ?? NAV[0];
+  const NAV = navFor(user?.role, demo);
+  const current = ITEM[page] ?? NAV[0];
+  // An officer lands on their own work queue; leaving a role returns to that role's first page.
+  const role = user?.role;
+  useEffect(() => {
+    if (role === "officer") setPage((p) => (p === "home" ? "today" : p));
+    else setPage((p) => (p === "today" ? "home" : p));
+  }, [role]);
 
   useEffect(() => {
     const open = (e: Event) => {
@@ -122,7 +145,7 @@ const Shell: React.FC = () => {
 
       {/* Sidebar (desktop) */}
       <aside className="print:!hidden hidden lg:flex w-64 shrink-0 flex-col border-r border-warm-border bg-card sticky top-0 h-screen">
-        <button type="button" onClick={() => setPage("home")} className="h-16 px-5 flex items-center gap-3 border-b border-warm-border text-left">
+        <button type="button" onClick={() => setPage(role === "officer" ? "today" : "home")} className="h-16 px-5 flex items-center gap-3 border-b border-warm-border text-left">
           <BrandMark className="w-8 h-8" />
           <span className="flex flex-col leading-tight">
             <span className="font-heading font-bold text-body text-[15px]">GujRERA Saathi</span>
@@ -164,7 +187,7 @@ const Shell: React.FC = () => {
         {/* Top bar */}
         <header className="print:hidden sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-warm-border">
           <div className="h-16 px-4 sm:px-6 flex items-center gap-3">
-            <button type="button" onClick={() => setPage("home")} className="lg:hidden shrink-0" aria-label="GujRERA Saathi">
+            <button type="button" onClick={() => setPage(role === "officer" ? "today" : "home")} className="lg:hidden shrink-0" aria-label="GujRERA Saathi">
               <BrandMark className="w-8 h-8" />
             </button>
             <div className="min-w-0 leading-tight">
@@ -226,6 +249,7 @@ const Shell: React.FC = () => {
 
         <main id="main" className="flex-1">
           {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
+          {page === "today" && <OfficerDeskPage />}
           {/* Chat and ad check stay mounted so a conversation survives switching pages. */}
           <div hidden={page !== "ask"}>
             <AskPage key={askSeed?.n ?? 0} initialQuestion={askSeed?.q ?? null} />
@@ -247,7 +271,7 @@ const Shell: React.FC = () => {
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">
-          <div className="px-4 sm:px-6 py-4 text-xs text-muted">{tr("footer", lang)}</div>
+          <div className="px-4 sm:px-6 py-4 text-xs text-muted">{tr(demo ? "footer" : "footerPublic", lang)}</div>
         </footer>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CalcProject, ProjectReport, fetchProjectReport } from "../api/gujrera";
+import { CalcProject, ProjectReport, fetchProjectReport, navigateTo, openCalculator } from "../api/gujrera";
 import { BrandMark, Icon } from "./Brand";
 import { ProjectPicker } from "./CalculatorPage";
 import { StateChip } from "./OrderTrackerPage";
@@ -48,7 +48,7 @@ function initialProjectId(): number | null {
 }
 
 export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }) => {
-  const { lang } = useSaathi();
+  const { lang, user } = useSaathi();
   const [picked, setPicked] = useState<CalcProject | null>(null);
   const [id, setId] = useState<number | null>(projectId ?? initialProjectId());
   const [rep, setRep] = useState<ProjectReport | null>(null);
@@ -109,6 +109,25 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
           )}
         </div>
         {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
+        {rep && user?.role !== "officer" && (
+          <div className="rounded-xl border border-warm-border bg-card p-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-body mr-1">
+              {{ en: "Next for this project:", gu: "આ પ્રોજેક્ટ માટે આગળ:", hi: "इस प्रोजेक्ट के लिए आगे:" }[lang]}
+            </span>
+            {(rep.project.delay_days > 0 || rep.project.status === "unverified") && (
+              <button type="button" onClick={() => openCalculator({ projectId: rep.project.id, projectName: rep.project.name, mode: "stay", amount: null })}
+                className="text-xs px-3 py-1.5 rounded-full bg-primary-bg text-primary-text font-semibold">
+                {{ en: "Interest the builder owes me", gu: "બિલ્ડર મને કેટલું વ્યાજ આપે", hi: "बिल्डर मुझे कितना ब्याज देगा" }[lang]}
+              </button>
+            )}
+            <button type="button" onClick={() => navigateTo("agreement")} className="text-xs px-3 py-1.5 rounded-full border border-warm-border text-body hover:border-warm-strong">
+              {{ en: "Check my agreement", gu: "મારો કરાર તપાસો", hi: "मेरा अनुबंध जाँचें" }[lang]}
+            </button>
+            <button type="button" onClick={() => navigateTo("check")} className="text-xs px-3 py-1.5 rounded-full border border-warm-border text-body hover:border-warm-strong">
+              {{ en: "Check an ad for this project", gu: "આ પ્રોજેક્ટની જાહેરાત તપાસો", hi: "इस प्रोजेक्ट का विज्ञापन जाँचें" }[lang]}
+            </button>
+          </div>
+        )}
         {!id && (
           <div className="rounded-xl border border-dashed border-warm-strong p-8 text-center text-sm text-muted">
             <span className="inline-flex w-10 h-10 rounded-lg bg-brand-soft text-brand-strong items-center justify-center mb-3"><Icon name="doc" /></span>
@@ -248,7 +267,11 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
             {/* Promoter */}
             <section className="break-inside-avoid">
               <H k="repPromoter" />
-              <p className="text-sm">{rep.promoter.name.replace(" (Demo)", "")}: {rep.promoter.projects ?? 0} projects · {rep.promoter.delayed ?? 0} delayed · {rep.promoter.complaints_total ?? 0} complaints · {rep.promoter.adverse_orders ?? 0} adverse orders</p>
+              {rep.promoter.name === "Promoter not in imported records" ? (
+                <p className="text-sm text-muted">The public records imported here do not name this project's promoter. Ask the promoter for their GUJRERA promoter registration and check their other projects.</p>
+              ) : (
+                <p className="text-sm">{rep.promoter.name.replace(" (Demo)", "")}: {rep.promoter.projects ?? 0} projects · {rep.promoter.delayed ?? 0} delayed · {rep.promoter.complaints_total ?? 0} complaints · {rep.promoter.adverse_orders ?? 0} adverse orders</p>
+              )}
               {rep.promoter.other_projects.length > 0 && (
                 <ul className="mt-2 text-xs text-muted flex flex-col gap-0.5">
                   {rep.promoter.other_projects.map((o) => (

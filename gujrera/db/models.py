@@ -432,3 +432,34 @@ class OrderPenalty(Base):
     amount: Mapped[float] = mapped_column(Float)
     paid: Mapped[bool] = mapped_column(Boolean, default=False)
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class UnknownNumberLookup(Base):
+    """A RERA number a citizen checked that is not in the registry: an early sign of a fake project or ad.
+    Holds the number and where it was checked, never who checked it."""
+
+    __tablename__ = "unknown_number_lookups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    number: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    district: Mapped[str | None] = mapped_column(String(60), index=True)  # from the number's district segment
+    first_seen: Mapped[date] = mapped_column(Date)
+    last_seen: Mapped[date] = mapped_column(Date, index=True)
+    lookups: Mapped[int] = mapped_column(Integer, default=1)
+    channels: Mapped[str] = mapped_column(String(60), default="")  # ad_check, chat ...
+
+
+class OfficerReview(Base):
+    """An officer's latest action on a work-queue item (reviewed / action taken / not an issue), with a note."""
+
+    __tablename__ = "officer_reviews"
+    __table_args__ = (UniqueConstraint("item_type", "item_key", name="uq_review_item"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_type: Mapped[str] = mapped_column(String(30))
+    item_key: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(20))  # reviewed | actioned | dismissed
+    note: Mapped[str | None] = mapped_column(String(500))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    username: Mapped[str | None] = mapped_column(String(80))
+    at: Mapped[datetime] = mapped_column(DateTime)

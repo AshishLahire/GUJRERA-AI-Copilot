@@ -40,7 +40,7 @@ from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query
 from fastapi import Path as Path_
 from datetime import date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import Engine, event, func, inspect, select
 from sqlalchemy.orm import Session
 
@@ -689,6 +689,28 @@ def chat(body: ChatRequest, repo: Repository = Depends(user_repo)) -> dict[str, 
 
 
 CLOSED_COMPLAINT_STATUSES = ("disposed", "withdrawn")
+
+
+class ReviewRequest(BaseModel):
+    item_type: str = Field(max_length=30)
+    item_key: str = Field(max_length=160)
+    status: str = Field(max_length=20)
+    note: str | None = Field(default=None, max_length=500)
+
+
+@router.get("/officer/dashboard")
+def officer_dashboard(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """The officer's work queue for their district (officers only)."""
+    from gujrera.officer_desk import dashboard
+
+    return _officer_or_403(dashboard, repo)
+
+
+@router.post("/officer/review")
+def officer_review(body: ReviewRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.officer_desk import review
+
+    return _officer_or_403(review, repo, body.item_type, body.item_key, body.status, body.note)
 
 
 @router.get("/overview")

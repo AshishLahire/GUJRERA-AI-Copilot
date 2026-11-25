@@ -240,6 +240,9 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
     out: list[Check] = []
     project = repo.get_project(number.normalised)
     if project is None:
+        from gujrera.officer_desk import record_unknown_number
+
+        record_unknown_number(repo.s, number.normalised, "ad_check")  # citizen signal for officers
         out.append(Check(
             "registry_lookup", "fail", "critical", "Registration number not found",
             f"{number.normalised} is not in the GUJRERA registry data available to GujRERA Saathi.",
