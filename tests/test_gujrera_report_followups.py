@@ -141,3 +141,9 @@ def test_saved_reports_are_private_to_each_officer(client):
     assert client.get("/api/gujrera/analytics/saved", headers=h1).json()["saved"][0]["last_run_at"]
     assert client.delete(f"/api/gujrera/analytics/saved/{s['id']}", headers=h1).status_code == 200
     assert client.get("/api/gujrera/analytics/saved", headers=_auth(client, "citizen_01")).status_code == 403
+
+
+def test_top_n_limits_reports_without_a_limit_of_their_own():
+    q = refine("Lapsed or soon-ending registrations", "top 10").question
+    assert match_report(q).sql.rstrip().endswith("LIMIT 10")
+    assert "LIMIT" not in match_report("lapsed or soon-ending registrations").sql.upper().split("ORDER BY")[-1]

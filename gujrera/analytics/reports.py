@@ -170,6 +170,15 @@ def _uncovered(text_lc: str) -> bool:
 
 
 def match_report(text_lc: str) -> Report | None:
+    report = _match_report(text_lc)
+    # "top 10 lapsed registrations": a report with no row limit of its own shows the first N rows
+    m = re.search(r"\btop\s+(\d{1,3})\b", text_lc or "")
+    if report and m and not re.search(r"\bLIMIT\s+\d+\s*$", report.sql, re.IGNORECASE):
+        report.sql = f"{report.sql} LIMIT {max(1, min(int(m.group(1)), 100))}"
+    return report
+
+
+def _match_report(text_lc: str) -> Report | None:
     period = parse_period(text_lc)
     text_lc = without_period(text_lc, period)  # "last six months" must not send the question to the LLM path
     if _uncovered(text_lc):
