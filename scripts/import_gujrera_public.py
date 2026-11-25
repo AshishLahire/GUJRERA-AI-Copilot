@@ -32,28 +32,33 @@ from sqlalchemy import func, select  # noqa: E402
 from gujrera.db.models import Agent, Project, Promoter, User  # noqa: E402
 from gujrera.db.session import init_db, make_engine, session_factory  # noqa: E402
 from gujrera.enforcement import ensure_tables  # noqa: E402
-from gujrera.ingest.mock_generator import _set_demo_logins  # noqa: E402
 from gujrera.ingest.public_import import DEFAULT_SOURCE, import_file  # noqa: E402
 
 DEFAULT_DB = ROOT / "data" / "gujrera" / "gujrera_public.sqlite"
 
 
-def ensure_logins(s) -> list[str]:
-    """Create officer and buyer logins once, so the app can be used on the imported data."""
-    if s.scalar(select(func.count()).select_from(User)):
-        return []
-    top = s.execute(select(Project.district, func.count()).group_by(Project.district)
-                    .order_by(func.count().desc()).limit(1)).first()
-    users = [User(username="officer_state", role="officer", preferred_lang="en"),
-             User(username="citizen_01", role="citizen", preferred_lang="gu")]
-    if top:
-        users.append(User(username=f"officer_{top[0].lower().replace(' ', '_')}", role="officer",
-                          district_scope=top[0], preferred_lang="gu"))
-    s.add_all(users)
-    s.flush()
-    _set_demo_logins(s)
+def ensure_logins(s, top_districts: int = 3) -> list[str]:
+    """Demo logins for the imported data: a statewide officer, a buyer, and an officer for each of the largest
+    districts. Only adds the ones missing, so re-running an import keeps existing accounts and passwords."""
+    from gujrera.auth import hash_password
+    from gujrera.config import get_gujrera_settings
+
+    have = set(s.scalars(select(User.username)))
+    tops = [d for d, _ in s.execute(select(Project.district, func.count()).group_by(Project.district)
+                                    .order_by(func.count().desc()).limit(top_districts)).all()]
+    wanted = [("officer_state", "officer", None, "en", "GUJRERA officer (statewide)"),
+              ("citizen_01", "citizen", None, "gu", "Demo buyer 01")]
+    wanted += [(f"officer_{d.lower().replace(' ', '_')}", "officer", d, "gu", f"GUJRERA officer ({d})") for d in tops]
+    pw = hash_password(get_gujrera_settings().GUJRERA_DEMO_PASSWORD.get_secret_value())
+    created = []
+    for name, role, scope, lang, display in wanted:
+        if name in have:
+            continue
+        s.add(User(username=name, role=role, district_scope=scope, preferred_lang=lang, display_name=display,
+                   password_hash=pw, is_mock=True))
+        created.append(name)
     s.commit()
-    return [u.username for u in users]
+    return created
 
 
 def main() -> int:

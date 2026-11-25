@@ -20,6 +20,7 @@ from typing import Any, Callable
 from sqlalchemy import select
 
 from gujrera.db.models import Project
+from gujrera.trust.rera_number import parse_rera_number
 from gujrera.db.repository import Repository
 from gujrera.i18n import t, word
 from gujrera.profile.summarise import Profile, Sentence, agent_profile, project_profile, promoter_profile
@@ -162,7 +163,12 @@ def _options(repo: Repository, cands: list[Candidate], lang: str) -> list[dict[s
     for i, c in enumerate(cands[:6], start=1):
         if c.kind == "project":
             p = repo.s.get(Project, c.id)
-            label = f"{p.name} · {p.promoter.name} · {word(p.district, lang)}"
+            middle = p.promoter.name
+            if p.promoter.promoter_type == "unknown":  # imported public record: tell same-named projects apart
+                parsed = parse_rera_number(p.rera_no)
+                middle = p.taluka if p.taluka and p.taluka.lower() != p.district.lower() else \
+                    (parsed.code if parsed and parsed.code else p.rera_no)
+            label = f"{p.name} · {middle} · {word(p.district, lang)}"
         else:
             label = f"{c.label} · {word(c.district, lang)}"
         out.append({"n": i, "kind": c.kind, "id": c.id, "label": label})

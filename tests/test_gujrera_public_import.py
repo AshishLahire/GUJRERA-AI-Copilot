@@ -222,3 +222,27 @@ def test_sample_ads_are_not_made_from_real_records(Session, tmp_path):
     with Session() as s:
         import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/")
         assert demo_samples(s) == []
+
+
+def test_name_matching_at_scale(Session, tmp_path):
+    """Short one-word names must not swallow longer names in a question, and the longest name wins."""
+    from gujrera.chat.understand import find_candidates, suggest_names
+
+    rows = [{"entityType": "PROJECT", "regNo": f"PR/GJ/SURAT/OLPAD/SUDA/RAA9{i:04d}/010123", "entityName": n,
+             "pdate": "01/01/2023 - 31/12/2029"}
+            for i, n in enumerate(["BANSARI SKYVIEW", "SKYVIEW", "MEADOWS", "Kesar Heights"])]
+    path = tmp_path / "names.json"
+    path.write_text(json.dumps({"data": rows}), encoding="utf-8")
+    with Session() as s:
+        import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/")
+        assert [c.label for c in find_candidates(s, "when will i get possession of bansari skyview?")] == ["BANSARI SKYVIEW"]
+        assert [c.label for c in find_candidates(s, "possession of skyview?")] == ["SKYVIEW"]
+        assert find_candidates(s, "tell me about zenith meadows") == []
+        assert [c.label for c in find_candidates(s, "when will i get possession of meadows?")] == ["MEADOWS"]
+        assert "Kesar Heights" in [c.label for c in suggest_names(s, "Kesar Heigts")]
+        # a newly imported project is found without restarting (the name index follows the data)
+        path.write_text(json.dumps({"data": [{"entityType": "PROJECT", "regNo": "PR/GJ/SURAT/OLPAD/SUDA/RAA99999/010123",
+                                              "entityName": "Navrang Plaza", "pdate": "01/01/2023 - 31/12/2029"}]}),
+                        encoding="utf-8")
+        import_file(s, path, source_url="https://gujrera.gujarat.gov.in/#/")
+        assert [c.label for c in find_candidates(s, "tell me about navrang plaza")] == ["Navrang Plaza"]

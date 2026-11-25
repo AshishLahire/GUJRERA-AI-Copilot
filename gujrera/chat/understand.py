@@ -199,27 +199,126 @@ def _sounds_contained(name: str, query_key: list[str]) -> bool:
     return any(query_key[i:i + len(nk)] == nk for i in range(len(query_key) - len(nk) + 1))
 
 
+@dataclass
+class _Entry:
+    kind: str
+    id: int
+    label: str
+    district: str
+    variants: tuple[str, ...]  # lower-cased name, Gujarati name, Gujarati name in Hindi script
+    core: str  # name without "(Demo)", for sound matching
+    sounds: tuple[str, ...] | None  # sound key words, only for names with no Gujarati spelling
+    sound_all: str = ""  # sound key of the name, for "did you mean ...?"
+
+
+@dataclass
+class _NameIndex:
+    entries: list[_Entry]
+    by_prefix: dict[str, set[int]]  # word start -> entry positions (Latin: 4 letters; Indic: 2 letters)
+    by_sound: dict[str, set[int]]  # first sound-key word -> entry positions
+
+
+_INDEX: dict[tuple, _NameIndex] = {}
+_WORD = re.compile(r"[\w\u0900-\u097F\u0A80-\u0AFF]+")
+
+
+def _prefixes(text: str) -> set[str]:
+    out = set()
+    for w in _WORD.findall(text):
+        if w.isdigit():
+            continue
+        n = 2 if _INDIC.search(w) else 4
+        out.add(w[:n])
+    return out
+
+
+def _name_index(session: Session) -> _NameIndex:
+    """Names of all projects and promoters, built once per data version: with ~17,000 projects the
+    question is compared only with names that share a word start, not with every name in turn."""
+    from sqlalchemy import func
+
+    bind = session.get_bind()
+    key = (str(bind.url), session.scalar(select(func.count(Project.id))), session.scalar(select(func.max(Project.id))),
+           session.scalar(select(func.count(Promoter.id))), session.scalar(select(func.max(Promoter.id))))
+    hit = _INDEX.get(key)
+    if hit:
+        return hit
+    entries: list[_Entry] = []
+    for p in session.scalars(select(Promoter).where(Promoter.promoter_type != "unknown")):
+        entries.append(_Entry("promoter", p.id, p.name, p.district,
+                              (_core(p.name), _core(p.name_gu), gu_to_deva(_core(p.name_gu))), _core(p.name),
+                              None if p.name_gu else tuple(sound_key(_core(p.name)).split())))
+    for p in session.scalars(select(Project)):
+        entries.append(_Entry("project", p.id, p.name, p.district,
+                              (p.name.lower(), (p.name_gu or "").lower(), gu_to_deva(p.name_gu).lower()), _core(p.name),
+                              None if p.name_gu else tuple(sound_key(_core(p.name)).split())))
+    by_prefix: dict[str, set[int]] = {}
+    by_sound: dict[str, set[int]] = {}
+    for i, e in enumerate(entries):
+        e.sound_all = sound_key(e.core)
+        for v in e.variants:
+            for pre in _prefixes(v):
+                by_prefix.setdefault(pre, set()).add(i)
+        if e.sounds:
+            by_sound.setdefault(e.sounds[0], set()).add(i)
+    idx = _NameIndex(entries, by_prefix, by_sound)
+    _INDEX.clear()
+    _INDEX[key] = idx
+    return idx
+
+
+# Words that can sit next to a one-word project name in a question without being part of another name.
+_AROUND_NAME = set("""of about in at for the is a an and or to on by from with near what when where which who how
+tell me show give list details detail info information status project projects scheme society flat flats rera
+gujrera number registration registered possession date completion builder promoter developer check please
+ka ki ke ko me mein nu ni no na ma maa thi che chhe nā""".split()) | {
+    "નું", "ની", "નો", "ના", "માં", "થી", "છે", "વિશે", "નુ", "का", "की", "के", "को", "में", "से", "है", "बारे"}
+
+
+def _stands_alone(word: str, text_lc: str) -> bool:
+    """A one-word name ("MEADOWS") must not be the tail or head of a longer name in the question
+    ("Zenith Meadows"): its neighbours must be ordinary words, districts or the ends of the question."""
+    from gujrera.analytics.reports import DISTRICT_WORDS
+
+    words = _WORD.findall(text_lc)
+    for i, w in enumerate(words):
+        if w != word:
+            continue
+        neighbours = [words[j] for j in (i - 1, i + 1) if 0 <= j < len(words)]
+        if all(n in _AROUND_NAME or n in DISTRICT_WORDS or n.isdigit() or len(n) < 3 for n in neighbours):
+            return True
+    return False
+
+
 def find_candidates(session: Session, text_lc: str, threshold: float = FUZZY_THRESHOLD) -> list[Candidate]:
-    found: list[Candidate] = []
+    idx = _name_index(session)
     # Gujarati/Hindi question, English-only registry name: compare by sound.
     latin_key = sound_key(indic_to_latin(text_lc)).split() if _INDIC.search(text_lc) else []
-    for p in session.scalars(select(Promoter).where(Promoter.promoter_type != "unknown")):
-        score = max(_score(_core(p.name), text_lc), _score(_core(p.name_gu), text_lc),
-                    _score(gu_to_deva(_core(p.name_gu)), text_lc))
-        if score < threshold and latin_key and not p.name_gu and _sounds_contained(_core(p.name), latin_key):
+    pool: set[int] = set()
+    for pre in _prefixes(text_lc) | _prefixes(gu_to_deva(text_lc)):
+        pool |= idx.by_prefix.get(pre, set())
+    for k in latin_key:
+        pool |= idx.by_sound.get(k, set())
+    found: list[Candidate] = []
+    for i in sorted(pool):
+        e = idx.entries[i]
+        name, gu, deva = e.variants
+        score = max(_score(name, text_lc), _score(gu, text_lc), _score(deva, text_lc))
+        if score < threshold and latin_key and e.sounds is not None and _sounds_contained(e.core, latin_key):
             score = threshold + 1
+        if score >= threshold and len(_WORD.findall(name)) == 1 and name in _WORD.findall(text_lc) \
+                and not _stands_alone(name, text_lc):
+            continue  # "Zenith Meadows" is not the project called "MEADOWS"
         if score >= threshold:
-            found.append(Candidate("promoter", p.id, p.name, score, p.district))
-    for p in session.scalars(select(Project)):
-        score = max(_score(p.name.lower(), text_lc), _score((p.name_gu or "").lower(), text_lc),
-                    _score(gu_to_deva(p.name_gu).lower(), text_lc))
-        if score < threshold and latin_key and not p.name_gu and _sounds_contained(_core(p.name), latin_key):
-            score = threshold + 1
-        if score >= threshold:
-            found.append(Candidate("project", p.id, p.name, score, p.district))
+            found.append(Candidate(e.kind, e.id, e.label, score, e.district))
     if found:
         best = max(c.score for c in found)
         found = [c for c in found if c.score >= best - 0.5]
+        # "Bansari Skyview" names BANSARI SKYVIEW, not also the project called SKYVIEW.
+        names = {c.id: _core(c.label) for c in found}
+        found = [c for c in found if not any(o.id != c.id and names[c.id] != names[o.id]
+                                             and re.search(rf"(?<!\w){re.escape(names[c.id])}(?!\w)", names[o.id])
+                                             for o in found)]
     return sorted(found, key=lambda c: (-c.score, c.kind, c.id))
 
 
@@ -268,25 +367,31 @@ def suggest_names(session: Session, query: str, min_score: float = 85, limit: in
     """Registry names close to an unmatched name, for "did you mean ...?" (never answered automatically).
     Spelling distance catches typos; for Latin script a sound-alike comparison also catches names that
     speech-to-text wrote the way they sound ("Mongol arcade" for Mangal Arcade)."""
+    from rapidfuzz import process
+
     q = _core(query)
     if len(q) < 5:
         return []
-    latin = re.search(r"[a-z]", q) is not None
-    out: list[Candidate] = []
-    for p in session.scalars(select(Project)):
-        score = max(fuzz.ratio(q, p.name.lower()), fuzz.ratio(q, (p.name_gu or "").lower()),
-                    fuzz.ratio(q, gu_to_deva(p.name_gu)))
-        if latin and score < min_score and _sound_score(q, p.name) >= SOUND_THRESHOLD:
-            score = min_score
-        if score >= min_score:
-            out.append(Candidate("project", p.id, p.name, float(score), p.district))
-    for p in session.scalars(select(Promoter)):
-        score = max(fuzz.ratio(q, _core(p.name)), fuzz.ratio(q, _core(p.name_gu)), fuzz.ratio(q, gu_to_deva(_core(p.name_gu))))
-        if latin and score < min_score and _sound_score(q, _core(p.name)) >= SOUND_THRESHOLD:
-            score = min_score
-        if score >= min_score:
-            out.append(Candidate("promoter", p.id, p.name, float(score), p.district))
-    return sorted(out, key=lambda c: -c.score)[:limit]
+    idx = _name_index(session)
+    best: dict[int, float] = {}
+    for v in range(3):  # English name, Gujarati name, Gujarati name in Hindi script: one fast batch each
+        choices = [e.variants[v] if v < 2 else e.variants[2] for e in idx.entries]
+        if v == 1:
+            choices = [_core(c) for c in choices]
+        for _, score, i in process.extract(q, choices, scorer=fuzz.ratio, score_cutoff=min_score, limit=None):
+            best[i] = max(best.get(i, 0), score)
+    if re.search(r"[a-z]", q):
+        qk = sound_key(q)
+        if qk:
+            # Narrow to names whose sound key could pass, then apply the exact sound-alike rule.
+            near = process.extract(qk, [e.sound_all for e in idx.entries], scorer=fuzz.partial_ratio,
+                                   score_cutoff=SOUND_THRESHOLD - 10, limit=200)
+            for _, _, i in near:
+                if i not in best and _sound_score(q, idx.entries[i].core) >= SOUND_THRESHOLD:
+                    best[i] = float(min_score)
+    out = [Candidate(idx.entries[i].kind, idx.entries[i].id, idx.entries[i].label, float(s), idx.entries[i].district)
+           for i, s in best.items()]
+    return sorted(out, key=lambda c: (-c.score, c.kind != "project", c.id))[:limit]
 
 
 def _leftover(text_lc: str, intents: set[str]) -> str:

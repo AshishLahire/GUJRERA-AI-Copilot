@@ -1,9 +1,9 @@
 # POC evaluation: department sample questions and paraphrases
 
-251 checks built from `EVAL_QUESTIONS.md` with paraphrases for every district, other date ranges and all three languages, on a test registry shaped like the expected GUJRERA tables. Every authority answer is compared row by row with a hand-written reference query. Zero model calls. Reproduce with `python scripts/eval_gujrera_poc.py`. Run on 2026-11-23.
+251 checks built from `EVAL_QUESTIONS.md` with paraphrases for every district, other date ranges and all three languages, on a test registry shaped like the expected GUJRERA tables. Every authority answer is compared row by row with a hand-written reference query. Zero model calls. Reproduce with `python scripts/eval_gujrera_poc.py`. Run on 2026-11-25.
 
 - **All checks passed: 251/251**
-- Latency, 20 users at once (5 questions each, in-process, rules path): p50 1588 ms, p95 1854 ms, slowest 2386 ms; 100 answers in 8.1 s
+- Latency, 20 users at once (5 questions each, in-process, rules path): p50 27 ms, p95 489 ms, slowest 815 ms; 100 answers in 1.0 s
 
 | Assistant | Sample | Passed |
 |:--|:-:|:-:|
@@ -66,19 +66,19 @@ None.
 | authority | A1 | hi | गांधीनगर में कौन से प्रोजेक्ट जांच के अधीन हैं? | ✅ | 1/1 rows |
 | authority | A1 | hi | भावनगर में कौन से प्रोजेक्ट जांच के अधीन हैं? | ✅ | 2/2 rows |
 | authority | A3 | en | Which developers in Ahmedabad defaulted in the last six months? | ✅ | 1/1 rows |
-| authority | A3 | en | Which developers in Surat defaulted in the last six months? | ✅ | 2/2 rows |
+| authority | A3 | en | Which developers in Surat defaulted in the last six months? | ✅ | 1/1 rows |
 | authority | A3 | en | Which developers in Vadodara defaulted in the last six months? | ✅ | 0/0 rows |
 | authority | A3 | en | Which developers in Rajkot defaulted in the last six months? | ✅ | 2/2 rows |
 | authority | A3 | en | Which developers in Gandhinagar defaulted in the last six months? | ✅ | 2/2 rows |
 | authority | A3 | en | Which developers in Bhavnagar defaulted in the last six months? | ✅ | 0/0 rows |
 | authority | A3 | gu | છેલ્લા છ મહિનામાં અમદાવાદમાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 1/1 rows |
-| authority | A3 | gu | છેલ્લા છ મહિનામાં સુરતમાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 2/2 rows |
+| authority | A3 | gu | છેલ્લા છ મહિનામાં સુરતમાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 1/1 rows |
 | authority | A3 | gu | છેલ્લા છ મહિનામાં વડોદરામાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 0/0 rows |
 | authority | A3 | gu | છેલ્લા છ મહિનામાં રાજકોટમાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 2/2 rows |
 | authority | A3 | gu | છેલ્લા છ મહિનામાં ગાંધીનગરમાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 2/2 rows |
 | authority | A3 | gu | છેલ્લા છ મહિનામાં ભાવનગરમાં ડિફોલ્ટ કરનાર ડેવલપર્સ કોણ છે? | ✅ | 0/0 rows |
 | authority | A3 | hi | पिछले छह महीनों में अहमदाबाद में डिफ़ॉल्ट करने वाले डेवलपर्स कौन हैं? | ✅ | 1/1 rows |
-| authority | A3 | hi | पिछले छह महीनों में सूरत में डिफ़ॉल्ट करने वाले डेवलपर्स कौन हैं? | ✅ | 2/2 rows |
+| authority | A3 | hi | पिछले छह महीनों में सूरत में डिफ़ॉल्ट करने वाले डेवलपर्स कौन हैं? | ✅ | 1/1 rows |
 | authority | A3 | hi | पिछले छह महीनों में वडोदरा में डिफ़ॉल्ट करने वाले डेवलपर्स कौन हैं? | ✅ | 0/0 rows |
 | authority | A3 | hi | पिछले छह महीनों में राजकोट में डिफ़ॉल्ट करने वाले डेवलपर्स कौन हैं? | ✅ | 2/2 rows |
 | authority | A3 | hi | पिछले छह महीनों में गांधीनगर में डिफ़ॉल्ट करने वाले डेवलपर्स कौन हैं? | ✅ | 2/2 rows |
@@ -119,13 +119,13 @@ None.
 | authority | A6 | hi | राजकोट में दंड वाले आदेश दिखाओ | ✅ | 4/4 rows |
 | authority | A6 | hi | गांधीनगर में दंड वाले आदेश दिखाओ | ✅ | 3/3 rows |
 | authority | A6 | hi | भावनगर में दंड वाले आदेश दिखाओ | ✅ | 2/2 rows |
-| authority | A2 | en | Which developers were issued notices in the last 3 months? | ✅ | 3/3 rows |
+| authority | A2 | en | Which developers were issued notices in the last 3 months? | ✅ | 2/2 rows |
 | authority | A2 | en | Which developers were issued notices in the last 6 months? | ✅ | 9/9 rows |
 | authority | A2 | en | Which developers were issued notices in the last 12 months? | ✅ | 14/14 rows |
-| authority | A2 | gu | છેલ્લા ત્રણ મહિનામાં કયા ડેવલપર્સને નોટિસ આપવામાં આવી છે? | ✅ | 3/3 rows |
+| authority | A2 | gu | છેલ્લા ત્રણ મહિનામાં કયા ડેવલપર્સને નોટિસ આપવામાં આવી છે? | ✅ | 2/2 rows |
 | authority | A2 | gu | છેલ્લા છ મહિનામાં કયા ડેવલપર્સને નોટિસ આપવામાં આવી છે? | ✅ | 9/9 rows |
 | authority | A2 | gu | છેલ્લા બાર મહિનામાં કયા ડેવલપર્સને નોટિસ આપવામાં આવી છે? | ✅ | 14/14 rows |
-| authority | A2 | hi | पिछले तीन महीनों में किन डेवलपर्स को नोटिस दिया गया? | ✅ | 3/3 rows |
+| authority | A2 | hi | पिछले तीन महीनों में किन डेवलपर्स को नोटिस दिया गया? | ✅ | 2/2 rows |
 | authority | A2 | hi | पिछले छह महीनों में किन डेवलपर्स को नोटिस दिया गया? | ✅ | 9/9 rows |
 | authority | A2 | hi | पिछले बारह महीनों में किन डेवलपर्स को नोटिस दिया गया? | ✅ | 14/14 rows |
 | authority | A5 | en | Top 10 promoters by notices this financial year? | ✅ | 10 rows |

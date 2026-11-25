@@ -152,6 +152,21 @@ def project_type(value: Any) -> str:
 
 UNKNOWN_PROMOTER = "Promoter not in imported records"
 
+# One spelling per district: the portal mixes "SURAT"/"Surat", "Sabar Kantha"/"Sabarkantha", ...
+DISTRICT_SPELLINGS = {
+    "sabarkantha": "Sabarkantha", "banaskantha": "Banaskantha", "panchmahal": "Panchmahal",
+    "panchmahals": "Panchmahal", "chhotaudepur": "Chhota Udaipur", "chhotaudaipur": "Chhota Udaipur",
+    "mahesana": "Mehsana", "mehsana": "Mehsana", "kachchh": "Kutch", "kutch": "Kutch", "dang": "Dang",
+    "thedangs": "Dang", "dangs": "Dang", "devbhumidwarka": "Devbhoomi Dwarka", "devbhoomidwarka": "Devbhoomi Dwarka",
+    "girsomnath": "Gir Somnath", "ahmedabad": "Ahmedabad", "ahmadabad": "Ahmedabad", "vadodara": "Vadodara",
+    "baroda": "Vadodara",
+}
+
+
+def district_name(value: str) -> str:
+    key = re.sub(r"[^a-z]", "", (value or "").lower())
+    return DISTRICT_SPELLINGS.get(key) or (value or "").strip().title()
+
 
 def project_status(value: Any, actual_completion: date | None, end: date | None = None,
                    today: date | None = None) -> str:
@@ -332,7 +347,7 @@ def _project(session: Session, row: dict[str, Any], source_url: str | None, repo
         "project_name_gu": _s(row.get("project_name_gu")),
         "promoter_name": promoter or UNKNOWN_PROMOTER,
         "promoter_name_gu": _s(row.get("promoter_name_gu")),
-        "district": _s(row.get("district")).title() or ((parsed.district or "").title() if parsed else ""),
+        "district": district_name(_s(row.get("district")) or (parsed.district if parsed else "") or ""),
         "taluka": _s(row.get("taluka")),
         "planning_authority": _s(row.get("planning_authority")),
         "project_type": project_type(row.get("project_type")),
@@ -377,7 +392,7 @@ def _agent(session: Session, row: dict[str, Any], source_url: str | None, today:
     if not src:
         raise ValueError("missing source_url (add a column or pass a default source URL)")
     values = dict(name=name, name_gu=_s(row.get("name_gu")) or None,
-                  district=_s(row.get("district")).title() or (parsed.district or "").title() or "Gujarat",
+                  district=district_name(_s(row.get("district")) or parsed.district or "") or "Gujarat",
                   reg_date=reg, valid_until=valid_until, status=agent_status(row.get("status"), valid_until, today),
                   source_url=src, is_mock=False)
     agent = session.scalar(select(Agent).where(Agent.reg_no == parsed.normalised))
