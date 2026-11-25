@@ -136,6 +136,7 @@ const STRINGS = {
   reports: { en: "Standard reports", gu: "પ્રમાણભૂત રિપોર્ટ", hi: "मानक रिपोर्ट" },
   navOverview: { en: "Overview", gu: "ઝાંખી", hi: "अवलोकन" },
   navToday: { en: "My work queue", gu: "મારી કાર્યસૂચિ", hi: "मेरी कार्य सूची" },
+  navData: { en: "Data onboarding", gu: "ડેટા ઓનબોર્ડિંગ", hi: "डेटा ऑनबोर्डिंग" },
   overviewSub: {
     en: "Gujarat RERA registry at a glance, and quick answers for buyers, promoters and officers.",
     gu: "ગુજરાત RERA રજિસ્ટ્રી એક નજરે, અને ખરીદનાર, પ્રમોટર અને અધિકારીઓ માટે ઝડપી જવાબ.",

@@ -134,6 +134,13 @@ class InterestRequest(BaseModel):
     lang: str = "en"
 
 
+class ImportRequest(BaseModel):
+    sheet: str | None = Field(default=None, max_length=120)
+    kind: str = Field(max_length=30)
+    mapping: dict[str, str] = Field(default_factory=dict)
+    source_url: str | None = Field(default=None, max_length=500)
+
+
 class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
@@ -922,3 +929,60 @@ async def trust_upload(
     finally:
         for leftover in UPLOAD_DIR.glob(f"{path.stem}*"):
             leftover.unlink(missing_ok=True)
+
+
+# ------------------------------------------------------------ data onboarding (state-level officers)
+@router.post("/admin/imports")
+async def admin_import_upload(file: UploadFile = File(...), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Upload a department data file (CSV, Excel or JSON); returns its sheets with suggested column matches."""
+    from gujrera.onboarding import MAX_BYTES, upload
+
+    data = await file.read(MAX_BYTES + 1)
+    return _officer_or_403(upload, repo, file.filename or "upload", data)
+
+
+@router.get("/admin/imports")
+def admin_import_history(repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.onboarding import history
+
+    return _officer_or_403(history, repo)
+
+
+@router.get("/admin/imports/{run_id}")
+def admin_import_describe(run_id: str = Path_(..., pattern=r"^[0-9a-f]{32}$"),
+                          repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.onboarding import describe
+
+    return _officer_or_403(describe, repo, run_id)
+
+
+@router.post("/admin/imports/{run_id}/check")
+def admin_import_check(body: ImportRequest, run_id: str = Path_(..., pattern=r"^[0-9a-f]{32}$"),
+                       repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Apply every row and roll back: counts of new, changed, unchanged and rejected rows. Saves nothing."""
+    from gujrera.onboarding import run_import
+
+    return _officer_or_403(run_import, repo, run_id, sheet=body.sheet, kind=body.kind, mapping=body.mapping,
+                           source_url=body.source_url, commit=False)
+
+
+@router.post("/admin/imports/{run_id}/load")
+def admin_import_load(body: ImportRequest, run_id: str = Path_(..., pattern=r"^[0-9a-f]{32}$"),
+                      repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.onboarding import run_import
+
+    return _officer_or_403(run_import, repo, run_id, sheet=body.sheet, kind=body.kind, mapping=body.mapping,
+                           source_url=body.source_url, commit=True)
+
+
+@router.get("/admin/imports/{run_id}/rejected")
+def admin_import_rejected(run_id: str = Path_(..., pattern=r"^[0-9a-f]{32}$"),
+                          repo: Repository = Depends(user_repo)):
+    from fastapi.responses import Response
+
+    from gujrera.onboarding import rejected_csv
+
+    name, text = _officer_or_403(rejected_csv, repo, run_id)
+    return Response("\ufeff" + text, media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+

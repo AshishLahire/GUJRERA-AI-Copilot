@@ -18,13 +18,15 @@ import { QprPage } from "./QprPage";
 import { WatchBell, WatchPage } from "./WatchPage";
 import { AgreementPage } from "./AgreementPage";
 import { OfficerDeskPage } from "./OfficerDeskPage";
+import { DataOnboardingPage } from "./DataOnboardingPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today", "data"];
 type NavItem = { page: Page; key: StringKey; icon: string };
 const ITEM: Record<Page, NavItem> = {
   home: { page: "home", key: "navOverview", icon: "grid" },
   today: { page: "today", key: "navToday", icon: "clock" },
+  data: { page: "data", key: "navData", icon: "server" },
   ask: { page: "ask", key: "navAsk", icon: "chat" },
   check: { page: "check", key: "navCheck", icon: "shield" },
   calc: { page: "calc", key: "navCalc", icon: "calc" },
@@ -41,10 +43,11 @@ const ITEM: Record<Page, NavItem> = {
 };
 /** Each role sees the tools for its own job. Pages that only make sense on GUJRERA's internal data
  * (penalty orders, the risk score) are hidden when the app runs on public records. */
-function navFor(role: string | undefined, demo: boolean): NavItem[] {
+function navFor(role: string | undefined, demo: boolean, statewide = false): NavItem[] {
   const pages: Page[] =
     role === "officer"
-      ? ["today", "ask", "officer", "enforce", "desk", "report", "check", ...(demo ? (["risk", "orders"] as Page[]) : [])]
+      ? ["today", "ask", "officer", "enforce", "desk", "report", "check", ...(demo ? (["risk", "orders"] as Page[]) : []),
+         ...(statewide ? (["data"] as Page[]) : [])]
       : role === "promoter"
         ? ["home", "ask", "promoter", "qpr", "check"]
         : role === "agent"
@@ -88,7 +91,7 @@ const Shell: React.FC = () => {
   useEffect(() => {
     fetchHealth().then((h) => setDemo(h.mock_projects > 0 || h.projects === 0)).catch(() => setDemo(true));
   }, []);
-  const NAV = restoring ? [] : navFor(user?.role, demo === true);
+  const NAV = restoring ? [] : navFor(user?.role, demo === true, user?.role === "officer" && !user.district_scope);
   const current = ITEM[page] ?? ITEM.home;
   // An officer lands on their own work queue; leaving a role returns to that role's first page.
   const role = user?.role;
@@ -256,6 +259,7 @@ const Shell: React.FC = () => {
           {!restoring && (<>
           {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
           {page === "today" && <OfficerDeskPage />}
+          {page === "data" && <DataOnboardingPage />}
           {/* Chat and ad check stay mounted so a conversation survives switching pages. */}
           <div hidden={page !== "ask"}>
             <AskPage key={askSeed?.n ?? 0} initialQuestion={askSeed?.q ?? null} />

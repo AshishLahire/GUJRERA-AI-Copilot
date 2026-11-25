@@ -463,3 +463,28 @@ class OfficerReview(Base):
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     username: Mapped[str | None] = mapped_column(String(80))
     at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class ImportRun(Base):
+    """One data file loaded through the onboarding console: who, what, and what happened to each row."""
+
+    __tablename__ = "import_runs"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)  # also names the stored upload
+    filename: Mapped[str] = mapped_column(String(200))
+    stored_as: Mapped[str] = mapped_column(String(60))  # file name inside the uploads folder
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    uploaded_by: Mapped[str | None] = mapped_column(String(80))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime)
+    status: Mapped[str] = mapped_column(String(20), default="uploaded")  # uploaded | checked | loaded
+    kind: Mapped[str | None] = mapped_column(String(30))  # project | agent | project_update
+    sheet: Mapped[str | None] = mapped_column(String(120))
+    rows: Mapped[int] = mapped_column(Integer, default=0)
+    inserted: Mapped[int] = mapped_column(Integer, default=0)
+    updated: Mapped[int] = mapped_column(Integer, default=0)
+    unchanged: Mapped[int] = mapped_column(Integer, default=0)
+    rejected: Mapped[int] = mapped_column(Integer, default=0)
+    mapping_json: Mapped[str | None] = mapped_column(Text)
+    loaded_by: Mapped[str | None] = mapped_column(String(80))
+    loaded_at: Mapped[datetime | None] = mapped_column(DateTime)
+

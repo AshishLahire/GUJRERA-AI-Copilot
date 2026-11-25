@@ -141,6 +141,9 @@ LOCAL = {
     "public_head": {"en": "{place}: the public GUJRERA search results do not give project addresses, so these are the {n} registered {projects} in {district} district whose name mentions {place}. Projects in {place} with other names are not listed.",
                     "gu": "{place}: GUJRERA ના જાહેર શોધ પરિણામોમાં પ્રોજેક્ટનું સરનામું નથી, તેથી આ {district} જિલ્લાના એવા {n} નોંધાયેલા પ્રોજેક્ટ છે જેમના નામમાં {place} છે. {place} માં બીજા નામવાળા પ્રોજેક્ટ અહીં નથી.",
                     "hi": "{place}: GUJRERA के सार्वजनिक खोज परिणामों में प्रोजेक्ट का पता नहीं है, इसलिए ये {district} जिले के वे {n} पंजीकृत प्रोजेक्ट हैं जिनके नाम में {place} है। {place} में दूसरे नाम वाले प्रोजेक्ट यहाँ नहीं हैं।"},
+    "mixed_head": {"en": "{place}: {n} RERA-registered projects, {exact} found by address and {more} more in {district} district whose name mentions {place} (their address is not loaded yet).",
+                   "gu": "{place}: {n} RERA નોંધાયેલા પ્રોજેક્ટ, {exact} સરનામા પરથી અને {district} જિલ્લાના બીજા {more} જેમના નામમાં {place} છે (તેમનું સરનામું હજી લોડ થયું નથી).",
+                   "hi": "{place}: {n} RERA पंजीकृत प्रोजेक्ट, {exact} पते से और {district} जिले के {more} और जिनके नाम में {place} है (उनका पता अभी लोड नहीं हुआ)।"},
     "public_none": {"en": "The public GUJRERA search results do not give project addresses, so I cannot list projects in {place} yet. {district} district has {total} registered projects, {ongoing} of them ongoing. Ask about a project by name or RERA number.",
                     "gu": "GUJRERA ના જાહેર શોધ પરિણામોમાં પ્રોજેક્ટનું સરનામું નથી, તેથી હજી {place} ના પ્રોજેક્ટની યાદી આપી શકતો નથી. {district} જિલ્લામાં {total} નોંધાયેલા પ્રોજેક્ટ છે, તેમાંથી {ongoing} ચાલુ છે. પ્રોજેક્ટના નામ કે RERA નંબરથી પૂછો.",
                     "hi": "GUJRERA के सार्वजनिक खोज परिणामों में प्रोजेक्ट का पता नहीं है, इसलिए अभी {place} के प्रोजेक्ट की सूची नहीं दे सकता। {district} जिले में {total} पंजीकृत प्रोजेक्ट हैं, जिनमें से {ongoing} चालू हैं। प्रोजेक्ट के नाम या RERA नंबर से पूछें।"},
@@ -230,23 +233,31 @@ def locality_list(repo: Repository, locality: str, lang: str, limit: int = 10
                             "projects": [{"id": p.id, "name": p.name, "rera_no": p.rera_no, "status": p.status}
                                          for p in projects]}
     district = None
-    if not projects:
-        from sqlalchemy import func, or_
+    exact = len(projects)
+    from sqlalchemy import func, or_
 
-        from gujrera.authority_seed import locality_info
+    from gujrera.authority_seed import locality_info
 
-        info = locality_info(locality)
-        # Public search results carry no address: if no project in the district has a locality, match names.
-        if info and not repo.s.scalar(select(func.count()).select_from(Project).where(
-                Project.district == info[0], Project.locality.is_not(None))):
-            district, en, gu, _hi = info
-            projects = repo.s.scalars(select(Project).where(
-                Project.district == district,
-                or_(func.upper(Project.name).like(f"%{en.upper()}%"), Project.name_gu.like(f"%{gu}%")))
-                .order_by(Project.status != "ongoing", Project.name)).all()
-            card["projects"] = [{"id": p.id, "name": p.name, "rera_no": p.rera_no, "status": p.status} for p in projects]
-            card["match"] = "name"
-            if not projects:
+    info = locality_info(locality)
+    # Public search results carry no address. While some projects in the district have no locality, also list
+    # those whose name mentions the area, and say which are which.
+    if info and repo.s.scalar(select(func.count()).select_from(Project).where(
+            Project.district == info[0], Project.locality.is_(None))):
+        district, en, gu, _hi = info
+        by_name = repo.s.scalars(select(Project).where(
+            Project.district == district, Project.locality.is_(None),
+            or_(func.upper(Project.name).like(f"%{en.upper()}%"), Project.name_gu.like(f"%{gu}%")))
+            .order_by(Project.status != "ongoing", Project.name)).all()
+        word_re = re.compile(rf"(?<![A-Za-z]){re.escape(en)}(?![A-Za-z])", re.IGNORECASE)
+        by_name = [p for p in by_name if word_re.search(p.name or "") or (gu and gu in (p.name_gu or ""))]
+        if by_name:
+            projects = list(projects) + list(by_name)
+            card["projects"] = [{"id": p.id, "name": p.name, "rera_no": p.rera_no, "status": p.status}
+                                for p in projects]
+            card["match"] = "name" if not exact else "address_and_name"
+        # Nothing found and no address loaded for any project in the district: say why, with district totals.
+        if not projects and not repo.s.scalar(select(func.count()).select_from(Project).where(
+                Project.district == district, Project.locality.is_not(None))):
                 from gujrera.i18n import word
 
                 total = repo.s.scalar(select(func.count()).select_from(Project).where(Project.district == district))
@@ -259,7 +270,12 @@ def locality_list(repo: Repository, locality: str, lang: str, limit: int = 10
     if not projects:
         return [Sentence(_lt("none", lang, place=_place(locality, lang)), [], "locality_none")], card, []
     stat = {"type": "locality", "id": locality, "is_mock": any(p.is_mock for p in projects)}
-    if district:
+    if district and exact and len(projects) > exact:
+        from gujrera.i18n import word
+
+        out = [Sentence(_lt("mixed_head", lang, place=_place(locality, lang), n=len(projects), exact=exact,
+                            more=len(projects) - exact, district=word(district, lang)), [stat], "locality_head")]
+    elif district and not exact:
         from gujrera.i18n import word
 
         out = [Sentence(_lt("public_head", lang, place=_place(locality, lang), n=len(projects),

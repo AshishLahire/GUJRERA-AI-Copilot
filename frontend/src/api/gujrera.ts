@@ -439,6 +439,64 @@ export async function reviewDeskItem(token: string, item_type: string, item_key:
   return parse(res);
 }
 
+// ------------------------------------------------------------ data onboarding (state-level officers)
+export type ImportKind = "project" | "agent" | "project_update";
+export interface ImportRun {
+  id: string; filename: string; size_bytes: number; status: "uploaded" | "checked" | "loaded";
+  kind: ImportKind | null; kind_label: string | null; sheet: string | null; rows: number;
+  inserted: number; updated: number; unchanged: number; rejected: number;
+  uploaded_by: string | null; uploaded_at: string; loaded_by: string | null; loaded_at: string | null;
+}
+export interface ImportField { key: string; label: string; required: boolean; hint: string | null }
+export interface ImportSheet {
+  name: string; rows: number; headers: string[]; suggested_kind: ImportKind;
+  kinds: Record<ImportKind, { label: string; fields: ImportField[]; mapping: Record<string, string>; unused: string[] }>;
+  sample: Record<string, string>[];
+}
+export interface ImportUpload { run: ImportRun; sheets: ImportSheet[] }
+export interface ImportResult {
+  run: ImportRun; saved: boolean; rows: number; inserted: number; updated: number; unchanged: number; rejected: number;
+  no_promoter: number; errors: { row: number; error: string }[]; errors_truncated: boolean; sample_new: string[];
+}
+export interface ImportHistory {
+  runs: ImportRun[];
+  registry: { projects: number; agents: number; with_address: number; with_locality: number };
+}
+export interface ImportBody { sheet: string; kind: ImportKind; mapping: Record<string, string>; source_url?: string }
+
+async function adminFetch<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}/api/gujrera/admin/imports${path}`,
+    { ...init, headers: { ...(init.headers as Record<string, string> | undefined), ...authHeaders(token) } });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  return parse(res);
+}
+export function fetchImports(token: string): Promise<ImportHistory> {
+  return adminFetch(token, "");
+}
+export function uploadImport(token: string, file: File): Promise<ImportUpload> {
+  const form = new FormData();
+  form.append("file", file);
+  return adminFetch(token, "", { method: "POST", body: form });
+}
+export function describeImport(token: string, id: string): Promise<ImportUpload> {
+  return adminFetch(token, `/${id}`);
+}
+export function runImport(token: string, id: string, step: "check" | "load", body: ImportBody): Promise<ImportResult> {
+  return adminFetch(token, `/${id}/${step}`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+}
+export async function downloadRejected(token: string, id: string, filename: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/gujrera/admin/imports/${id}/rejected`, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error("Could not download the rejected rows.");
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename.replace(/\.[^.]+$/, "")}_rejected.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Ask the shell to switch page (used by chat cards). */
 export const NAVIGATE_EVENT = "saathi:navigate";
 export function navigateTo(page: string): void {
