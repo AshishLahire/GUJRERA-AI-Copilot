@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { say, useUiLang } from "./context";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 /**
@@ -20,11 +21,12 @@ const TipBox: React.FC<{ label: string; value: number; unit?: string }> = ({ lab
 
 const TableView: React.FC<{ rows: { label: string; value: number }[]; head: [string, string] }> = ({ rows, head }) => {
   const [open, setOpen] = useState(false);
+  const lang = useUiLang();
   return (
     <div className="mt-2">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
         className="text-[11px] font-semibold text-muted hover:text-body">
-        {open ? "Hide table" : "Show as table"}
+        {open ? say({ en: "Hide table", gu: "કોષ્ટક છુપાવો", hi: "तालिका छिपाएँ" }, lang) : say({ en: "Show as table", gu: "કોષ્ટક તરીકે બતાવો", hi: "तालिका के रूप में दिखाएँ" }, lang)}
       </button>
       {open && (
         <table className="mt-2 w-full text-xs">

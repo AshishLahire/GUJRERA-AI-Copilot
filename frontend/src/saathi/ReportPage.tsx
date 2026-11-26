@@ -4,7 +4,7 @@ import { BrandMark, Icon } from "./Brand";
 import { ProjectPicker } from "./CalculatorPage";
 import { StateChip } from "./OrderTrackerPage";
 import { WatchButton } from "./WatchPage";
-import { useSaathi } from "./context";
+import { say, useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
@@ -131,7 +131,7 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
         {!id && (
           <div className="rounded-xl border border-dashed border-warm-strong p-8 text-center text-sm text-muted">
             <span className="inline-flex w-10 h-10 rounded-lg bg-brand-soft text-brand-strong items-center justify-center mb-3"><Icon name="doc" /></span>
-            <p>Choose a project to see its report.</p>
+            <p>{say({ en: "Choose a project to see its report.", gu: "રિપોર્ટ જોવા પ્રોજેક્ટ પસંદ કરો.", hi: "रिपोर्ट देखने के लिए प्रोजेक्ट चुनें।" }, lang)}</p>
           </div>
         )}
       </div>
@@ -159,10 +159,10 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
             {lang === "gu" && p.name_gu && <div className="text-sm text-muted">{p.name}</div>}
             <div className="mt-1 font-mono text-xs text-muted break-all">{p.rera_no}</div>
             <dl className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-sm">
-              <div><dt className="text-xs text-muted">Promoter</dt><dd>{p.promoter.replace(" (Demo)", "")}</dd></div>
-              <div><dt className="text-xs text-muted">Location</dt><dd>{[p.taluka, p.district].filter(Boolean).join(", ")}</dd></div>
-              <div><dt className="text-xs text-muted">Type / units</dt><dd>{p.type}{p.units ? ` · ${p.units}` : ""}</dd></div>
-              <div><dt className="text-xs text-muted">Status</dt><dd>{p.status_text}</dd></div>
+              <div><dt className="text-xs text-muted">{say({ en: "Promoter", gu: "પ્રમોટર", hi: "प्रमोटर" }, lang)}</dt><dd>{p.promoter === "Promoter not in imported records" ? say({ en: "Not named in the public records", gu: "જાહેર રેકોર્ડમાં નામ નથી", hi: "सार्वजनिक रिकॉर्ड में नाम नहीं" }, lang) : p.promoter.replace(" (Demo)", "")}</dd></div>
+              <div><dt className="text-xs text-muted">{say({ en: "Location", gu: "સ્થળ", hi: "स्थान" }, lang)}</dt><dd>{[p.taluka, p.district].filter(Boolean).join(", ")}</dd></div>
+              <div><dt className="text-xs text-muted">{say({ en: "Type / units", gu: "પ્રકાર / એકમો", hi: "प्रकार / इकाइयाँ" }, lang)}</dt><dd>{p.type}{p.units ? ` · ${p.units}` : ""}</dd></div>
+              <div><dt className="text-xs text-muted">{say({ en: "Status", gu: "સ્થિતિ", hi: "स्थिति" }, lang)}</dt><dd>{p.status_text}</dd></div>
             </dl>
           </section>
 
@@ -192,11 +192,11 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
               <table className="w-full text-sm">
                 <tbody>
                   {[
-                    ["Registered", p.reg_date],
-                    ["Completion first promised", p.proposed_completion],
-                    ["Completion date now", p.revised_completion ?? p.proposed_completion],
-                    ["Completed on", p.actual_completion],
-                    ["Registration valid until", p.reg_valid_until],
+                    [say({ en: "Registered", gu: "નોંધણી", hi: "पंजीकरण" }, lang), p.reg_date],
+                    [say({ en: "Completion first promised", gu: "પ્રથમ વચન આપેલ પૂર્ણતા", hi: "पहले वादा की गई पूर्णता" }, lang), p.proposed_completion],
+                    [say({ en: "Completion date now", gu: "હાલની પૂર્ણતા તારીખ", hi: "अभी की पूर्णता तिथि" }, lang), p.revised_completion ?? p.proposed_completion],
+                    [say({ en: "Completed on", gu: "પૂર્ણ થયું", hi: "पूर्ण हुआ" }, lang), p.actual_completion],
+                    [say({ en: "Registration valid until", gu: "નોંધણી ક્યાં સુધી માન્ય", hi: "पंजीकरण कब तक मान्य" }, lang), p.reg_valid_until],
                   ].filter(([, v]) => v).map(([k, v]) => (
                     <tr key={k as string} className="border-b border-warm-border last:border-0">
                       <td className="py-1.5 text-muted">{k}</td><td className="py-1.5 text-right tabular-nums">{fmt(v as string)}</td>
@@ -209,7 +209,7 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
             {/* Approvals */}
             <section className="break-inside-avoid">
               <H k="repApprovals" />
-              {rep.approvals.length === 0 ? <p className="text-sm text-muted">None listed.</p> : (
+              {rep.approvals.length === 0 ? <p className="text-sm text-muted">{say({ en: "None listed.", gu: "કોઈ નોંધાયેલ નથી.", hi: "कोई सूचीबद्ध नहीं।" }, lang)}</p> : (
                 <ul className="text-sm flex flex-col gap-1.5">
                   {rep.approvals.map((a, i) => (
                     <li key={i} className="flex justify-between gap-3">
@@ -268,7 +268,7 @@ export const ReportPage: React.FC<{ projectId: number | null }> = ({ projectId }
             <section className="break-inside-avoid">
               <H k="repPromoter" />
               {rep.promoter.name === "Promoter not in imported records" ? (
-                <p className="text-sm text-muted">The public records imported here do not name this project's promoter. Ask the promoter for their GUJRERA promoter registration and check their other projects.</p>
+                <p className="text-sm text-muted">{say({ en: "The public records imported here do not name this project's promoter. Ask the promoter for their GUJRERA promoter registration and check their other projects.", gu: "અહીં લીધેલા જાહેર રેકોર્ડમાં આ પ્રોજેક્ટના પ્રમોટરનું નામ નથી. પ્રમોટર પાસે તેમની GUJRERA પ્રમોટર નોંધણી માગો અને તેમના બીજા પ્રોજેક્ટ તપાસો.", hi: "यहाँ लिए गए सार्वजनिक रिकॉर्ड में इस प्रोजेक्ट के प्रमोटर का नाम नहीं है। प्रमोटर से उनका GUJRERA प्रमोटर पंजीकरण माँगें और उनके दूसरे प्रोजेक्ट जाँचें।" }, lang)}</p>
               ) : (
                 <p className="text-sm">{rep.promoter.name.replace(" (Demo)", "")}: {rep.promoter.projects ?? 0} projects · {rep.promoter.delayed ?? 0} delayed · {rep.promoter.complaints_total ?? 0} complaints · {rep.promoter.adverse_orders ?? 0} adverse orders</p>
               )}

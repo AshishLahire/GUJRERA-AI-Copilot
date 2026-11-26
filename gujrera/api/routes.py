@@ -970,9 +970,12 @@ def _overview_charts(session: Session, today: date, by_status: dict[str, int], e
 def overview(session: Session = Depends(get_session)) -> dict[str, Any]:
     """Registry totals for the dashboard home: counts only, no names or personal data."""
     by_status = dict(session.execute(select(Project.status, func.count()).group_by(Project.status)).all())
+    # Delayed: still ongoing and either past the date first promised, or given a later completion date.
+    # The same definition as the chat's district answers, so the two never disagree.
     delayed = session.scalar(select(func.count()).select_from(Project).where(
-        Project.status == "ongoing", func.coalesce(Project.revised_completion, Project.proposed_completion)
-        > Project.proposed_completion)) or 0
+        Project.status == "ongoing",
+        (Project.proposed_completion < date.today())
+        | (func.coalesce(Project.revised_completion, Project.proposed_completion) > Project.proposed_completion))) or 0
     complaints = dict(session.execute(select(Complaint.status, func.count()).group_by(Complaint.status)).all())
     districts = session.execute(select(Project.district, func.count()).group_by(Project.district)
                                 .order_by(func.count().desc())).all()

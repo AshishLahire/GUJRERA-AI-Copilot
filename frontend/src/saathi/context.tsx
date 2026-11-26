@@ -82,3 +82,14 @@ export function useSaathi(): SaathiState {
   if (!v) throw new Error("useSaathi must be used inside SaathiProvider");
   return v;
 }
+
+/** The interface language, or English for a component shown outside GujRERA Saathi. */
+export function useUiLang(): Lang {
+  return useContext(Ctx)?.lang ?? "en";
+}
+
+/** Pick the text for a language: `say({ en: "Check", gu: "તપાસો", hi: "जाँचें" }, lang)`. */
+export type Said = { en: string; gu: string; hi: string };
+export function say(t: Said, lang: Lang): string {
+  return t[lang] ?? t.en;
+}

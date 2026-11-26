@@ -1,7 +1,7 @@
 import { AnswerFeedback } from "./AnswerFeedback";
 import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openMyComplaint, openReport, sendChat, transcribeVoice } from "../api/gujrera";
-import { useSaathi } from "../saathi/context";
+import { say, useSaathi } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { StateChip } from "../saathi/OrderTrackerPage";
 import { WatchButton } from "../saathi/WatchPage";
@@ -480,7 +480,7 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
             ? "No speech was recognised. Please try again or type your question."
             : res.low_quality
             ? "Voice recognition for this language is limited in the prototype. Please check the text before sending."
-            : "Check the text, then press Send."
+            : say({ en: "Check the text, then press Send.", gu: "લખાણ તપાસો, પછી મોકલો દબાવો.", hi: "पाठ जाँचें, फिर भेजें दबाएँ।" }, uiLang)
         );
       } catch (e) {
         setError((e as Error).message);
@@ -578,7 +578,7 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
               onClick={() => setLang(l.id)}
               className={`text-xs px-2.5 py-1 rounded-md font-semibold ${lang === l.id ? "bg-card text-body shadow-xs" : "text-muted hover:text-body"}`}
             >
-              {l.label}
+              {l.id === null ? say({ en: "Auto", gu: "આપમેળે", hi: "स्वचालित" }, uiLang) : l.label}
             </button>
           ))}
         </div>
@@ -588,7 +588,7 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
         {messages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 py-10">
             <p className="font-heading text-base font-bold text-body">તમારા ઘરનો દરેક જવાબ, તમારી ભાષામાં</p>
-            <p className="text-sm text-muted">Try one of these:</p>
+            <p className="text-sm text-muted">{say({ en: "Try one of these:", gu: "આમાંથી એક અજમાવો:", hi: "इनमें से एक आज़माएँ:" }, uiLang)}</p>
             <div className="flex flex-wrap justify-center gap-2">
               {[...(user ? (ROLE_SUGGESTIONS[user.role] ?? []).map((text) => ({ lang: "en" as Lang, text })) : []), ...starters].map((s) => (
                 <button
@@ -733,17 +733,20 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
           disabled={busy || !input.trim()}
           className="px-4 py-2 rounded-lg bg-primary-bg text-primary-text text-sm font-semibold disabled:opacity-50"
         >
-          Send
+          {say({ en: "Send", gu: "મોકલો", hi: "भेजें" }, uiLang)}
         </button>
       </form>
       {(recording || voiceNote) && (
         <p className={`text-[11px] -mt-2 ${recording ? "text-red-700 dark:text-red-300" : "text-muted"}`} role="status">
-          {recording ? "Listening… tap the button again to stop." : voiceNote}
+          {recording ? say({ en: "Listening… tap the button again to stop.", gu: "સાંભળી રહ્યા છીએ… રોકવા ફરી બટન દબાવો.", hi: "सुन रहे हैं… रोकने के लिए बटन फिर दबाएँ।" }, uiLang) : voiceNote}
         </p>
       )}
       <p className="text-[11px] text-muted">
-        Prototype on demo data. Answers are built only from registry records. Complaints go to a mock GUJRERA
-        workflow until the real one is connected.
+        {say({
+          en: "Prototype. Answers are built only from GUJRERA records and the law. Complaints filed here are not sent to GUJRERA until its own system is connected.",
+          gu: "પ્રોટોટાઇપ. જવાબો ફક્ત GUJRERA રેકોર્ડ અને કાયદામાંથી બને છે. અહીં નોંધાયેલી ફરિયાદો GUJRERA ની પોતાની સિસ્ટમ જોડાય ત્યાં સુધી તેને મોકલાતી નથી.",
+          hi: "प्रोटोटाइप। जवाब केवल GUJRERA रिकॉर्ड और कानून से बनते हैं। यहाँ दर्ज शिकायतें GUJRERA की अपनी प्रणाली जुड़ने तक उसे नहीं भेजी जातीं।",
+        }, uiLang)}
       </p>
     </div>
   );

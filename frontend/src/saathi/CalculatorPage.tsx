@@ -9,7 +9,7 @@ import {
   searchCalcProjects,
 } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { useSaathi } from "./context";
+import { say, useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
@@ -17,8 +17,10 @@ type Mode = "stay" | "withdraw";
 type PaymentRow = { amount: string; paidOn: string };
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
-const fmtDate = (iso: string) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const LOCALE = { en: "en-IN", gu: "gu-IN", hi: "hi-IN" } as const;
+// Dates in the interface language: "30 Nov 2026", "30 નવે, 2026", "30 नव॰ 2026"
+const fmtDate = (iso: string, lang: keyof typeof LOCALE = "en") =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short", year: "numeric" });
 
 const Label: React.FC<{ k: StringKey; htmlFor?: string }> = ({ k, htmlFor }) => {
   const { lang } = useSaathi();
@@ -65,7 +67,7 @@ export const ProjectPicker: React.FC<{ value: CalcProject | null; onChange: (p: 
           <div className="text-sm font-semibold text-body">{lang === "gu" && value.name_gu ? value.name_gu : value.name}</div>
           <div className="text-[11px] text-muted font-mono break-all">{value.rera_no}</div>
           <div className="text-[11px] text-muted">
-            {value.district} · promised {fmtDate(value.promised)}
+            {value.district} · {say({ en: "promised", gu: "વચન", hi: "वादा" }, lang)} {fmtDate(value.promised, lang)}
           </div>
         </div>
         <button type="button" onClick={() => { onChange(null); setText(""); }} aria-label="Change project" className="text-muted hover:text-body mt-0.5">
@@ -246,7 +248,7 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
             </div>
             <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted">
               <span>
-                {tr("calcPaidOn", "en")}: {mode === "withdraw" ? "needed (interest runs from each payment, Rule 16(3))" : "optional"}
+                {tr("calcPaidOn", lang)}: {mode === "withdraw" ? say({ en: "needed (interest runs from each payment, Rule 16(3))", gu: "જરૂરી (વ્યાજ દરેક ચુકવણીથી ગણાય, નિયમ 16(3))", hi: "ज़रूरी (ब्याज हर भुगतान से गिना जाता है, नियम 16(3))" }, lang) : say({ en: "optional", gu: "વૈકલ્પિક", hi: "वैकल्पिक" }, lang)}
               </span>
               <button
                 type="button"
@@ -267,7 +269,7 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
                   {tr("calcRateDefault", lang)}: <b>{rate ? `${rate.rate}%` : "…"}</b>
                   {rate && (
                     <span className="block text-[11px] text-muted">
-                      SBI MCLR {rate.mclr}% (from {fmtDate(rate.mclr_as_of)}) + 2%, used when the agreement names no rate
+                      SBI MCLR {rate.mclr}% ({say({ en: "from", gu: "થી", hi: "से" }, lang)} {fmtDate(rate.mclr_as_of, lang)}) + 2%, {say({ en: "used when the agreement names no rate", gu: "કરારમાં દર ન હોય ત્યારે", hi: "जब अनुबंध में दर न हो" }, lang)}
                     </span>
                   )}
                 </span>
@@ -289,7 +291,7 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
           </div>
 
           <details className="text-sm">
-            <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-body">More dates (optional)</summary>
+            <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-body">{say({ en: "More dates (optional)", gu: "વધુ તારીખો (વૈકલ્પિક)", hi: "और तारीखें (वैकल्पिक)" }, lang)}</summary>
             <div className="mt-3 grid gap-3">
               <div>
                 <Label k="calcPromisedOn" htmlFor="calc-promised" />
@@ -320,7 +322,7 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
               <span className="inline-flex w-10 h-10 rounded-lg bg-brand-soft text-brand-strong items-center justify-center mb-3">
                 <Icon name="calc" />
               </span>
-              <p>Choose a project and enter what you have paid.</p>
+              <p>{say({ en: "Choose a project and enter what you have paid.", gu: "પ્રોજેક્ટ પસંદ કરો અને તમે ચૂકવેલી રકમ લખો.", hi: "प्रोजेक्ट चुनें और आपने जो भुगतान किया वह लिखें।" }, lang)}</p>
             </div>
           ) : (
             <>
@@ -338,16 +340,16 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
                 <div className="rounded-xl border border-warm-border bg-card p-4">
                   <div className="text-xs text-muted">{tr("calcDelay", lang)}<En k="calcDelay" /></div>
                   <div className="mt-2 font-heading text-2xl font-bold text-body tabular-nums">{r.delay_days} days</div>
-                  <div className="text-xs text-muted">since {fmtDate(r.promised)}</div>
+                  <div className="text-xs text-muted">{say({ en: "since", gu: "થી", hi: "से" }, lang)} {fmtDate(r.promised, lang)}</div>
                 </div>
                 <div className="rounded-xl border border-warm-border bg-card p-4">
                   <div className="text-xs text-muted">
                     {r.mode === "withdraw" ? <>{tr("calcDueBy", lang)}<En k="calcDueBy" /></> : <>{tr("calcRate", lang)}<En k="calcRate" /></>}
                   </div>
                   <div className="mt-2 font-heading text-2xl font-bold text-body tabular-nums">
-                    {r.mode === "withdraw" && r.refund_due_by ? fmtDate(r.refund_due_by) : `${r.rate_pct}%`}
+                    {r.mode === "withdraw" && r.refund_due_by ? fmtDate(r.refund_due_by, lang) : `${r.rate_pct}%`}
                   </div>
-                  <div className="text-xs text-muted">{r.mode === "withdraw" ? "45 days, Rule 17" : r.rate_source === "agreement" ? "agreement rate" : "SBI MCLR + 2%"}</div>
+                  <div className="text-xs text-muted">{r.mode === "withdraw" ? say({ en: "45 days, Rule 17", gu: "45 દિવસ, નિયમ 17", hi: "45 दिन, नियम 17" }, lang) : r.rate_source === "agreement" ? say({ en: "agreement rate", gu: "કરારનો દર", hi: "अनुबंध की दर" }, lang) : "SBI MCLR + 2%"}</div>
                 </div>
               </div>
 
@@ -373,19 +375,19 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
                   <table className="w-full text-sm">
                     <thead className="text-xs text-muted bg-subtle">
                       <tr>
-                        <th className="text-left font-semibold px-5 py-2">Amount</th>
-                        <th className="text-left font-semibold px-3 py-2">From</th>
-                        <th className="text-left font-semibold px-3 py-2">To</th>
-                        <th className="text-right font-semibold px-3 py-2">Days</th>
-                        <th className="text-right font-semibold px-5 py-2">Interest</th>
+                        <th className="text-left font-semibold px-5 py-2">{say({ en: "Amount", gu: "રકમ", hi: "राशि" }, lang)}</th>
+                        <th className="text-left font-semibold px-3 py-2">{say({ en: "From", gu: "થી", hi: "से" }, lang)}</th>
+                        <th className="text-left font-semibold px-3 py-2">{say({ en: "To", gu: "સુધી", hi: "तक" }, lang)}</th>
+                        <th className="text-right font-semibold px-3 py-2">{say({ en: "Days", gu: "દિવસ", hi: "दिन" }, lang)}</th>
+                        <th className="text-right font-semibold px-5 py-2">{say({ en: "Interest", gu: "વ્યાજ", hi: "ब्याज" }, lang)}</th>
                       </tr>
                     </thead>
                     <tbody className="tabular-nums">
                       {r.rows.map((row, i) => (
                         <tr key={i} className="border-t border-warm-border">
                           <td className="px-5 py-2">{inr(row.amount)}</td>
-                          <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.from)}</td>
-                          <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.to)}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.from, lang)}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">{fmtDate(row.to, lang)}</td>
                           <td className="px-3 py-2 text-right">{row.days}</td>
                           <td className="px-5 py-2 text-right">{inr(row.interest)}</td>
                         </tr>

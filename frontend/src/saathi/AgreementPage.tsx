@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AgreementFinding, AgreementReport, checkAgreement, fetchAgreementSamples, uploadAgreement } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { useSaathi } from "./context";
+import { say, useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
@@ -27,7 +27,7 @@ const Finding: React.FC<{ f: AgreementFinding }> = ({ f }) => {
           </div>
           <p className="mt-1 text-sm text-body leading-relaxed">{f.detail}</p>
           {f.excerpt && <blockquote className="mt-2 text-xs text-muted border-l-2 border-warm-strong pl-3 italic">“{f.excerpt}”</blockquote>}
-          {f.ask && f.status !== "pass" && <p className="mt-2 text-xs font-semibold text-body">What to ask: <span className="font-normal">{f.ask}</span></p>}
+          {f.ask && f.status !== "pass" && <p className="mt-2 text-xs font-semibold text-body">{say({ en: "What to ask:", gu: "શું પૂછવું:", hi: "क्या पूछें:" }, lang)} <span className="font-normal">{f.ask}</span></p>}
         </div>
       </div>
     </li>
@@ -76,12 +76,12 @@ export const AgreementPage: React.FC = () => {
             className="w-full rounded-lg border border-warm-border bg-card text-body px-3 py-2 text-xs font-mono focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/30" />
           {samples && (
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="text-muted">Try:</span>
+              <span className="text-muted">{say({ en: "Try:", gu: "અજમાવો:", hi: "आज़माएँ:" }, lang)}</span>
               <button type="button" onClick={() => { setText(samples.one_sided); void run(() => checkAgreement(samples.one_sided, lang)); }}
-                className="rounded-full border border-warm-border px-2.5 py-1 hover:border-warm-strong">One-sided sample</button>
+                className="rounded-full border border-warm-border px-2.5 py-1 hover:border-warm-strong">{say({ en: "One-sided sample", gu: "એકતરફી નમૂનો", hi: "एकतरफ़ा नमूना" }, lang)}</button>
               <button type="button" onClick={() => { setText(samples.fair); void run(() => checkAgreement(samples.fair, lang)); }}
-                className="rounded-full border border-warm-border px-2.5 py-1 hover:border-warm-strong">Fair sample</button>
-              {samples.note && <span className="w-full text-[11px] text-muted">{samples.note}</span>}
+                className="rounded-full border border-warm-border px-2.5 py-1 hover:border-warm-strong">{say({ en: "Fair sample", gu: "યોગ્ય નમૂનો", hi: "संतुलित नमूना" }, lang)}</button>
+              {samples.note && <span className="w-full text-[11px] text-muted">{say({ en: samples.note, gu: "નમૂનામાં કાલ્પનિક પ્રોજેક્ટ છે, તેથી નોંધણી તપાસ કહે છે કે તે રજિસ્ટ્રીમાં નથી. તમારા પ્રોજેક્ટ માટે તમારો કરાર પેસ્ટ કરો.", hi: "नमूने में काल्पनिक प्रोजेक्ट है, इसलिए पंजीकरण जाँच बताती है कि वह रजिस्ट्री में नहीं है। अपने प्रोजेक्ट के लिए अपना अनुबंध पेस्ट करें।" }, lang)}</span>}
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">
@@ -95,7 +95,7 @@ export const AgreementPage: React.FC = () => {
               <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt" onChange={onFile} className="sr-only" />
             </label>
           </div>
-          <p className="text-[11px] text-muted">The text is checked and not kept. This points out what to ask the promoter to change; it is not legal advice.</p>
+          <p className="text-[11px] text-muted">{say({ en: "The text is checked and not kept. This points out what to ask the promoter to change; it is not legal advice.", gu: "લખાણ તપાસીને રાખવામાં આવતું નથી. આ પ્રમોટર પાસે શું બદલાવવું તે બતાવે છે; આ કાનૂની સલાહ નથી.", hi: "पाठ जाँचा जाता है, रखा नहीं जाता। यह बताता है कि प्रमोटर से क्या बदलवाना है; यह कानूनी सलाह नहीं है।" }, lang)}</p>
           {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
         </section>
 
@@ -103,7 +103,7 @@ export const AgreementPage: React.FC = () => {
           {!res ? (
             <div className="rounded-xl border border-dashed border-warm-strong p-8 text-center text-sm text-muted">
               <span className="inline-flex w-10 h-10 rounded-lg bg-brand-soft text-brand-strong items-center justify-center mb-3"><Icon name="doc" /></span>
-              <p>Paste or upload an agreement, or try a sample.</p>
+              <p>{say({ en: "Paste or upload an agreement, or try a sample.", gu: "કરાર પેસ્ટ કે અપલોડ કરો, અથવા નમૂનો અજમાવો.", hi: "अनुबंध पेस्ट या अपलोड करें, या नमूना आज़माएँ।" }, lang)}</p>
             </div>
           ) : (
             <>
@@ -116,10 +116,10 @@ export const AgreementPage: React.FC = () => {
                 ))}
               </div>
               {res.project && (
-                <p className="text-xs text-muted">Project in the agreement: <b className="text-body">{res.project.name}</b> · {res.project.rera_no} · {res.project.status}{res.read_as ? ` · read as ${res.read_as}` : ""}</p>
+                <p className="text-xs text-muted">{say({ en: "Project in the agreement:", gu: "કરારમાં પ્રોજેક્ટ:", hi: "अनुबंध में प्रोजेक्ट:" }, lang)} <b className="text-body">{res.project.name}</b> · {res.project.rera_no} · {res.project.status}{res.read_as ? ` · read as ${res.read_as}` : ""}</p>
               )}
               <ul className="flex flex-col gap-3">{res.findings.map((f) => <Finding key={f.id} f={f} />)}</ul>
-              <p className="text-[11px] text-muted">Compared with the model agreement for sale in the Gujarat RERA General Rules, 2017 (Annexure A) and the RERA Act, 2016.</p>
+              <p className="text-[11px] text-muted">{say({ en: "Compared with the model agreement for sale in the Gujarat RERA General Rules, 2017 (Annexure A) and the RERA Act, 2016.", gu: "ગુજરાત RERA સામાન્ય નિયમો, 2017 (પરિશિષ્ટ A) ના મોડેલ વેચાણ કરાર અને RERA કાયદો, 2016 સાથે સરખાવ્યું.", hi: "गुजरात RERA सामान्य नियम, 2017 (अनुलग्नक A) के मॉडल बिक्री अनुबंध और RERA अधिनियम, 2016 से तुलना की गई।" }, lang)}</p>
             </>
           )}
         </section>
