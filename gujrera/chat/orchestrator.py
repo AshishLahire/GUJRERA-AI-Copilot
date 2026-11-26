@@ -412,7 +412,8 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         return Reply(lang, "risk", sentences, cards=[card] if card else [])
     if repo.p.role == "officer" and (match_report(text_lc) or (looks_like_analytics(text_lc) and not u.candidates)):
         return _report(message, state, repo, lang)
-    if repo.p.role != "officer" and match_report(text_lc) and looks_like_report_request(text_lc)             and not u.candidates:
+    if repo.p.role != "officer" and match_report(text_lc) and looks_like_report_request(text_lc) \
+            and not u.candidates and not _names_a_builder(message, u):
         return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
 
     # 5. Promoter / agent self-service (role-scoped), or a login prompt for private data
@@ -577,14 +578,31 @@ def _orders_to_enforce(repo: Repository, lang: str) -> Reply:
                  cards=[{"type": "orders", "items": data["items"][:6], "officer": True}])
 
 
+_BUILDER_NAME = re.compile(r"(?i)\b([a-z][\w&.-]*)\s+(?:developers?|builders?|buildcon|infra\w*|constructions?|realty|"
+                           r"estates?|llp)\b")
+_NOT_A_NAME = {"the", "a", "an", "which", "what", "top", "of", "by", "all", "many", "most", "for", "these", "those",
+               "other", "real", "registered", "defaulting", "delayed", "how", "list", "show"}
+
+
+def _names_a_builder(message: str, u: Understanding) -> bool:
+    """'How many projects has Shilp Developers completed?' asks about one builder, not for an officer report."""
+    return any(m.group(1).lower() not in _NOT_A_NAME for m in _BUILDER_NAME.finditer(message or ""))
+
+
 def _not_found(q: str, state: ChatState, repo: Repository, lang: str, focus: str | None) -> Reply:
     """Not found; but if a registry name is close (a typo or a voice-recognition slip), offer it."""
     close = suggest_names(repo.s, q)
     if close:
         state.options, state.pending_focus = _options(repo, close, lang), focus
         return Reply(lang, "did_you_mean", [_say("did_you_mean", lang, q=q)], options=state.options)
-    return Reply(lang, "not_found", [_say("not_found", lang, q=q), _say("need_entity", lang)],
-                 suggestions=SUGGESTIONS["start"][lang])
+    sentences = [_say("not_found", lang, q=q)]
+    if focus == "promoter" or re.search(r"(?i)\b(developers?|builders?|buildcon|llp)\b", q or ""):
+        named = repo.s.scalar(select(Promoter.id).where(Promoter.promoter_type != "unknown").limit(1))
+        if named is None:  # public records: projects are listed under a placeholder, not their builder
+            sentences.append(_say("builders_not_named", lang))
+            return Reply(lang, "not_found", sentences, suggestions=SUGGESTIONS["start"][lang])
+    sentences.append(_say("need_entity", lang))
+    return Reply(lang, "not_found", sentences, suggestions=SUGGESTIONS["start"][lang])
 
 
 def looks_like_report_request(text_lc: str) -> bool:

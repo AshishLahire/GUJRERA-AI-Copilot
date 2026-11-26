@@ -32,7 +32,7 @@ ALLOWED_FUNCTIONS = {
     "count", "sum", "avg", "min", "max", "round", "abs", "coalesce", "ifnull", "nullif", "lower", "upper",
     "length", "substr", "substring", "trim", "replace", "cast", "strftime", "date", "julianday", "total",
     "group_concat", "groupconcat", "if", "iif", "case", "instr", "printf", "datetime", "timetostr",
-    "strtotime", "tsordstodate", "datediff", "currentdate", "currenttimestamp", "dateadd", "concat",
+    "strtotime", "tsordstodate", "tsordstotimestamp", "datediff", "currentdate", "currenttimestamp", "dateadd", "concat",
     "dpipe", "safedivide", "div", "least", "greatest", "stddev", "variance", "median",
 }
 FORBIDDEN_NODES = (

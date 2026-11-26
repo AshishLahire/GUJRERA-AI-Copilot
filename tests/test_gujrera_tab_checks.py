@@ -172,3 +172,41 @@ def test_a_question_with_no_project_about_the_law_is_answered_from_the_law(demo_
 
     reply = _from_llm_route(Routed("possession", None, english), "बिल्डर ने फ्लैट नहीं दिया", ChatState(), demo_repo, "hi")
     assert reply.intent.startswith(intent_prefix)
+
+
+@pytest.mark.parametrize("text,start,end", [
+    ("complaints received this quarter", date(2026, 10, 1), None),
+    ("complaints last quarter", date(2026, 7, 1), date(2026, 10, 1)),
+    ("પાછલા ત્રિમાસિકમાં ફરિયાદો", date(2026, 7, 1), date(2026, 10, 1)),
+    ("इस तिमाही की शिकायतें", date(2026, 10, 1), None),
+])
+def test_quarters_are_periods(text, start, end):
+    from gujrera.analytics.periods import parse_period
+
+    p = parse_period(text, date(2026, 11, 26))
+    assert (p.start, p.end) == (start, end)
+
+
+def test_complaints_in_a_period_use_the_filing_date():
+    from gujrera.analytics.reports import match_report
+
+    r = match_report("how many complaints were received this quarter?")
+    assert r.key == "complaints_by_category" and "filed_on >=" in r.sql and r.period is not None
+
+
+def test_the_guard_accepts_sqlite_date_formatting():
+    from gujrera.analytics.sql_guard import guard_sql
+
+    guard_sql("SELECT strftime('%Y-%m', filed_on) AS month, COUNT(*) FROM v_complaint_stats GROUP BY month")
+
+
+@pytest.mark.parametrize("question,named", [
+    ("How many projects has Shilp Developers completed?", True),
+    ("what has goyal buildcon built", True),
+    ("Which developers have the most complaints?", False),
+    ("top builders in Surat", False),
+])
+def test_a_named_builder_is_not_an_officer_report(question, named):
+    from gujrera.chat.orchestrator import _names_a_builder
+
+    assert _names_a_builder(question, None) is named

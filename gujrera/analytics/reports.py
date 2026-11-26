@@ -314,15 +314,16 @@ def _match_report(text_lc: str) -> Report | None:
         if _has(text_lc, "age"):
             return Report("complaint_ageing",
                           "SELECT ref_no, category, promoter_name, project_name, status, age_days FROM v_complaint_stats"
-                          f"{w('is_open = 1', where_d)} ORDER BY age_days DESC LIMIT {n}", d)
+                          f"{w('is_open = 1', where_d, when('filed_on'))} ORDER BY age_days DESC LIMIT {n}", d, period)
         if _has(text_lc, "district") and not d:
             return Report("complaints_by_district",
                           "SELECT district, COUNT(*) AS complaints, SUM(is_open) AS open_complaints "
-                          "FROM v_complaint_stats GROUP BY district ORDER BY complaints DESC", d)
-        if _has(text_lc, "category") or _has(text_lc, "count") or _has(text_lc, "open"):
+                          f"FROM v_complaint_stats{w(when('filed_on'))} GROUP BY district ORDER BY complaints DESC", d, period)
+        if _has(text_lc, "category") or _has(text_lc, "count") or _has(text_lc, "open") or period:
             return Report("complaints_by_category",
                           "SELECT category, COUNT(*) AS complaints, SUM(is_open) AS open_complaints "
-                          f"FROM v_complaint_stats{w(where_d)} GROUP BY category ORDER BY complaints DESC", d)
+                          f"FROM v_complaint_stats{w(where_d, when('filed_on'))} GROUP BY category ORDER BY complaints DESC",
+                          d, period)
     if period and _has(text_lc, "project") and (_has(text_lc, "count") or _has(text_lc, "registration")
                                                  or _has(text_lc, "district")):
         # "How many projects were approved this month?": registered in the period, not all-time totals

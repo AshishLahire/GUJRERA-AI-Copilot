@@ -113,6 +113,15 @@ def parse_period(text: str, today: date | None = None) -> Period | None:
             start = _months_back(today, 12 * n)
         return Period(start, None, m.span())
 
+    # this quarter / last quarter
+    m = re.search(r"\b(this|current|last|previous)\s+quarter\b|(આ|ચાલુ|ગયા|ગત|પાછલા)\s*ત્રિમાસ\S*|(इस|चालू|पिछली|पिछले|गत)\s*तिमाही", t)
+    if m:
+        q_start = date(today.year, 3 * ((today.month - 1) // 3) + 1, 1)
+        if any(w in m.group(0) for w in ("last", "previous", "ગયા", "ગત", "પાછલા", "पिछली", "पिछले", "गत")):
+            prev = _months_back(q_start, 3)
+            return Period(prev, q_start, m.span())
+        return Period(q_start, None, m.span())
+
     # this month / this year
     m = re.search(r"\bthis\s+month\b|આ\s*મહિન\S*|इस\s*महीने", t)
     if m:
