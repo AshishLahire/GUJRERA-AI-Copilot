@@ -64,3 +64,44 @@ def test_public_records_get_honest_samples(public_client):
         assert c.post("/api/gujrera/trust/text", json={"text": it["text"]}).json()["verdict"] in it["expected"]
     agr = c.get("/api/gujrera/agreement/samples").json()
     assert agr["note"] and "made-up project" in agr["note"]
+
+
+@pytest.fixture()
+def demo_repo(tmp_path: Path):
+    from gujrera.db.repository import Principal, Repository
+    from gujrera.ingest.mock_generator import MockConfig, generate
+
+    engine = make_engine(f"sqlite:///{(tmp_path / 'd.sqlite').as_posix()}")
+    init_db(engine)
+    with session_factory(engine)() as s:
+        generate(s, MockConfig())
+        s.commit()
+        yield Repository(s, Principal.anonymous(), audit_sink=lambda _r: None)
+    engine.dispose()
+
+
+def _say_all(repo, messages):
+    from gujrera.chat.orchestrator import ChatState, respond
+
+    state, out = ChatState(), []
+    for m in messages:
+        out.append(respond(m, state, repo).to_dict())
+    return out, state
+
+
+@pytest.mark.parametrize("question,intent", [
+    ("Approved projects in Surat", "district_projects"),
+    ("When will I get possession of Mangal Square?", "possession"),
+    ("Can a builder take 20% before the agreement?", "legal"),
+])
+def test_a_new_question_leaves_an_open_complaint_form(demo_repo, question, intent):
+    out, state = _say_all(demo_repo, ["I want to file a complaint", question])
+    assert out[-1]["intent"] == intent and out[-1]["text"].startswith("I've set your complaint form aside")
+    assert state.complaint is None
+
+
+def test_answers_stay_in_the_complaint_form(demo_repo):
+    out, state = _say_all(demo_repo, ["I want to file a complaint", "Mangal Square",
+                                      "The possession has been delayed beyond the promised date. Why is it late?",
+                                      "Refund with interest", "Test Buyer"])
+    assert all(r["intent"].startswith("complaint_") for r in out) and state.complaint is not None

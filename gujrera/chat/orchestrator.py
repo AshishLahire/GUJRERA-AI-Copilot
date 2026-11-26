@@ -201,7 +201,12 @@ def respond(message: str, state: ChatState, repo: Repository, *, lang: str | Non
                          (in_form or not re.search(r"[a-z]{3,}", (message or "").lower())))
     lang = lang or (state.lang if keep else u.lang)
     state.lang = lang
+    set_aside = state.complaint is not None and _leaves_form(message, u, state)
+    if set_aside:
+        state.complaint = None  # a new question: answer it instead of reading it as a form answer
     reply = _complaint_turn(message, u, state, repo, lang) or _route(message, u, state, repo, lang)
+    if set_aside:
+        reply.sentences.insert(0, Sentence(_FORM_SET_ASIDE.get(lang, _FORM_SET_ASIDE["en"]), [], "form_set_aside"))
     if reply.is_mock and reply.sentences:
         reply.sentences.append(_say("demo_note", lang))
     if rephrase and reply.intent in ("project_profile", "promoter_profile", "possession"):
@@ -695,6 +700,37 @@ def _self_service(text_lc: str, u: Understanding, repo: Repository, lang: str) -
 
 def _from_flow(out: FlowOut, lang: str) -> Reply:
     return Reply(lang, out.intent, out.sentences, cards=out.cards, options=out.options)
+
+
+_FORM_SET_ASIDE = {
+    "en": "I've set your complaint form aside (nothing was submitted). Say 'file a complaint' to start it again.",
+    "gu": "તમારું ફરિયાદ ફોર્મ બાજુએ રાખ્યું છે (કંઈ સબમિટ થયું નથી). ફરી શરૂ કરવા 'ફરિયાદ નોંધાવવી છે' લખો.",
+    "hi": "आपका शिकायत फ़ॉर्म अलग रख दिया है (कुछ भी जमा नहीं हुआ)। फिर से शुरू करने के लिए 'शिकायत दर्ज करनी है' लिखें।",
+}
+_QUESTION_START = re.compile(r"^\s*(what|when|which|who|whom|where|why|how|is|are|can|could|does|do|did|will|would|"
+                             r"should|show|list|tell|give|find)\b", re.IGNORECASE)
+_QUESTION_WORDS = ("ક્યારે", "કયા", "કયું", "કયો", "શું", "કેટલા", "કેટલી", "કોણ", "ક્યાં", "कब", "कौन", "क्या", "कितने",
+                   "कितनी", "कहाँ", "कहां")
+
+
+def _leaves_form(message: str, u: Understanding, state: ChatState) -> bool:
+    """While a complaint form is open, is this message a new question rather than an answer to the form?
+    A list of projects ("Approved projects in Gandhinagar"), or a question about possession, the law, a
+    promoter or complaints ("When will I get possession of X?"). Answers stay in the form: the problem
+    description, a name, a number, a choice, or "Refund with interest"."""
+    from gujrera.analytics.reports import find_locality
+    from gujrera.chat.basics import wants_locality_list
+
+    text = message or ""
+    lc = text.lower()
+    listing = wants_locality_list(lc) and bool(u.districts or find_locality(lc))
+    awaiting = getattr(state.complaint, "awaiting", None)
+    if awaiting == "description":  # free text: only an obvious, short list request leaves
+        return listing and len(lc.split()) <= 8
+    if listing:
+        return True
+    asks = "?" in text or bool(_QUESTION_START.match(lc)) or any(w in text for w in _QUESTION_WORDS)
+    return asks and bool(u.intents & {"possession", "legal", "promoter", "complaints"})
 
 
 def _complaint_turn(message: str, u: Understanding, state: ChatState, repo: Repository, lang: str) -> Reply | None:
