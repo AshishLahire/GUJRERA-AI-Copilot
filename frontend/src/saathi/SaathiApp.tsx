@@ -76,13 +76,24 @@ function initialPage(): Page {
   return PAGES.includes(tab as Page) ? (tab as Page) : "home";
 }
 
+const THEME_KEY = "saathi-theme";
+
+/** Light is the default; dark only when this browser chose it with the toggle (or ?theme=dark in a link). */
 function initialDark(): boolean {
   const theme = new URLSearchParams(window.location.search).get("theme");
   if (theme) return theme === "dark";
   try {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return window.localStorage.getItem(THEME_KEY) === "dark";
   } catch {
     return false;
+  }
+}
+
+function saveTheme(dark: boolean): void {
+  try {
+    window.localStorage.setItem(THEME_KEY, dark ? "dark" : "light");
+  } catch {
+    /* private window or blocked storage: the choice lasts until the page is closed */
   }
 }
 
@@ -229,7 +240,7 @@ const Shell: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setDark((d) => !d)}
+                onClick={() => setDark((d) => { saveTheme(!d); return !d; })}
                 aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
                 className="hidden sm:flex w-8 h-8 rounded-lg border border-warm-border items-center justify-center text-muted hover:text-body"
               >
