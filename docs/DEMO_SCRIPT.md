@@ -46,7 +46,7 @@ Logins (all `gujrera-demo`): `citizen_01`, `officer_surat`, `officer_state` (sta
 | **For officers** | Ask **What percentage of projects are delayed?**, then **Show district-wise project registration trends**, then **How many complaints were received this quarter?** | A plain answer, a table and chart, and the read-only SQL shown. |
 | **For officers** | After a report, type **only Surat**; then **Export to Excel**. | Follow-ups refine the last report; export to Excel or PDF; save a report. |
 | **Ad enforcement** | Open the list. | Ads that citizens checked and reported, grouped by project. |
-| **For officers** | Still as `officer_surat`, ask **What percentage of projects are delayed in Ahmedabad?** | Refused: "Your access covers Surat district only", and the attempt is logged. |
+| **For officers** | Still as `officer_surat`, ask **What percentage of projects are delayed in Ahmedabad?** (or, in Ask Saathi, **projects in Ahmedabad**) | Refused: "Your access covers Surat district only", and the attempt is logged. **projects in Surat** gives the list. |
 
 ## Part 3: administration (window A, `officer_state`)
 

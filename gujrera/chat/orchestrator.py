@@ -356,8 +356,14 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         sentences, card = agent_list(repo, next(iter(u.districts)), lang)
         return Reply(lang, "agent_list", sentences, cards=[card])
     if (len(u.districts) == 1 and not u.candidates and not u.project_numbers and wants_district_list(msg_lc)
-            and repo.p.role != "officer" and not (u.intents - {"greeting"}) and not wants_enforcement(msg_lc)):
+            and not officer_report and not (u.intents - {"greeting"}) and not wants_enforcement(msg_lc)):
         district = next(iter(u.districts))
+        scope = repo.p.district_scope if repo.p.role == "officer" else None
+        if scope and district != scope:  # a district officer works within their own district, as in reports
+            repo._audit("analytics_out_of_scope", {"question": message[:300], "asked": district, "scope": scope})
+            return Reply(lang, "analytics_out_of_scope",
+                         [Sentence(analytics_text("out_of_scope", lang, scope=word(scope, lang),
+                                                  asked=word(district, lang)), [], "an_out_of_scope")])
         sentences, card = district_list(repo, district, lang, delayed=any(w in msg_lc for w in DISTRICT_DELAY_WORDS))
         state.last_list = list(repo.s.scalars(select(Project.id).where(Project.district == district)))
         return Reply(lang, "district_projects", sentences, cards=[card])

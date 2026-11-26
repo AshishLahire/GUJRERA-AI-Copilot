@@ -210,3 +210,16 @@ def test_a_named_builder_is_not_an_officer_report(question, named):
     from gujrera.chat.orchestrator import _names_a_builder
 
     assert _names_a_builder(question, None) is named
+
+
+@pytest.mark.parametrize("scope,question,intent", [
+    (None, "projects in Surat", "district_projects"),        # statewide officer
+    ("Surat", "projects in Surat", "district_projects"),     # own district
+    ("Surat", "projects in Ahmedabad", "analytics_out_of_scope"),  # another district: refused, as in reports
+])
+def test_officers_get_district_lists_within_their_scope(demo_repo, scope, question, intent):
+    from gujrera.chat.orchestrator import ChatState, respond
+    from gujrera.db.repository import Principal, Repository
+
+    officer = Repository(demo_repo.s, Principal(1, "officer", district_scope=scope), audit_sink=lambda _r: None)
+    assert respond(question, ChatState(), officer).intent == intent
