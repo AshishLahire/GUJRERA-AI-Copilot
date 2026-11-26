@@ -50,6 +50,14 @@ W = {
                         "समापन तिथि बीत", "तारीख बीत", "तिथि बीत", "तिथि निकल"),
     "rank": ("top", "most", "highest", "સૌથી", "सबसे"),
     "penalty": ("penalty", "penalties", "fine", "fines", "દંડ", "दंड", "जुर्माना"),
+    "registration": ("registration", "registrations", "registered", "approved", "approval", "approvals",
+                     "નોંધણી", "નોંધાયેલ", "નોંધાયા", "મંજૂર", "पंजीकरण", "पंजीकृत", "स्वीकृत", "मंजूर"),
+    "trend": ("trend", "trends", "year-wise", "yearwise", "year wise", "by year", "each year", "over the years",
+              "over time", "yearly", "month-wise", "monthwise", "month wise", "by month", "each month", "monthly",
+              "વલણ", "ટ્રેન્ડ", "વર્ષવાર", "વર્ષ મુજબ", "દર વર્ષે", "મહિના મુજબ", "માસિક",
+              "रुझान", "ट्रेंड", "वर्षवार", "साल दर साल", "हर साल", "महीनेवार", "मासिक"),
+    "share": ("percent", "percentage", "per cent", "share", "proportion", "%", "ટકા", "ટકાવારી",
+              "प्रतिशत", "फ़ीसदी", "फीसदी"),
 }
 ANALYTICS_CUES = ("which", "how many", "top", "list", "show", "count", "average", "most", "highest", "compare",
                   "report", "by district", "district-wise", "breakdown", "trend",
@@ -86,7 +94,20 @@ TITLES = {
     "adverse_orders": {"en": "Promoters with show-cause, penalty or revocation orders",
                        "gu": "કારણદર્શક, દંડ અથવા રદ કરવાના આદેશ ધરાવતા પ્રમોટર",
                        "hi": "कारण बताओ, दंड या रद्द करने के आदेश वाले प्रमोटर"},
+    "projects_registered": {"en": "Projects registered in the period, by district",
+                            "gu": "સમયગાળામાં નોંધાયેલા પ્રોજેક્ટ, જિલ્લા મુજબ",
+                            "hi": "अवधि में पंजीकृत प्रोजेक्ट, जिलेवार"},
+    "registration_trend": {"en": "Project registrations over time", "gu": "સમય સાથે પ્રોજેક્ટ નોંધણી",
+                           "hi": "समय के साथ प्रोजेक्ट पंजीकरण"},
+    "delayed_share": {"en": "Share of projects past their completion date, by district",
+                      "gu": "પૂર્ણ થવાની તારીખ વીતી ગઈ હોય તેવા પ્રોજેક્ટનો હિસ્સો, જિલ્લા મુજબ",
+                      "hi": "समापन तिथि बीत चुके प्रोजेक्ट का हिस्सा, जिलेवार"},
 }
+
+# The five largest districts get their own column in the district-wise registration trend.
+TREND_DISTRICTS = ("Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar")
+# Past the declared completion date with no completion recorded (public records mark these 'unverified').
+OVERDUE = "((status = 'ongoing' AND proposed_completion < date('now')) OR status = 'unverified')"
 
 
 ONGOING = "status = 'ongoing'"
@@ -181,8 +202,6 @@ def match_report(text_lc: str) -> Report | None:
 def _match_report(text_lc: str) -> Report | None:
     period = parse_period(text_lc)
     text_lc = without_period(text_lc, period)  # "last six months" must not send the question to the LLM path
-    if _uncovered(text_lc):
-        return None
     d = find_district(text_lc)
     where_d = f"district = '{d}'" if d else None  # d comes only from DISTRICT_WORDS
     loc = find_locality(text_lc)
@@ -194,6 +213,35 @@ def _match_report(text_lc: str) -> Report | None:
 
     def when(column: str) -> str | None:
         return period.sql(column) if period else None
+
+    # Trends and shares of projects: asked as "trend" / "percentage", which would otherwise go to the LLM path.
+    about_projects = ((_has(text_lc, "project") or _has(text_lc, "registration"))
+                      and not _has(text_lc, "complaint") and not _has(text_lc, "agent"))
+    if about_projects and _has(text_lc, "trend"):
+        monthly = any(m in text_lc for m in ("month", "મહિન", "માસિક", "महीन", "मासिक"))
+        bucket = "substr(reg_date, 1, 7)" if monthly else "substr(reg_date, 1, 4)"  # dates are stored YYYY-MM-DD
+        label = "month" if monthly else "year"
+        recent = None if (period or not monthly) else "reg_date >= date('now', '-24 month')"
+        cols = f"{bucket} AS {label}, COUNT(*) AS registrations"
+        if not d and not loc and _has(text_lc, "district"):  # district-wise: the big five side by side
+            cols += "".join(f", SUM(CASE WHEN district = '{x}' THEN 1 ELSE 0 END) AS {x.lower()}" for x in TREND_DISTRICTS)
+            others = ", ".join(f"'{x}'" for x in TREND_DISTRICTS)
+            cols += f", SUM(CASE WHEN district NOT IN ({others}) THEN 1 ELSE 0 END) AS other_districts"
+        return Report("registration_trend",
+                      f"SELECT {cols} FROM v_project_delays"
+                      f"{w('reg_date IS NOT NULL', where_d, where_l, when('reg_date'), recent)} "
+                      f"GROUP BY {label} ORDER BY {label}", d, period, locality=loc)
+    if about_projects and _has(text_lc, "share") and (_has(text_lc, "delay") or _has(text_lc, "past_completion")):
+        overdue = f"CASE WHEN {OVERDUE} THEN 1 ELSE 0 END"
+        return Report("delayed_share",
+                      f"SELECT district, COUNT(*) AS projects, SUM({overdue}) AS past_completion_date, "
+                      f"ROUND(100.0 * SUM({overdue}) / COUNT(*), 1) AS percent_past_completion, "
+                      "SUM(CASE WHEN status = 'ongoing' AND is_delayed = 1 THEN 1 ELSE 0 END) AS ongoing_delayed "
+                      f"FROM v_project_delays{w(where_d, where_l)} GROUP BY district ORDER BY projects DESC",
+                      d, locality=loc)
+
+    if _uncovered(text_lc):
+        return None
 
     n = _top_n(text_lc)
 
@@ -275,6 +323,13 @@ def _match_report(text_lc: str) -> Report | None:
             return Report("complaints_by_category",
                           "SELECT category, COUNT(*) AS complaints, SUM(is_open) AS open_complaints "
                           f"FROM v_complaint_stats{w(where_d)} GROUP BY category ORDER BY complaints DESC", d)
+    if period and _has(text_lc, "project") and (_has(text_lc, "count") or _has(text_lc, "registration")
+                                                 or _has(text_lc, "district")):
+        # "How many projects were approved this month?": registered in the period, not all-time totals
+        return Report("projects_registered",
+                      "SELECT district, COUNT(*) AS projects_registered "
+                      f"FROM v_project_delays{w(when('reg_date'), where_d, where_l)} "
+                      "GROUP BY district ORDER BY projects_registered DESC", d, period, locality=loc)
     if (_has(text_lc, "project") and (_has(text_lc, "district") or _has(text_lc, "count"))):
         return Report("projects_by_district",
                       "SELECT district, COUNT(*) AS projects, SUM(is_delayed) AS delayed_projects, "

@@ -10,11 +10,12 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 from functools import lru_cache
 from typing import Any
 
 import httpx
-from sqlalchemy import Engine, inspect
+from sqlalchemy import Engine, inspect, text
 
 from gujrera.analytics.reports import TITLES, find_district, match_report
 from gujrera.analytics.sql_guard import UnsafeSQL, execute_readonly, guard_sql
@@ -65,6 +66,29 @@ S = {
         "hi": "यह रिपोर्ट GUJRERA अधिकारियों के लिए है। कृपया अधिकारी के रूप में लॉगिन करें।",
     },
     "period": {"en": "Period used: {p}.", "gu": "ગણતરીનો સમયગાળો: {p}.", "hi": "अवधि: {p}।"},
+    "registered_total": {
+        "en": "In all: {n} projects registered in this period.",
+        "gu": "કુલ: આ સમયગાળામાં {n} પ્રોજેક્ટ નોંધાયા.",
+        "hi": "कुल: इस अवधि में {n} प्रोजेक्ट पंजीकृत हुए।",
+    },
+    "records_until": {
+        "en": "The loaded records go up to {d} (the latest registration date in them).",
+        "gu": "લોડ કરેલા રેકોર્ડ {d} સુધીના છે (તેમાંની છેલ્લી નોંધણી તારીખ).",
+        "hi": "लोड किए गए रिकॉर्ड {d} तक के हैं (उनमें अंतिम पंजीकरण तिथि)।",
+    },
+    "trend_peak": {
+        "en": "Highest: {label} with {n} registrations. Latest: {last} with {m}.",
+        "gu": "સૌથી વધુ: {label} માં {n} નોંધણી. છેલ્લું: {last} માં {m}.",
+        "hi": "सबसे अधिक: {label} में {n} पंजीकरण। नवीनतम: {last} में {m}।",
+    },
+    "share_total": {
+        "en": "Overall: {past} of {total} projects ({pct}%) are past their declared completion date with no "
+              "completion recorded; {late} ongoing projects are running past their originally promised date.",
+        "gu": "કુલ: {total} માંથી {past} પ્રોજેક્ટ ({pct}%) ની જાહેર કરેલી પૂર્ણ થવાની તારીખ વીતી ગઈ છે અને પૂર્ણતા "
+              "નોંધાઈ નથી; {late} ચાલુ પ્રોજેક્ટ મૂળ વચન આપેલી તારીખથી મોડા છે.",
+        "hi": "कुल: {total} में से {past} प्रोजेक्ट ({pct}%) की घोषित समापन तिथि बीत चुकी है और समापन दर्ज नहीं है; "
+              "{late} चालू प्रोजेक्ट मूल वादा की गई तिथि से पीछे चल रहे हैं।",
+    },
     "default_definition": {
         "en": "\"Default\" here means a recorded non-compliance: a quarterly progress report, quarter-end return or "
               "Form 5 annual report not filed on time, or a fee not paid. \"Unresolved\" means not yet made good.",
@@ -197,6 +221,38 @@ def _chart(columns: list[str], rows: list[list[Any]]) -> dict[str, str] | None:
     return {"x": label, "y": numeric[0]}
 
 
+def _summary(key: str, columns: list[str], rows: list[list[Any]], repo: Repository, lang: str) -> list[str]:
+    """One or two plain sentences for reports whose point is a total, a peak or a share."""
+    if key not in ("projects_registered", "registration_trend", "delayed_share"):
+        return []
+    col = {c: i for i, c in enumerate(columns)}
+
+    def total(c: str) -> int:
+        return int(sum((r[col[c]] or 0) for r in rows))
+
+    out: list[str] = []
+    if key == "projects_registered":
+        if rows:
+            out.append(s("registered_total", lang, n=total("projects_registered")))
+    elif key == "registration_trend" and rows:
+        n_idx = col["registrations"]
+        peak = max(rows, key=lambda r: r[n_idx] or 0)
+        out.append(s("trend_peak", lang, label=peak[0], n=peak[n_idx], last=rows[-1][0], m=rows[-1][n_idx]))
+    elif key == "delayed_share" and rows:
+        projects, past = total("projects"), total("past_completion_date")
+        pct = round(100.0 * past / projects, 1) if projects else 0
+        out.append(s("share_total", lang, past=past, total=projects, pct=pct, late=total("ongoing_delayed")))
+    if key in ("projects_registered", "registration_trend"):
+        try:  # a period after the data ends returns nothing: say where the records stop
+            latest = repo.s.execute(text("SELECT MAX(reg_date) FROM projects")).scalar()
+        except Exception:  # noqa: BLE001
+            latest = None
+        if latest:
+            d = latest if isinstance(latest, date) else date.fromisoformat(str(latest)[:10])
+            out.append(s("records_until", lang, d=d.strftime("%d %b %Y") if lang == "en" else d.strftime("%d-%m-%Y")))
+    return out
+
+
 def answer(question: str, repo: Repository, lang: str, *,
            generate: Callable[[str], str] | None = None) -> AnalyticsAnswer:
     """Officer analytics. Callers must have checked repo.p.role == "officer"."""
@@ -255,13 +311,17 @@ def answer(question: str, repo: Repository, lang: str, *,
     sentences = [Sentence(s("result", lang, title=title, n=len(result.rows), rows="row" if len(result.rows) == 1 else "rows",
                             scope=scope_txt), citations, "an_result")]
     chart = _chart(result.columns, result.rows)
-    if result.rows and chart and "order by" in sql.lower():  # "top" only makes sense for a sorted result
+    summary = _summary(report.key, result.columns, result.rows, repo, lang) if report else []
+    if result.rows and summary:  # totals, peaks and shares say more than "Top:" for these reports
+        pass
+    elif result.rows and chart and "order by" in sql.lower():  # "top" only makes sense for a sorted result
         top = result.rows[0]
         y_idx = result.columns.index(chart["y"])
         sentences.append(Sentence(s("top", lang, label=label(str(top[0]), lang), metric=chart["y"].replace("_", " "),
                                     value=top[y_idx]), citations, "an_top"))
     elif not result.rows:
         sentences.append(Sentence(s("empty", lang), [], "an_empty"))
+    sentences.extend(Sentence(t, citations, "an_summary") for t in summary)
     cap = int(guarded.sql.rsplit("LIMIT", 1)[1])
     if result.rows and len(result.rows) >= cap:
         sentences.append(Sentence(s("capped", lang, n=cap), [], "an_capped"))

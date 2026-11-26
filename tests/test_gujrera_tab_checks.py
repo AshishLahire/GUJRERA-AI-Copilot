@@ -105,3 +105,44 @@ def test_answers_stay_in_the_complaint_form(demo_repo):
                                       "The possession has been delayed beyond the promised date. Why is it late?",
                                       "Refund with interest", "Test Buyer"])
     assert all(r["intent"].startswith("complaint_") for r in out) and state.complaint is not None
+
+
+# The use case document's officer questions: each gets the report it asks for.
+@pytest.mark.parametrize("question,key", [
+    ("How many projects were approved this month?", "projects_registered"),
+    ("How many projects were registered this year in Surat?", "projects_registered"),
+    ("What percentage of projects are delayed?", "delayed_share"),
+    ("કેટલા ટકા પ્રોજેક્ટ વિલંબિત છે?", "delayed_share"),
+    ("कितने प्रतिशत प्रोजेक्ट में देरी है?", "delayed_share"),
+    ("Show district-wise project registration trends", "registration_trend"),
+    ("Monthly trend of project registrations", "registration_trend"),
+    ("જિલ્લા મુજબ પ્રોજેક્ટ નોંધણીનો ટ્રેન્ડ બતાવો", "registration_trend"),
+    ("How many projects are registered in Ahmedabad?", "projects_by_district"),
+])
+def test_document_questions_get_their_report(question, key):
+    from gujrera.analytics.reports import match_report
+
+    assert match_report(question.lower()).key == key
+
+
+def test_complaint_trends_still_go_to_the_ai_path():
+    from gujrera.analytics.reports import match_report
+
+    assert match_report("monthly trend of complaints") is None
+
+
+def test_trend_and_share_reports_run_and_summarise(demo_repo):
+    from gujrera.analytics.engine import answer
+    from gujrera.db.repository import Principal, Repository
+
+    officer = Repository(demo_repo.s, Principal(1, "officer"), audit_sink=lambda _r: None)
+    trend = answer("Show district-wise project registration trends", officer, "en")
+    assert trend.intent == "analytics" and trend.card["columns"][:3] == ["year", "registrations", "ahmedabad"]
+    texts = " ".join(x.text for x in trend.sentences)
+    assert "Highest:" in texts and "records go up to" in texts and "Top:" not in texts
+    share = answer("What percentage of projects are delayed?", officer, "en")
+    assert share.intent == "analytics" and "percent_past_completion" in share.card["columns"]
+    assert any(x.text.startswith("Overall:") and "%" in x.text for x in share.sentences)
+    month = answer("How many projects were approved this month?", officer, "en")
+    assert month.card["columns"] == ["district", "projects_registered"]
+    assert any("records go up to" in x.text for x in month.sentences)
