@@ -40,7 +40,7 @@ export const AgreementPage: React.FC = () => {
   const [res, setRes] = useState<AgreementReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [samples, setSamples] = useState<{ one_sided: string; fair: string } | null>(null);
+  const [samples, setSamples] = useState<{ one_sided: string; fair: string; note?: string | null } | null>(null);
 
   useEffect(() => { fetchAgreementSamples().then(setSamples).catch(() => setSamples(null)); }, []);
 
@@ -81,6 +81,7 @@ export const AgreementPage: React.FC = () => {
                 className="rounded-full border border-warm-border px-2.5 py-1 hover:border-warm-strong">One-sided sample</button>
               <button type="button" onClick={() => { setText(samples.fair); void run(() => checkAgreement(samples.fair, lang)); }}
                 className="rounded-full border border-warm-border px-2.5 py-1 hover:border-warm-strong">Fair sample</button>
+              {samples.note && <span className="w-full text-[11px] text-muted">{samples.note}</span>}
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">

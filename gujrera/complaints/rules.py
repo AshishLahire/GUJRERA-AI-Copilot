@@ -24,9 +24,15 @@ CATEGORY_WORDS: dict[str, tuple[str, ...]] = {
                             "જાહેરાત", "બ્રોશર", "विज्ञापन", "ब्रोशर"),
     "amenities_not_provided": ("amenit", "club house", "clubhouse", "parking", "garden", "lift", "swimming",
                                "સુવિધા", "પાર્કિંગ", "લિફ્ટ", "सुविधा", "पार्किंग", "लिफ्ट"),
-    "agreement_violation": ("extra payment", "extra charges", "demanding more", "agreement", "escalation",
-                            "વધારાના પૈસા", "વધારાનો ચાર્જ", "કરાર", "अतिरिक्त भुगतान", "अतिरिक्त शुल्क",
-                            "अनुबंध"),
+    # A breach or extra charges, not the bare word "agreement": buyers mention the agreement in most complaints
+    # ("delayed beyond the date promised in the agreement" is a possession delay).
+    "agreement_violation": ("extra payment", "extra charges", "demanding more", "escalation", "breach",
+                            "violat", "not as per the agreement", "not as per agreement", "against the agreement",
+                            "agreement not registered", "without an agreement", "without agreement",
+                            "no agreement", "terms of the agreement", "changed the agreement",
+                            "વધારાના પૈસા", "વધારાનો ચાર્જ", "કરારનો ભંગ", "કરાર મુજબ નથી", "કરારનું ઉલ્લંઘન",
+                            "કરારની વિરુદ્ધ", "अतिरिक्त भुगतान", "अतिरिक्त शुल्क", "अनुबंध का उल्लंघन",
+                            "अनुबंध के अनुसार नहीं", "अनुबंध के खिलाफ"),
     "agent_misconduct": ("agent", "broker", "એજન્ટ", "દલાલ", "एजेंट", "दलाल"),
     "compensation": ("compensation", "damages", "loss", "વળતર", "નુકસાન", "मुआवजा", "नुकसान"),
 }

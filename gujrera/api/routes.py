@@ -598,10 +598,14 @@ MAX_AGREEMENT_CHARS = 200_000
 
 
 @router.get("/agreement/samples")
-def agreement_samples() -> dict[str, Any]:
+def agreement_samples(session: Session = Depends(get_session)) -> dict[str, Any]:
     from gujrera.tools.agreement_samples import FAIR, ONE_SIDED
 
-    return {"one_sided": ONE_SIDED, "fair": FAIR}
+    demo = bool(session.scalar(select(Project.id).where(Project.is_mock.is_(True)).limit(1)))
+    # The samples name a made-up project; they are never rewritten around a real project or builder.
+    note = None if demo else ("The samples use a made-up project, so the registration check says it is not in "
+                              "the registry. Paste your own agreement to check its project.")
+    return {"one_sided": ONE_SIDED, "fair": FAIR, "note": note}
 
 
 @router.post("/agreement/check")
@@ -1005,6 +1009,20 @@ def trust_samples(session: Session = Depends(get_session)) -> dict[str, Any]:
         {"id": c.id, "kind": c.kind, "lang": c.lang, "label": c.note, "text": c.text, "expected": list(c.expected)}
         for c in demo_samples(session)
     ]
+    if not items:
+        # Public records: no sample ad is built around a real project or builder. These two name made-up
+        # projects; the number uses a MOCK code so trying it adds nothing to the officers' unknown-numbers list.
+        items = [
+            {"id": "public-not-registered", "kind": "not_found", "lang": "en",
+             "label": "Sample: a registration number that is not in the registry",
+             "text": "Shree Sample Residency, Olpad, Surat. 2 & 3 BHK flats, possession 2027. Book now! "
+                     "GujRERA No. PR/GJ/SURAT/OLPAD/SUDA/MOCK99999/010125",
+             "expected": ["not_found"]},
+            {"id": "public-no-number", "kind": "no_number", "lang": "gu",
+             "label": "નમૂનો: RERA નંબર વગરની જાહેરાત",
+             "text": "વેસુ, સુરતમાં લક્ઝરી ફ્લેટ (નમૂનો). 2BHK માત્ર ₹45 લાખથી. આજે જ ₹51,000 આપી બુક કરો!",
+             "expected": ["no_rera_number"]},
+        ]
     return {"count": len(items), "items": items, "is_mock": True}
 
 

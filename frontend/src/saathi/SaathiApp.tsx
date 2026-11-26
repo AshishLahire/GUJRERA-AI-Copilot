@@ -55,7 +55,7 @@ function navFor(role: string | undefined, demo: boolean, statewide = false): Nav
     role === "officer"
       ? ["today", "ask", "officer", "enforce", "desk", "report", "check", ...(demo ? (["risk", "orders"] as Page[]) : []),
          ...(statewide ? (["data", "circulars", "accuracy", "users", "audit"] as Page[]) : [])]
-      : role === "promoter"
+      : role === "developer" || role === "promoter"  // promoter accounts have the role "developer"
         ? ["home", "ask", "promoter", "qpr", "check"]
         : role === "agent"
           ? ["home", "ask", "check", "report"]

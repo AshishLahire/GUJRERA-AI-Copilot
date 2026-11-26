@@ -992,6 +992,6 @@ export async function uploadAgreement(file: File, lang: Lang): Promise<Agreement
   form.append("lang", lang);
   return parse(await fetch(`${API_BASE}/api/gujrera/agreement/upload`, { method: "POST", body: form }));
 }
-export async function fetchAgreementSamples(): Promise<{ one_sided: string; fair: string }> {
+export async function fetchAgreementSamples(): Promise<{ one_sided: string; fair: string; note?: string | null }> {
   return parse(await fetch(`${API_BASE}/api/gujrera/agreement/samples`));
 }
