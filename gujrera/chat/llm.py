@@ -13,6 +13,8 @@ so only a local Ollama endpoint is supported.
 from __future__ import annotations
 
 import re
+import threading
+from collections import OrderedDict
 from typing import TYPE_CHECKING, Callable
 
 import httpx
@@ -51,9 +53,36 @@ def guard(original: str, candidate: str) -> bool:
     return numbers_out <= numbers_in
 
 
+_CLIENT: httpx.Client | None = None
+_CLIENT_LOCK = threading.Lock()
+# Answers by model and prompt. The model runs at temperature 0, so the same prompt gets the same answer:
+# a repeated question (a suggested one, say) is answered at once, and identically.
+_CACHE: OrderedDict[tuple[str, str], str] = OrderedDict()
+_CACHE_SIZE = 1000
+
+
+def llm_client() -> httpx.Client:
+    """One connection pool for every call to the model (a new client costs ~0.3 s of TLS setup)."""
+    global _CLIENT
+    with _CLIENT_LOCK:
+        if _CLIENT is None:
+            _CLIENT = httpx.Client(limits=httpx.Limits(max_connections=100, max_keepalive_connections=20))
+        return _CLIENT
+
+
+def clear_cache() -> None:
+    with _CLIENT_LOCK:
+        _CACHE.clear()
+
+
 def ollama_generate(prompt: str) -> str:
     cfg = get_gujrera_settings()
-    res = httpx.post(
+    key = (cfg.GUJRERA_LLM_MODEL, prompt)
+    with _CLIENT_LOCK:
+        if key in _CACHE:
+            _CACHE.move_to_end(key)
+            return _CACHE[key]
+    res = llm_client().post(
         f"{cfg.GUJRERA_LLM_BASE_URL.rstrip('/')}/api/chat",
         json={"model": cfg.GUJRERA_LLM_MODEL, "stream": False, "think": False, "keep_alive": cfg.GUJRERA_LLM_KEEP_ALIVE,
               "options": {"temperature": 0},
@@ -61,7 +90,24 @@ def ollama_generate(prompt: str) -> str:
         timeout=cfg.GUJRERA_LLM_TIMEOUT_SECONDS,
     )
     res.raise_for_status()
-    return res.json()["message"]["content"]
+    text = res.json()["message"]["content"]
+    with _CLIENT_LOCK:
+        _CACHE[key] = text
+        while len(_CACHE) > _CACHE_SIZE:
+            _CACHE.popitem(last=False)
+    return text
+
+
+def load_model(model: str | None = None) -> bool:
+    """Load the model into memory (or keep it there) without generating anything."""
+    cfg = get_gujrera_settings()
+    try:
+        res = llm_client().post(f"{cfg.GUJRERA_LLM_BASE_URL.rstrip('/')}/api/generate",
+                                json={"model": model or cfg.GUJRERA_LLM_MODEL, "keep_alive": cfg.GUJRERA_LLM_KEEP_ALIVE},
+                                timeout=cfg.GUJRERA_LLM_TIMEOUT_SECONDS * 3)
+        return res.status_code == 200
+    except httpx.HTTPError:
+        return False
 
 
 def make_rephraser(generate: Callable[[str], str] = ollama_generate) -> Callable[[Reply], Reply]:

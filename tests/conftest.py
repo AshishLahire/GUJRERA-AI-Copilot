@@ -9,3 +9,4 @@ os.environ.setdefault("GUJRERA_LLM_ROUTER", "false")
 os.environ.setdefault("GUJRERA_RAG_LLM", "false")
 os.environ.setdefault("GUJRERA_ANALYTICS_LLM", "false")
 os.environ.setdefault("GUJRERA_LLM_PHRASING", "false")
+os.environ.setdefault("GUJRERA_WARMUP", "false")  # no background warm-up in tests

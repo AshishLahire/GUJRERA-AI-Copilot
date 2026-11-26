@@ -172,8 +172,10 @@ def schema_text(engine: Engine) -> str:
 def ollama_sql(prompt: str) -> str:
     """Ask the self-hosted SQL model. Thinking-only models leave ``content`` empty and put the
     answer at the end of their reasoning, so that is used as a fallback (the guard still applies)."""
+    from gujrera.chat.llm import llm_client
+
     cfg = get_gujrera_settings()
-    res = httpx.post(
+    res = llm_client().post(
         f"{cfg.GUJRERA_LLM_BASE_URL.rstrip('/')}/api/chat",
         json={"model": cfg.GUJRERA_SQL_MODEL, "stream": False, "think": False, "keep_alive": cfg.GUJRERA_LLM_KEEP_ALIVE, "options": {"temperature": 0},
               "messages": [{"role": "user", "content": "/no_think\n" + prompt}]},

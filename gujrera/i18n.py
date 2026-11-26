@@ -169,6 +169,16 @@ T: dict[str, dict[str, str]] = {
         "gu": "\"{q}\" મળ્યું નથી. શું તમે આમાંથી કોઈ વિશે પૂછો છો?",
         "hi": "\"{q}\" नहीं मिला। क्या आपका मतलब इनमें से कोई है?",
     },
+    "builder_not_named": {
+        "en": "The public GUJRERA records loaded here do not name the builder of {name}, so I can't show the builder's record. Here is the project's record.",
+        "gu": "અહીં લોડ કરેલા જાહેર GUJRERA રેકોર્ડમાં {name} ના બિલ્ડરનું નામ નથી, તેથી હું બિલ્ડરનો રેકોર્ડ બતાવી શકતો નથી. પ્રોજેક્ટનો રેકોર્ડ આ રહ્યો.",
+        "hi": "यहाँ लोड किए गए सार्वजनिक GUJRERA रिकॉर्ड में {name} के बिल्डर का नाम नहीं है, इसलिए मैं बिल्डर का रिकॉर्ड नहीं दिखा सकता। प्रोजेक्ट का रिकॉर्ड यह है।",
+    },
+    "builders_not_named": {
+        "en": "The public GUJRERA records loaded here do not name builders. Ask about a project by its name or RERA number.",
+        "gu": "અહીં લોડ કરેલા જાહેર GUJRERA રેકોર્ડમાં બિલ્ડરનાં નામ નથી. પ્રોજેક્ટના નામ કે RERA નંબરથી પૂછો.",
+        "hi": "यहाँ लोड किए गए सार्वजनिक GUJRERA रिकॉर्ड में बिल्डरों के नाम नहीं हैं। प्रोजेक्ट के नाम या RERA नंबर से पूछें।",
+    },
     "need_entity": {
         "en": "Please tell me the project name, promoter name or RERA registration number.",
         "gu": "કૃપા કરીને પ્રોજેક્ટનું નામ, પ્રમોટરનું નામ અથવા RERA નોંધણી નંબર જણાવો.",

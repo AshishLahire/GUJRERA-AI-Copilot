@@ -19,7 +19,7 @@ from typing import Any, Callable
 
 from sqlalchemy import select
 
-from gujrera.db.models import Project
+from gujrera.db.models import Project, Promoter
 from gujrera.trust.rera_number import parse_rera_number
 from gujrera.db.repository import Repository
 from gujrera.i18n import t, word
@@ -520,8 +520,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if len(cands) == 1:
         state.entity = {"kind": cands[0].kind, "id": cands[0].id}
         if "promoter" in u.intents and cands[0].kind == "project":
-            p = repo.s.get(Project, cands[0].id)
-            state.entity = {"kind": "promoter", "id": p.promoter_id}
+            state.entity = _builder_of(repo, cands[0].id)
         return _answer_entity(state, repo, lang, focus)
     if len(cands) > 1:
         state.options = _options(repo, cands, lang)
@@ -532,8 +531,7 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     topical = u.intents & {"possession", "promoter", "complaints"}
     if state.entity and topical and len(u.leftover.split()) <= 2:
         if "promoter" in topical and state.entity["kind"] == "project":
-            p = repo.s.get(Project, state.entity["id"])
-            state.entity = {"kind": "promoter", "id": p.promoter_id}
+            state.entity = _builder_of(repo, state.entity["id"])
         return _answer_entity(state, repo, lang, focus)
 
     # 9. Rules did not understand: let the self-hosted LLM classify it and copy out the name
@@ -658,7 +656,7 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
         if len(cands) == 1:
             state.entity = {"kind": cands[0].kind, "id": cands[0].id}
             if intent == "promoter" and cands[0].kind == "project":
-                state.entity = {"kind": "promoter", "id": repo.s.get(Project, cands[0].id).promoter_id}
+                state.entity = _builder_of(repo, cands[0].id)
             return _answer_entity(state, repo, lang, focus)
         if len(cands) > 1:
             state.options, state.pending_focus = _options(repo, cands, lang), focus
@@ -750,6 +748,16 @@ def _complaint_turn(message: str, u: Understanding, state: ChatState, repo: Repo
     return None
 
 
+def _builder_of(repo: Repository, project_id: int) -> dict[str, Any]:
+    """The builder of a project, as the conversation's subject. Public records do not name builders: their
+    projects share a placeholder promoter, which is not anyone's track record. Then stay on the project."""
+    p = repo.s.get(Project, project_id)
+    promoter = repo.s.get(Promoter, p.promoter_id)
+    if promoter is None or promoter.promoter_type == "unknown":
+        return {"kind": "project", "id": project_id, "builder_not_named": True}
+    return {"kind": "promoter", "id": p.promoter_id}
+
+
 def _answer_entity(state: ChatState, repo: Repository, lang: str, focus: str | None) -> Reply:
     reply = _answer_entity_full(state, repo, lang, focus)
     if focus == "complaints" and reply.intent in ("project_profile", "promoter_profile"):
@@ -761,6 +769,18 @@ def _answer_entity(state: ChatState, repo: Repository, lang: str, focus: str | N
 
 def _answer_entity_full(state: ChatState, repo: Repository, lang: str, focus: str | None) -> Reply:
     entity = state.entity
+    if entity.pop("builder_not_named", False):
+        reply = _answer_entity_full(state, repo, lang, None)
+        name = repo.s.get(Project, entity["id"]).name
+        reply.sentences.insert(0, _say("builder_not_named", lang, name=name))
+        reply.intent = "builder_not_named"
+        return reply
+    if entity["kind"] == "promoter":
+        promoter = repo.s.get(Promoter, entity["id"])
+        if promoter is not None and promoter.promoter_type == "unknown":  # the placeholder, named directly
+            state.entity = None
+            return Reply(lang, "builder_not_named", [_say("builders_not_named", lang)],
+                         suggestions=SUGGESTIONS["start"][lang])
     if entity["kind"] == "project":
         prof = project_profile(repo, entity["id"], lang, focus="possession" if focus == "possession" else None)
         return _from_profile(prof, lang, "possession" if focus == "possession" else "project_profile", "project")

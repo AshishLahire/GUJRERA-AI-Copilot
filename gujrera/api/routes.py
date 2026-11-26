@@ -238,6 +238,9 @@ async def lifespan(_app):  # noqa: ANN001
     import anyio.to_thread
 
     anyio.to_thread.current_default_thread_limiter().total_tokens = API_THREADS
+    from gujrera.warmup import start as start_warmup
+
+    start_warmup(_engine)  # load the models and answer the suggested questions in the background
     yield
 
 
@@ -333,7 +336,9 @@ router = APIRouter(prefix="/api/gujrera", tags=["gujrera"])
 def health(session: Session = Depends(get_session)) -> dict[str, Any]:
     total = session.scalar(select(func.count()).select_from(Project))
     mock = session.scalar(select(func.count()).select_from(Project).where(Project.is_mock.is_(True)))
-    return {"status": "ok", "projects": total, "mock_projects": mock}
+    from gujrera.warmup import STATUS as warmup
+
+    return {"status": "ok", "projects": total, "mock_projects": mock, "warmup": warmup["state"]}
 
 
 def _profile_dict(prof: Profile | None) -> dict[str, Any]:

@@ -43,7 +43,11 @@ class GujreraSettings(BaseSettings):
     GUJRERA_LLM_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)
     # How long Ollama keeps the model loaded after the last question ("-1" = always). Ollama's own
     # default is 5 minutes, after which the next question waits ~1-2 minutes for the model to reload.
-    GUJRERA_LLM_KEEP_ALIVE: str = Field(default="2h")
+    GUJRERA_LLM_KEEP_ALIVE: str = Field(default="24h")
+    # At startup, load the models and answer the suggested questions in the background, then keep the
+    # model loaded while the app runs, so no visitor waits for a model to load.
+    GUJRERA_WARMUP: bool = Field(default=True)
+    GUJRERA_KEEP_WARM_MINUTES: float = Field(default=20.0, ge=0)
 
     # Key for hashing complaint tracking codes and complainant mobiles (HMAC-SHA256).
     # The default is for local development only; set a long random value in any deployment.
