@@ -22,7 +22,7 @@ import numpy as np
 
 from factcheck.lang.normalize import normalize_digits
 from gujrera.legal.build import INDEX_DIR, embed, tokenize
-from gujrera.legal.glossary import expand
+from gujrera.legal.glossary import english_terms, expand
 
 STRONG_COSINE = 0.86
 STOPWORDS = {"what", "which", "who", "whom", "when", "where", "why", "how", "the", "and", "for", "are", "was", "were",
@@ -79,6 +79,28 @@ class LegalIndex:
         for c in chunks:
             self.df.update(set(c["tokens"]))
         self.avgdl = sum(len(c["tokens"]) for c in chunks) / max(len(chunks), 1)
+        self._plain: tuple[list[tuple[str, str]], np.ndarray] | None = None
+
+    def _plain_vectors(self) -> tuple[list[tuple[str, str]], np.ndarray]:
+        """Plain-language descriptions of the provisions buyers ask about (gujrera/legal/plain.py), embedded once."""
+        if self._plain is None:
+            from gujrera.legal.plain import PLAIN
+
+            keys = [k for k, texts in PLAIN.items() for _ in texts]
+            texts = [t for ts in PLAIN.values() for t in ts]
+            self._plain = (keys, embed(texts, "passage: ") if texts else np.zeros((0, self.vectors.shape[1])))
+        return self._plain
+
+    def _plain_match(self, qvecs: list[np.ndarray]) -> dict[tuple[str, str], float]:
+        """How well the question matches each provision's plain description (best description wins)."""
+        keys, vecs = self._plain_vectors()
+        best: dict[tuple[str, str], float] = {}
+        if not len(keys):
+            return best
+        sims = np.max(np.stack([vecs @ q for q in qvecs]), axis=0)
+        for key, sim in zip(keys, sims):
+            best[key] = max(best.get(key, -1.0), float(sim))
+        return best
 
     @classmethod
     def load(cls, index_dir: Path = INDEX_DIR) -> LegalIndex | None:
@@ -116,9 +138,24 @@ class LegalIndex:
         if exact:
             return exact[:k]
 
+        terms = english_terms(text)
         text = expand(text)  # Gujarati/Hindi RERA terms → English legal terms
-        qvec = embed([text], "query: ")[0]
-        cos = self.vectors @ qvec
+        if terms and terms != text:
+            # A Gujarati or Hindi sentence with English terms appended embeds less sharply than either alone:
+            # take the better of the whole question and its English legal terms, provision by provision.
+            qvecs = list(embed([text, terms], "query: "))
+            cos = np.maximum(self.vectors @ qvecs[0], self.vectors @ qvecs[1])
+        else:
+            qvecs = [embed([text], "query: ")[0]]
+            cos = self.vectors @ qvecs[0]
+        plain = self._plain_match(qvecs)
+        plain_rank = {key: r for r, key in enumerate(sorted(plain, key=lambda k: -plain[k]))}
+        # A provision's similarity is the better of its legal text and its plain description.
+        cos = cos.copy()
+        for i, c in enumerate(self.chunks):
+            sim = plain.get((c["kind"], c["number"]))
+            if sim is not None and sim > cos[i]:
+                cos[i] = sim
         bm = self._bm25(tokenize(text))
         if kinds is None:
             kinds = default_kinds(text)
@@ -126,7 +163,11 @@ class LegalIndex:
         allowed = np.array([c["kind"] in kinds for c in self.chunks])
         dense_rank = {int(i): r for r, i in enumerate(np.argsort(-np.where(allowed, cos, -9)))}
         bm_rank = {int(i): r for r, i in enumerate(np.argsort(-np.where(allowed, bm, -9)))}
-        fused = {i: (1 / (RRF_K + dense_rank[i]) + (1 / (RRF_K + bm_rank[i]) if bm[i] > 0 else 0))
+        def _plain_rrf(i: int) -> float:  # the third signal: rank among the plain descriptions
+            r = plain_rank.get((self.chunks[i]["kind"], self.chunks[i]["number"]))
+            return 1 / (RRF_K + r) if r is not None else 0.0
+
+        fused = {i: (1 / (RRF_K + dense_rank[i]) + (1 / (RRF_K + bm_rank[i]) if bm[i] > 0 else 0) + _plain_rrf(i))
                  * (ANNEXURE_WEIGHT if self.chunks[i]["kind"] == "annexure" and not wants_agreement else 1.0)
                  for i in range(len(self.chunks)) if allowed[i]}
         best = sorted(fused, key=lambda i: -fused[i])

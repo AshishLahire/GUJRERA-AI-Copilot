@@ -35,6 +35,35 @@ GLOSSARY: dict[str, str] = {
     "बिना": "without", "कर्तव्य": "duties",
 }
 
+# Word stems, so every inflected form matches (मुआवजा / मुआवजे, દાવો / દાવા, खाता / खाते / खातों), and
+# the words that decide which provision a question is about (punishment, extension, revocation, account,
+# withdraw, responsible). Matched as substrings of the question, like the glossary above.
+STEMS: dict[str, str] = {
+    # Gujarati
+    "કબજ": "possession",
+    "દાવ": "claims adjudging compensation", "નિર્ણય": "adjudicate decide", "સજા": "punishment penalty",
+    "નોંધણી ન": "non-registration punishment", "નોંધણી વગર": "prior registration without registering",
+    "ખાતા": "separate account", "ખાતું": "separate account", "ખાતુ": "separate account", "બેંક": "bank account",
+    "ઉપાડ": "withdraw withdrawal", "જવાબદાર": "responsible liability", "બાંધકામ": "construction structural",
+    "માળખા": "structural", "વધાર": "extension", "લંબાવ": "extension", "રદ્દ": "revocation cancellation",
+    "વેચાણ ખત": "conveyance deed", "રજિસ્ટ્રેશન": "registration", "હક": "rights", "અધિકારો": "rights and duties of allottees",
+    "વ્યાજ દર": "rate of interest", "ત્રિમાસિક અહેવાલ": "quarterly progress report",
+    # Hindi (with and without nukta)
+    "कब्ज": "possession", "क़ब्ज़": "possession", "कब्ज़": "possession",
+    "मुआवज": "compensation", "मुआवज़": "compensation", "दाव": "claims adjudging compensation",
+    "फैसल": "adjudicate decide", "फ़ैसल": "adjudicate decide", "निर्णय": "adjudicate decide",
+    "सजा": "punishment penalty", "सज़ा": "punishment penalty", "पंजीकरण न": "non-registration punishment",
+    "पंजीकरण के बिना": "prior registration without registering", "बिना पंजीकरण": "prior registration without registering",
+    "बढ़ा": "extension", "बढा": "extension", "रद्द": "revocation cancellation", "निरस्त": "revocation",
+    "कन्वेयंस": "conveyance deed", "डीड": "deed", "बैनामा": "conveyance deed",
+    "ढांच": "structural", "ढाँच": "structural", "निर्माण": "construction", "जिम्मेदार": "responsible liability",
+    "ज़िम्मेदार": "responsible liability", "समझौत": "agreement for sale", "करार": "agreement for sale",
+    "हस्ताक्षर": "execute agreement", "खाता": "separate account", "खाते": "separate account", "खातों": "separate account",
+    "बैंक": "bank account", "निकाल": "withdraw withdrawal", "ब्याज दर": "rate of interest",
+    "खरीदार के अधिकार": "rights and duties of allottees", "आवंटी": "allottee", "विज्ञापन": "advertisement marketing",
+    "तिमाही": "quarterly progress report",
+}
+
 
 # Everyday English → the Act's own vocabulary ("per cent", "allottee", "promoter").
 ENGLISH_TERMS: dict[str, str] = {
@@ -42,17 +71,36 @@ ENGLISH_TERMS: dict[str, str] = {
     "buyer": "allottee", "home buyer": "allottee", "flat": "apartment", "money back": "refund return of amount",
     "deposit": "advance payment", "token amount": "advance payment", "late": "delay",
     "handover": "possession", "hand over": "possession", "sale deed": "conveyance deed",
+    "decides": "adjudicate", "decide": "adjudicate", "claim": "adjudging compensation",
 }
 
 
-def expand(query: str) -> str:
-    """The query plus English legal terms for any Gujarati/Hindi words or everyday English it contains."""
-    terms = []
+# Two ideas together that name one provision: (any of these) and (any of these) -> the provision's own words.
+PAIRS: list[tuple[tuple[str, ...], tuple[str, ...], str]] = [
+    (("agent", "એજન્ટ", "દલાલ", "एजेंट", "दलाल"), ("regist", "નોંધણી", "રજિસ્ટ્રેશન", "पंजीकरण", "रजिस्ट्रेशन"),
+     "registration of real estate agents"),
+    (("allottee", "buyer", "ખરીદનાર", "ગ્રાહક", "खरीदार", "आवंटी"), ("right", "અધિકાર", "હક", "अधिकार", "हक"),
+     "rights and duties of allottees"),
+]
+
+
+def english_terms(query: str) -> str:
+    """Only the English legal terms the question's words map to ("" when none do)."""
+    terms: list[str] = []
     lowered = query.lower()
     for word, english in ENGLISH_TERMS.items():
         if word in lowered and english not in terms:
             terms.append(english)
-    for word, english in GLOSSARY.items():
+    for word, english in (*GLOSSARY.items(), *STEMS.items()):
         if word in query and english not in terms:
             terms.append(english)
-    return f"{query} {' '.join(terms)}" if terms else query
+    for first, second, english in PAIRS:
+        if any(w in lowered for w in first) and any(w in lowered for w in second) and english not in terms:
+            terms.append(english)
+    return " ".join(terms)
+
+
+def expand(query: str) -> str:
+    """The query plus English legal terms for any Gujarati/Hindi words or everyday English it contains."""
+    terms = english_terms(query)
+    return f"{query} {terms}" if terms else query

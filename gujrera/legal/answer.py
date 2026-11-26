@@ -90,7 +90,14 @@ def answer(question: str, lang: str, *, generate: Callable[[str], str] | None = 
     index = default_index()
     if index is None:
         return LegalAnswer("legal_unavailable", [Sentence(s("no_index", lang), [], "legal_no_index")])
-    hits: list[Hit] = index.search(search_query or question, k=3)
+    settings = get_gujrera_settings()
+    use_llm = settings.GUJRERA_RAG_LLM if use_llm is None else use_llm
+    hits: list[Hit] = index.search(search_query or question, k=5)
+    if hits and (use_llm or generate is not None):
+        from gujrera.legal.rerank import rerank
+
+        hits = rerank(question, hits, generate or ollama_generate)  # the model picks which provision answers it
+    hits = hits[:3]
     if not hits:
         return LegalAnswer("legal_not_found", [Sentence(s("not_found", lang), [], "legal_not_found")])
 
@@ -101,8 +108,6 @@ def answer(question: str, lang: str, *, generate: Callable[[str], str] | None = 
         sentences.append(Sentence(s("also", lang, labels="; ".join(h.label for h in others)),
                                   [h.citation() for h in others], "legal_also"))
 
-    settings = get_gujrera_settings()
-    use_llm = settings.GUJRERA_RAG_LLM if use_llm is None else use_llm
     summary_by = "quote"
     if use_llm or generate is not None:
         sources = "\n\n".join(f"[{i}] {h.label} ({h.chunk['title']}): {_excerpt(h.chunk['text'], 1100)}"
