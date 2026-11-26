@@ -16,6 +16,7 @@ import {
   startTestRun,
 } from "../api/gujrera";
 import { ChartCard, ColumnChart } from "./Charts";
+import { PocMeasures } from "./PocMeasures";
 import { useSaathi } from "./context";
 
 const n = (v: number) => v.toLocaleString("en-IN");
@@ -159,6 +160,8 @@ export const AccuracyPage: React.FC = () => {
           <div key={label} className="warm-card p-3"><div className="font-heading text-2xl font-bold text-body tabular-nums">{value}</div><div className="text-xs text-muted leading-snug">{label}</div></div>
         ))}
       </div>
+
+      {token && <PocMeasures token={token} refreshKey={latest?.id} onError={fail} />}
 
       {/* Test set and run */}
       <section className="warm-card p-5 flex flex-col gap-3">

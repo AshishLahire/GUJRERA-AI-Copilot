@@ -8,6 +8,7 @@ audit log. The SQL is always shown, and LLM-written queries are labelled.
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
@@ -259,6 +260,7 @@ def answer(question: str, repo: Repository, lang: str, *,
     settings = get_gujrera_settings()
     scope = repo.p.district_scope
     text_lc = (question or "").lower()
+    started = time.perf_counter()
     if WRITE_INTENT.search(text_lc):
         repo._audit("analytics_write_refused", {"question": question})
         return AnalyticsAnswer("analytics_refused", [Sentence(s("read_only", lang), [], "an_read_only")],
@@ -304,6 +306,7 @@ def answer(question: str, repo: Repository, lang: str, *,
                                [Sentence(s("refused", lang, reason=str(exc).splitlines()[0][:200]), [], "an_refused")],
                                suggestions=SUGGESTED)
     repo._audit("analytics_query", {"question": question, "source": source, "sql": guarded.sql,
+                                    "ms": int((time.perf_counter() - started) * 1000),
                                     "rows": len(result.rows)})
 
     citations = [{"type": "view", "id": v, "is_mock": True} for v in guarded.views]

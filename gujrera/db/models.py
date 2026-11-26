@@ -603,6 +603,17 @@ class TestRun(Base):
     summary: Mapped[str | None] = mapped_column(Text)  # JSON: by language, category, role, latency
 
 
+class AppSetting(Base):
+    """Small values the POC admin sets in the app (the department's manual report time, say)."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+    updated_by: Mapped[str | None] = mapped_column(String(80))
+
+
 class TestResult(Base):
     __tablename__ = "test_results"
     __test__ = False

@@ -624,6 +624,9 @@ def _name_in_question(name: str, message: str) -> bool:
     return len(words) > 1 and fuzz.partial_ratio(nl, ml) >= 90
 
 
+_REGISTERED_ASK = ("regist", "નોંધાય", "નોંધણી", "રજિસ્ટર", "पंजीकृत", "पंजीकरण", "रजिस्टर")
+
+
 def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Repository, lang: str) -> Reply | None:
     """Turn the model's classification into a normal, record-based answer (or None to fall back)."""
     intent = routed.intent
@@ -639,7 +642,10 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
     if intent == "track_complaint":
         return _from_flow(start_tracking(message, state, repo, lang), lang)
     if intent == "check_ad":
-        return _trust(message, repo, lang)
+        short = len(message) <= 140 and "\n" not in message
+        if not (routed.name and short and any(w in message.lower() for w in _REGISTERED_ASK)):
+            return _trust(message, repo, lang)
+        intent = "project"  # "Is Qwzx Plaza registered?": look the name up; say so if it is not in the registry
     if intent in ("project", "possession", "promoter", "complaints"):
         if not routed.name:
             return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])

@@ -138,3 +138,42 @@ def test_import_generate_and_run(env):
     csv_out = c.get(f"/api/gujrera/admin/tests/runs/{run['id']}/csv", headers=h).text
     assert csv_out.lstrip("﻿").startswith("case,question") and csv_out.count("\n") >= 305
     assert c.get("/api/gujrera/admin/tests/runs", headers=h).json()["runs"][0]["id"] == run["id"]
+    s_ = r["summary"]  # the POC measures a run adds
+    assert s_["consistency"]["checked"] == 50 and s_["consistency"]["pct"] >= 98
+    assert s_["outcomes"]["all"]["total"] > 0 and s_["latency_by_role"]["citizen"]["n"] > 0
+
+
+def test_an_older_database_gets_the_settings_table(tmp_path):
+    from sqlalchemy import inspect, text
+
+    engine = make_engine(f"sqlite:///{(tmp_path / 'old.sqlite').as_posix()}")
+    init_db(engine)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE app_settings"))
+    ensure_tables(engine)
+    assert "app_settings" in inspect(engine).get_table_names()
+    engine.dispose()
+
+
+def test_poc_measures(env):
+    from gujrera.accuracy import outcome
+
+    assert [outcome(i) for i in ("possession", "not_found", "need_entity", "greeting", "analytics")] == \
+        ["answered", "unanswered", "clarified", None, "answered"]
+    c = env
+    h = _auth(c, "officer_state")
+    for q in ("When will I get possession of Mangal Square?", "When will I get possession of Qwzx Plaza?", "hello"):
+        c.post("/api/gujrera/chat", json={"message": q})
+    c.post("/api/gujrera/analytics/query", headers=h, json={"question": "Projects and delays by district"})
+    with c.factory() as s:  # the outcome and time are kept, never the question
+        detail = s.scalars(select(AuditLog.detail).where(AuditLog.action == "chat_reply")).all()
+    assert detail and all("Mangal" not in d and '"ms"' in d for d in detail)
+    m = c.get("/api/gujrera/admin/poc-metrics", headers=h).json()
+    citizen = m["live"]["outcomes"]["citizen"]
+    assert citizen["total"] >= 2 and citizen["answered"] >= 1 and citizen["unanswered"] >= 1  # "hello" is left out
+    assert m["live"]["reports"]["n"] >= 1 and m["report_speedup"] is None
+    assert m["test_run"]["consistency"]["checked"] == 50
+    m = c.post("/api/gujrera/admin/poc-metrics/manual-time", headers=h, json={"minutes": 45}).json()
+    assert m["manual_report_minutes"] == 45 and m["report_speedup"] > 1
+    assert c.post("/api/gujrera/admin/poc-metrics/manual-time", headers=h, json={"minutes": -3}).status_code == 400
+    assert c.get("/api/gujrera/admin/poc-metrics", headers=_auth(c, "officer_surat")).status_code == 403

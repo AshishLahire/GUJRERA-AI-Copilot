@@ -805,10 +805,14 @@ def chat(body: ChatRequest, repo: Repository = Depends(user_repo)) -> dict[str, 
         from gujrera.chat.llm import make_rephraser
 
         rephrase = make_rephraser()
+    started = time.perf_counter()
     try:
         reply, english = respond_with_english(message, state, repo, lang=lang, rephrase=rephrase)
     except AccessDenied as exc:  # last line of defence; skills normally answer politely first
         raise HTTPException(403, str(exc)) from None
+    # Outcome and time only, never the question: feeds "answered without a person" and response time.
+    repo._audit("chat_reply", {"intent": reply.intent, "lang": reply.lang, "by": reply.understood_by,
+                               "ms": int((time.perf_counter() - started) * 1000)})
     return {"session_id": session_id, **reply.to_dict(), "english": english}
 
 
@@ -1343,6 +1347,25 @@ def admin_tests_run_detail(run_id: int, show: str = Query("failed", pattern="^(f
     from gujrera.accuracy import run_detail
 
     return _officer_or_403(run_detail, repo, run_id, show=show)
+
+
+@router.get("/admin/poc-metrics")
+def admin_poc_metrics(days: int = Query(30, ge=1, le=365), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """The POC scope's measures: answered without a person, report time against manual, consistency."""
+    from gujrera.accuracy import poc_metrics
+
+    return _officer_or_403(poc_metrics, repo, days)
+
+
+class ManualTimeRequest(BaseModel):
+    minutes: float | None = Field(default=None)
+
+
+@router.post("/admin/poc-metrics/manual-time")
+def admin_poc_manual_time(body: ManualTimeRequest, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.accuracy import set_manual_report_minutes
+
+    return _officer_or_403(set_manual_report_minutes, repo, body.minutes)
 
 
 @router.get("/admin/tests/runs/{run_id}/csv")

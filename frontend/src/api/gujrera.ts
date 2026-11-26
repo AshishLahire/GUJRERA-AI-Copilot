@@ -660,7 +660,26 @@ export interface TestResultRec {
   passed: boolean | null; intent: string | null; answer: string; sources: string[]; problems: string[]; ms: number;
   expected: { intent: string | null; must_contain: string[]; expected_source: string | null; note: string | null };
 }
-export function fetchFeedback(token: string, status = "new"): Promise<{ feedback: FeedbackItem[]; counts: Record<string, number>; ratings: Record<string, number>; reasons: Record<string, number> }> {
+export interface Outcomes { answered: number; clarified: number; unanswered: number; total: number; answered_pct: number | null; self_served_pct: number | null }
+export interface Times { n: number; p50: number; p95: number; max: number }
+export interface PocMetrics {
+  days: number;
+  live: { questions: number; outcomes: Record<string, Outcomes>; response_ms: Record<string, Times>; understood_by_ai: number; reports: Times };
+  test_run: {
+    id: number | null; finished_at: string | null; outcomes: Record<string, Outcomes> | null; latency_by_role: Record<string, Times> | null;
+    consistency: { checked: number; same: number; differing: number[]; pct: number | null } | null;
+  };
+  manual_report_minutes: number | null;
+  report_speedup: number | null;
+  targets: { citizen_p95_ms: number; consistency_pct: number };
+}
+export function fetchPocMetrics(token: string, days = 30): Promise<PocMetrics> {
+  return adminCall(token, `/poc-metrics?days=${days}`);
+}
+export function setManualReportMinutes(token: string, minutes: number | null): Promise<PocMetrics> {
+  return adminCall(token, "/poc-metrics/manual-time", { method: "POST", body: JSON.stringify({ minutes }) });
+}
+export function fetchFeedback(token: string, status = "new"):Promise<{ feedback: FeedbackItem[]; counts: Record<string, number>; ratings: Record<string, number>; reasons: Record<string, number> }> {
   return adminCall(token, `/feedback?status=${encodeURIComponent(status)}`);
 }
 export function dismissFeedback(token: string, id: number): Promise<FeedbackItem> {

@@ -22,13 +22,15 @@ import re
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime
+from collections.abc import Callable
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from gujrera.db.models import AnswerFeedback, TestCase, TestResult, TestRun, User
+from gujrera.db.models import AnswerFeedback, AppSetting, AuditLog, TestCase, TestResult, TestRun, User
 from gujrera.db.repository import AccessDenied, Principal, Repository
 
 REASONS = ("wrong_answer", "wrong_project", "should_have_found", "not_relevant", "unclear", "wrong_language",
@@ -286,6 +288,115 @@ def import_cases(repo: Repository, filename: str, data: bytes) -> dict[str, Any]
     return {"added": added, "rejected": len(errors), "errors": errors[:50]}
 
 
+# ------------------------------------------------------------------ POC measures
+# How a reply ended, for "share of questions answered without a person". A clarifying question is
+# answered by the user, not by a person at GUJRERA; "could not answer" would go to the helpdesk.
+UNANSWERED = frozenset({"not_found", "out_of_scope", "legal_not_found", "legal_unavailable", "unknown", "error",
+                        "analytics_unmatched", "analytics_refused", "login_required", "access_denied"})
+CLARIFYING = frozenset({"need_entity", "disambiguate", "did_you_mean", "list_needed"})
+SOCIAL = frozenset({"greeting", "thanks", "help"})  # not questions: left out of the share
+CONSISTENCY_SAMPLE = 50
+
+
+def outcome(intent: str | None) -> str | None:
+    if not intent or intent in SOCIAL:
+        return None
+    if intent in UNANSWERED:
+        return "unanswered"
+    return "clarified" if intent in CLARIFYING else "answered"
+
+
+def _outcomes(intents: list[str | None]) -> dict[str, Any]:
+    counts = {"answered": 0, "clarified": 0, "unanswered": 0}
+    for i in intents:
+        o = outcome(i)
+        if o:
+            counts[o] += 1
+    total = sum(counts.values())
+    return {**counts, "total": total, "answered_pct": round(100 * counts["answered"] / total, 1) if total else None,
+            "self_served_pct": round(100 * (counts["answered"] + counts["clarified"]) / total, 1) if total else None}
+
+
+def _times(values: list[int]) -> dict[str, int]:
+    v = sorted(values)
+    return {"n": len(v), "p50": v[len(v) // 2] if v else 0, "p95": _p95(v), "max": v[-1] if v else 0}
+
+
+def _signature(reply: dict[str, Any]) -> tuple[str, str]:
+    """What must be the same when the same question is asked again: the intent and the words."""
+    return reply.get("intent") or "", _norm(re.sub(r"\[\d+\]", "", reply.get("text") or ""))
+
+
+def get_setting(s: Session, key: str) -> str | None:
+    row = s.get(AppSetting, key)
+    return row.value if row else None
+
+
+def set_manual_report_minutes(repo: Repository, minutes: float | None) -> dict[str, Any]:
+    """The department's own figure: minutes an officer takes to prepare a report by hand."""
+    require_admin(repo)
+    if minutes is not None and not (0 < minutes <= 60 * 24 * 30):
+        raise ValueError("Give the manual time in minutes, between 1 minute and 30 days.")
+    row = repo.s.get(AppSetting, "manual_report_minutes")
+    if minutes is None:
+        if row:
+            repo.s.delete(row)
+    else:
+        if row is None:
+            row = AppSetting(key="manual_report_minutes", value="")
+            repo.s.add(row)
+        row.value, row.updated_at, row.updated_by = str(minutes), datetime.now(), _username(repo)
+    repo.s.flush()
+    repo._audit("poc_setting_changed", {"manual_report_minutes": minutes})
+    return poc_metrics(repo)
+
+
+def poc_metrics(repo: Repository, days: int = 30) -> dict[str, Any]:
+    """The POC scope's measures: from real use in the last `days` days and from the latest test run."""
+    require_admin(repo)
+    since = datetime.now() - timedelta(days=days)
+    rows = repo.s.execute(select(AuditLog.role, AuditLog.action, AuditLog.detail)
+                          .where(AuditLog.action.in_(("chat_reply", "analytics_query")), AuditLog.at >= since)).all()
+    intents: dict[str, list[str | None]] = defaultdict(list)
+    chat_ms: dict[str, list[int]] = defaultdict(list)
+    report_ms: list[int] = []
+    ai_understood = 0
+    for role, action, detail in rows:
+        d = json.loads(detail or "{}")
+        if action == "analytics_query":
+            if "ms" in d:
+                report_ms.append(int(d["ms"]))
+            continue
+        who = "officer" if role == "officer" else "citizen"
+        intents[who].append(d.get("intent"))
+        intents["all"].append(d.get("intent"))
+        if "ms" in d:
+            chat_ms[who].append(int(d["ms"]))
+            chat_ms["all"].append(int(d["ms"]))
+        ai_understood += d.get("by") == "llm"
+    latest = repo.s.scalar(select(TestRun).where(TestRun.status == "done").order_by(TestRun.id.desc()).limit(1))
+    summary = json.loads(latest.summary) if latest and latest.summary else {}
+    manual = get_setting(repo.s, "manual_report_minutes")
+    manual_min = float(manual) if manual else None
+    live_reports = _times(report_ms)
+    speedup = None
+    if manual_min and live_reports["n"] and live_reports["p50"]:
+        speedup = round(manual_min * 60000 / max(live_reports["p50"], 1))
+    return {
+        "days": days,
+        "live": {"questions": len(intents["all"]), "outcomes": {k: _outcomes(v) for k, v in intents.items()},
+                 "response_ms": {k: _times(v) for k, v in chat_ms.items()},
+                 "understood_by_ai": ai_understood, "reports": live_reports},
+        "test_run": {"id": latest.id if latest else None,
+                     "finished_at": latest.finished_at.isoformat(timespec="minutes") if latest and latest.finished_at else None,
+                     "outcomes": summary.get("outcomes"), "latency_by_role": summary.get("latency_by_role"),
+                     "consistency": summary.get("consistency")},
+        "manual_report_minutes": manual_min,
+        "report_speedup": speedup,  # times faster than by hand, at the median
+        "targets": {"citizen_p95_ms": 3000, "consistency_pct": 98},
+    }
+
+
 # ------------------------------------------------------------------ judging and runs
 def judge(case: TestCase, reply: dict[str, Any]) -> tuple[bool | None, list[str]]:
     if not _judged(case):
@@ -323,6 +434,42 @@ def _p95(values: list[int]) -> int:
     return v[int(0.95 * (len(v) - 1))] if v else 0
 
 
+def _write(factory: Any, fn: Callable[[Session], None], attempts: int = 30) -> None:
+    """Write in a short transaction of its own, retrying while the app is writing too.
+
+    SQLite in WAL mode refuses a write at once ("database is locked") when the writing transaction began
+    reading before another connection committed, whatever the busy timeout. Starting fresh avoids that;
+    retrying covers the rest.
+    """
+    for attempt in range(attempts):
+        with factory() as w:
+            try:
+                fn(w)
+                w.commit()
+                return
+            except OperationalError as exc:
+                w.rollback()
+                if "locked" not in str(exc).lower() or attempt == attempts - 1:
+                    raise
+        time.sleep(min(0.2 * (attempt + 1), 2.0))
+
+
+def _ask(s: Session, case: TestCase) -> dict[str, Any]:
+    """Answer one case and keep nothing it wrote (a complaint draft, say); end the read transaction too,
+    so the run never holds an old snapshot while the app writes."""
+    try:
+        with s.begin_nested():
+            reply = _answer(s, case)
+            raise _Rollback(reply)
+    except _Rollback as rb:
+        reply = rb.reply
+    except Exception as exc:  # noqa: BLE001 - a crash is a failed case, not a failed run
+        reply = {"intent": "error", "text": f"Error: {exc.__class__.__name__}: {exc}"[:500], "sources": []}
+    finally:
+        s.rollback()
+    return reply
+
+
 def _execute(url: str, run_id: int) -> None:
     from gujrera.db.session import make_engine, session_factory
 
@@ -331,26 +478,31 @@ def _execute(url: str, run_id: int) -> None:
     try:
         with factory() as s:
             cases = s.scalars(select(TestCase).where(TestCase.active.is_not(False)).order_by(TestCase.id)).all()
-            run = s.get(TestRun, run_id)
-            run.total = len(cases)
-            s.commit()
+            s.expunge_all()  # plain records from here on: a rollback must not expire them
+            s.rollback()
+
+            def _set_total(w: Session) -> None:
+                w.get(TestRun, run_id).total = len(cases)
+
+            _write(factory, _set_total)
             buckets: dict[str, dict[str, list]] = {"lang": defaultdict(list), "category": defaultdict(list),
                                                     "role": defaultdict(list), "origin": defaultdict(list)}
             times: list[int] = []
+            role_times: dict[str, list[int]] = defaultdict(list)
+            role_intents: dict[str, list[str | None]] = defaultdict(list)
+            first: dict[int, tuple[str, str]] = {}
+            pending: list[dict[str, Any]] = []
             passed = unjudged = 0
             for i, case in enumerate(cases, 1):
                 t0 = time.perf_counter()
-                try:
-                    with s.begin_nested():
-                        reply = _answer(s, case)
-                        raise _Rollback(reply)  # an answer may write (a complaint draft...): never keep it
-                except _Rollback as rb:
-                    reply = rb.reply
-                except Exception as exc:  # noqa: BLE001 - a crash is a failed case, not a failed run
-                    reply = {"intent": "error", "text": f"Error: {exc.__class__.__name__}: {exc}"[:500], "sources": []}
+                reply = _ask(s, case)
                 ms = int((time.perf_counter() - t0) * 1000)
                 ok, problems = judge(case, reply) if reply.get("intent") != "error" else (False, [reply["text"]])
                 times.append(ms)
+                role_times[case.role].append(ms)
+                role_intents[case.role].append(reply.get("intent"))
+                role_intents["all"].append(reply.get("intent"))
+                first[case.id] = _signature(reply)
                 if ok is None:
                     unjudged += 1
                 elif ok:
@@ -358,30 +510,59 @@ def _execute(url: str, run_id: int) -> None:
                 for dim, value in (("lang", case.lang or "any"), ("category", case.category), ("role", case.role),
                                    ("origin", case.origin)):
                     buckets[dim][value].append(ok)
-                s.add(TestResult(run_id=run_id, case_id=case.id, passed=ok, intent=reply.get("intent"),
-                                 lang=reply.get("lang"), answer=(reply.get("text") or "")[:3000],
-                                 sources=json.dumps([x.get("id") for x in reply.get("sources") or []][:6], ensure_ascii=False),
-                                 problems=json.dumps(problems, ensure_ascii=False), ms=ms))
+                pending.append(dict(run_id=run_id, case_id=case.id, passed=ok, intent=reply.get("intent"),
+                                    lang=reply.get("lang"), answer=(reply.get("text") or "")[:3000],
+                                    sources=json.dumps([x.get("id") for x in reply.get("sources") or []][:6],
+                                                       ensure_ascii=False),
+                                    problems=json.dumps(problems, ensure_ascii=False), ms=ms))
                 if i % 10 == 0 or i == len(cases):
-                    run = s.get(TestRun, run_id)
-                    run.done, run.passed, run.unjudged = i, passed, unjudged
-                    s.commit()
+                    batch, progress = list(pending), (i, passed, unjudged)
+
+                    def _save(w: Session, batch=batch, progress=progress) -> None:
+                        w.add_all(TestResult(**r) for r in batch)
+                        run = w.get(TestRun, run_id)
+                        run.done, run.passed, run.unjudged = progress
+
+                    _write(factory, _save)
+                    pending.clear()
             summary = {dim: {k: {"total": len(v), "judged": sum(x is not None for x in v),
                                  "passed": sum(x is True for x in v)} for k, v in b.items()}
                        for dim, b in buckets.items()}
             summary["latency_ms"] = {"p50": sorted(times)[len(times) // 2] if times else 0,
                                      "p95": _p95(times), "max": max(times) if times else 0}
-            run = s.get(TestRun, run_id)
-            run.done, run.passed, run.unjudged = len(cases), passed, unjudged
-            run.summary = json.dumps(summary)
-            run.status, run.finished_at = "done", datetime.now()
-            s.commit()
-    except Exception:  # noqa: BLE001
-        with factory() as s:
-            run = s.get(TestRun, run_id)
-            if run:
+            summary["latency_by_role"] = {k: _times(v) for k, v in role_times.items()}
+            summary["outcomes"] = {k: _outcomes(v) for k, v in role_intents.items()}
+            # Consistency: ask a spread sample again and compare intent and wording.
+            sample = cases[:: max(1, len(cases) // CONSISTENCY_SAMPLE)][:CONSISTENCY_SAMPLE]
+            same, differing = 0, []
+            for case in sample:
+                if _signature(_ask(s, case)) == first.get(case.id):
+                    same += 1
+                else:
+                    differing.append(case.id)
+            summary["consistency"] = {"checked": len(sample), "same": same, "differing": differing[:20],
+                                      "pct": round(100 * same / len(sample), 1) if sample else None}
+
+            def _finish(w: Session) -> None:
+                run = w.get(TestRun, run_id)
+                run.done, run.passed, run.unjudged = len(cases), passed, unjudged
+                run.summary = json.dumps(summary)
+                run.status, run.finished_at = "done", datetime.now()
+
+            _write(factory, _finish)
+    except Exception as exc:  # noqa: BLE001
+        reason = f"{exc.__class__.__name__}: {exc}"[:500]
+
+        def _failed(w: Session) -> None:
+            run = w.get(TestRun, run_id)
+            if run:  # keep the reason, so a failed run can be explained
                 run.status, run.finished_at = "failed", datetime.now()
-                s.commit()
+                run.summary = json.dumps({"error": reason})
+
+        try:
+            _write(factory, _failed)
+        except Exception:  # noqa: BLE001 - nothing more can be done; the run stays "running" in the list
+            pass
     finally:
         with _LOCK:
             _RUNNING.pop(url, None)

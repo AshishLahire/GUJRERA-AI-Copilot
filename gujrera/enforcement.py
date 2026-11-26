@@ -55,6 +55,7 @@ def ensure_tables(engine: Engine) -> None:
 
     from gujrera.db.models import (
         AnswerFeedback,
+        AppSetting,
         AuthorityNotice,
         Circular,
         CircularChunk,
@@ -82,7 +83,7 @@ def ensure_tables(engine: Engine) -> None:
                            UnknownNumberLookup.__table__, OfficerReview.__table__, ImportRun.__table__,
                            SavedReport.__table__, Circular.__table__, CircularChunk.__table__,
                            AnswerFeedback.__table__, TestCase.__table__, TestRun.__table__,
-                           TestResult.__table__)
+                           TestResult.__table__, AppSetting.__table__)
                if t.name not in names]
     if missing:
         Base.metadata.create_all(engine, tables=missing)

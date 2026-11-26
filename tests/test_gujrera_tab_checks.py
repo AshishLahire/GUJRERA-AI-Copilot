@@ -146,3 +146,16 @@ def test_trend_and_share_reports_run_and_summarise(demo_repo):
     month = answer("How many projects were approved this month?", officer, "en")
     assert month.card["columns"] == ["district", "projects_registered"]
     assert any("records go up to" in x.text for x in month.sentences)
+
+
+@pytest.mark.parametrize("message,name,intent", [
+    ("Is Qwzx Plaza registered?", "Qwzx Plaza", "not_found"),  # the model said "check_ad": look the name up
+    ("Qwzx Plaza નોંધાયેલ છે?", "Qwzx Plaza", "not_found"),
+    ("Is this genuine? 2BHK at Qwzx Plaza, book now for Rs 51,000", "Qwzx Plaza", "trust_check"),
+])
+def test_is_it_registered_looks_up_the_name(demo_repo, message, name, intent):
+    from gujrera.chat.llm_router import Routed
+    from gujrera.chat.orchestrator import ChatState, _from_llm_route
+
+    reply = _from_llm_route(Routed("check_ad", name), message, ChatState(), demo_repo, "en")
+    assert reply.intent == intent
