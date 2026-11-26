@@ -77,5 +77,7 @@ data/eval/gujrera_voice/clips/
 # SQLite working files (WAL mode)
 *.sqlite-wal
 *.sqlite-shm
-# Department data files loaded through the onboarding console
+# Department data files loaded through the onboarding console, and complaint documents
 data/gujrera/uploads/
+# Test copies of the databases and anything uploaded while testing them (scripts/run_gujrera_test_copy.ps1)
+data/gujrera/test_copies/
