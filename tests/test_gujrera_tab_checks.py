@@ -159,3 +159,16 @@ def test_is_it_registered_looks_up_the_name(demo_repo, message, name, intent):
 
     reply = _from_llm_route(Routed("check_ad", name), message, ChatState(), demo_repo, "en")
     assert reply.intent == intent
+
+
+@pytest.mark.parametrize("english,intent_prefix", [
+    ("The builder did not give the flat on the promised date, what can I do?", "legal"),
+    ("Who will fix cracks that appear within five years of getting the house?", "legal"),
+    ("When will I get possession of my flat?", "need_entity"),  # about one flat: ask which project
+])
+def test_a_question_with_no_project_about_the_law_is_answered_from_the_law(demo_repo, english, intent_prefix):
+    from gujrera.chat.llm_router import Routed
+    from gujrera.chat.orchestrator import ChatState, _from_llm_route
+
+    reply = _from_llm_route(Routed("possession", None, english), "बिल्डर ने फ्लैट नहीं दिया", ChatState(), demo_repo, "hi")
+    assert reply.intent.startswith(intent_prefix)

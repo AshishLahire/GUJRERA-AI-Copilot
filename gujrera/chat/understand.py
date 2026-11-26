@@ -39,7 +39,9 @@ INTENT_WORDS: dict[str, tuple[str, ...]] = {
     "legal": ("section", "rule", "rules", "rera act", "the act", "law", "legal", "legally", "my rights",
               "rights of", "entitled", "allowed to", "can the builder", "can a builder", "can the promoter",
               "can a promoter", "is it legal", "what does rera", "rera say", "obligation", "can i get",
-              "am i entitled", "if the builder", "if the promoter", "what can i do",
+              "am i entitled", "if the builder", "if the promoter", "what can i do", "what should i do",
+              "who will fix", "who must fix", "who will repair", "who must repair",
+              "what are my options", "what are my rights",
               # interest / refund for delay: a law question (Section 18) unless a project is named,
               # in which case the chat calculates it instead
               "interest for", "get interest", "refund", "money back", "વ્યાજ", "રિફંડ", "ब्याज", "रिफंड",

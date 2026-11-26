@@ -31,7 +31,7 @@ from gujrera.analytics.reports import AUTHORITY_REPORTS, find_locality, looks_li
 from gujrera.analytics.reports import ANALYTICS_CUES
 from gujrera.chat.llm_router import Routed
 from gujrera.chat.llm_router import route as llm_route
-from gujrera.chat.understand import Candidate, Understanding, find_candidates, suggest_names, understand
+from gujrera.chat.understand import Candidate, Understanding, detect_intents, find_candidates, suggest_names, understand
 from gujrera.legal.answer import answer as legal_answer
 from gujrera.complaints.flow import (
     CODE_RE,
@@ -646,6 +646,11 @@ def _from_llm_route(routed: Routed, message: str, state: ChatState, repo: Reposi
         intent = "project"  # "Is Qwzx Plaza registered?": look the name up; say so if it is not in the registry
     if intent in ("project", "possession", "promoter", "complaints"):
         if not routed.name:
+            # No project named: "the builder did not give the flat on time, what can I do?" is a question about
+            # the law. If the English rules read the model's rewrite as one, answer it from the law.
+            if routed.english and "legal" in detect_intents(routed.english.lower()):
+                routed = Routed("legal", None, routed.english)
+                return _from_llm_route(routed, message, state, repo, lang)
             return Reply(lang, "need_entity", [_say("need_entity", lang)], suggestions=SUGGESTIONS["start"][lang])
         cands = find_candidates(repo.s, routed.name.lower(), threshold=90)
         if not _name_in_question(routed.name, message):
