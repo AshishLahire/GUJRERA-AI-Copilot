@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AuthExpiredError, ComplaintBrief, OrderStatus, TriageResponse, fetchBrief, fetchOrdersToEnforce, fetchTriage, updateComplaintStatus, updateCompliance } from "../api/gujrera";
+import { AuthExpiredError, ComplaintBrief, OrderStatus, TriageResponse, UpcomingHearing, fetchBrief, fetchOrdersToEnforce, fetchTriage, fetchUpcomingHearings,
+  officerAddDocument, openOfficerDocument, updateComplaintStatus, updateCompliance } from "../api/gujrera";
 import { OrderCard } from "./OrderTrackerPage";
 import { Icon } from "./Brand";
 import { useSaathi } from "./context";
@@ -38,7 +39,9 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
   const [b, setB] = useState<ComplaintBrief | null>(null);
   const [status, setStatus] = useState("");
   const [hearing, setHearing] = useState("");
+  const [place, setPlace] = useState("");
   const [outcome, setOutcome] = useState("");
+  const [docNote, setDocNote] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -55,8 +58,9 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
     setBusy(true);
     setMsg(null);
     try {
-      await updateComplaintStatus(token, b.complaint.id, { status, note: note || undefined, hearing_on: hearing || undefined, outcome: outcome || undefined });
-      setNote(""); setHearing(""); setOutcome("");
+      await updateComplaintStatus(token, b.complaint.id, { status, note: note || undefined, hearing_on: hearing || undefined,
+        hearing_place: place.trim() || undefined, outcome: outcome || undefined });
+      setNote(""); setHearing(""); setPlace(""); setOutcome("");
       load();
       onChanged();
     } catch (e) {
@@ -64,6 +68,13 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
     } finally {
       setBusy(false);
     }
+  };
+
+  const addDoc = async (file: File) => {
+    if (!token || !b) return;
+    setMsg(null);
+    try { await officerAddDocument(token, b.complaint.id, file, docNote.trim() || undefined); setDocNote(""); load(); }
+    catch (e) { setMsg((e as Error).message); }
   };
 
   if (!b) return <div className="p-6 text-sm text-muted">{msg ?? "…"}</div>;
@@ -91,6 +102,37 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
         <h4 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">Complaint</h4>
         <p className="text-sm text-body bg-subtle rounded-md p-3">{c.summary}</p>
         {c.relief && <p className="text-xs text-muted mt-1">Relief sought: {nice(c.relief)}</p>}
+      </section>
+
+      {b.hearing && (
+        <section className={`rounded-lg p-3 text-sm ${b.hearing.upcoming ? "border-2 border-accent-border bg-brand-soft" : "border border-warm-border"}`}>
+          <h4 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">Hearing</h4>
+          <p className="text-body">{b.hearing.text}</p>
+        </section>
+      )}
+
+      <section>
+        <h4 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">Documents ({b.documents.length})</h4>
+        {b.documents.length === 0 ? <p className="text-xs text-muted">The buyer has not added any documents.</p> : (
+          <ul className="text-xs flex flex-col gap-1">
+            {b.documents.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-2">
+                <Icon name="doc" className="w-3.5 h-3.5 text-muted" />
+                <button type="button" onClick={() => void openOfficerDocument(token!, c.id, d).catch((e) => setMsg((e as Error).message))}
+                  className="font-semibold text-body underline decoration-dotted underline-offset-2 break-all text-left">{d.filename}</button>
+                <span className="text-muted">{d.added_by === "officer" ? "GUJRERA" : "buyer"} · {d.added_at.replace("T", " ")}{d.note ? ` · ${d.note}` : ""}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="print:hidden mt-2 flex flex-wrap items-center gap-2">
+          <input value={docNote} onChange={(e) => setDocNote(e.target.value)} placeholder="e.g. Hearing notice" maxLength={200}
+            className="rounded-md border border-warm-border bg-card text-body text-xs px-2 py-1.5 w-48" aria-label="What the document is" />
+          <label className="text-xs px-3 py-1.5 rounded-md border border-warm-border text-body cursor-pointer hover:border-warm-strong">
+            Add a document for the buyer
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addDoc(f); }} />
+          </label>
+        </div>
       </section>
 
       <section>
@@ -166,11 +208,15 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
                 {NEXT[c.status].map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
               </select>
             </label>
-            {status === "hearing_scheduled" && (
+            {status === "hearing_scheduled" && (<>
               <label className="text-xs text-muted">Hearing date
                 <input type="date" value={hearing} onChange={(e) => setHearing(e.target.value)} className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5" />
               </label>
-            )}
+              <label className="text-xs text-muted">Where (shown to the buyer)
+                <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={200} placeholder="GujRERA office, Gandhinagar, Court 2"
+                  className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5" />
+              </label>
+            </>)}
             {status === "disposed" && (
               <label className="text-xs text-muted">Outcome
                 <select value={outcome} onChange={(e) => setOutcome(e.target.value)} className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5">
@@ -251,9 +297,11 @@ export const ComplaintDeskPage: React.FC = () => {
   const [orderSel, setOrderSel] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hearings, setHearings] = useState<UpcomingHearing[]>([]);
 
   const load = useCallback(() => {
     if (!allowed || !token) return;
+    fetchUpcomingHearings(token).then((d) => setHearings(d.items)).catch(() => setHearings([]));
     fetchTriage(token, lang, { category })
       .then((d) => { setData(d); setSelected((s) => s ?? d.items[0]?.id ?? null); })
       .catch((e) => { if (e instanceof AuthExpiredError) logout(); setError((e as Error).message); });
@@ -296,6 +344,23 @@ export const ComplaintDeskPage: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {hearings.length > 0 && (
+            <section className="rounded-xl border border-accent-border bg-brand-soft p-4 print:hidden" aria-label="Hearings in the next 14 days">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-body flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4" /> Hearings in the next 14 days ({hearings.length})</h3>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {hearings.map((h) => (
+                  <li key={h.id}>
+                    <button type="button" onClick={() => { setSelected(h.id); setTab("queue"); }}
+                      className="text-left rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs hover:border-warm-strong">
+                      <span className="font-semibold text-body">{fmt(h.on)}{h.days_to === 0 ? " · today" : ` · in ${h.days_to} days`}</span>
+                      <span className="block text-muted"><span className="font-mono">{h.ref_no}</span> · {h.project ?? nice(h.category)}{h.place ? ` · ${h.place}` : ""}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <div className="flex flex-wrap items-center gap-3 print:hidden">
             <div className="flex rounded-lg border border-warm-border p-0.5" role="tablist">

@@ -59,6 +59,7 @@ def ensure_tables(engine: Engine) -> None:
         AuthorityNotice,
         Circular,
         CircularChunk,
+        ComplaintDocument,
         ComplianceEvent,
         ImportRun,
         OfficerReview,
@@ -83,7 +84,7 @@ def ensure_tables(engine: Engine) -> None:
                            UnknownNumberLookup.__table__, OfficerReview.__table__, ImportRun.__table__,
                            SavedReport.__table__, Circular.__table__, CircularChunk.__table__,
                            AnswerFeedback.__table__, TestCase.__table__, TestRun.__table__,
-                           TestResult.__table__, AppSetting.__table__)
+                           TestResult.__table__, AppSetting.__table__, ComplaintDocument.__table__)
                if t.name not in names]
     if missing:
         Base.metadata.create_all(engine, tables=missing)
@@ -97,6 +98,10 @@ def ensure_tables(engine: Engine) -> None:
                           ("created_at", "DATETIME"), ("last_login_at", "DATETIME")):
             if ucols and name not in ucols:
                 conn.execute(sql_text(f"ALTER TABLE users ADD COLUMN {name} {ddl}"))
+        ccols = {c["name"] for c in insp.get_columns("complaints")} if "complaints" in names else set()
+        for name, ddl in (("hearing_on", "DATE"), ("hearing_place", "VARCHAR(200)")):
+            if ccols and name not in ccols:
+                conn.execute(sql_text(f"ALTER TABLE complaints ADD COLUMN {name} {ddl}"))
         if "projects" in names:
             create_views(conn)
 

@@ -168,6 +168,7 @@ const STRINGS = {
   stDisposed: { en: "Disposed", gu: "નિકાલ", hi: "निपटाई गई" },
   stWithdrawn: { en: "Withdrawn", gu: "પાછી ખેંચી", hi: "वापस ली गई" },
   navCalc: { en: "Interest calculator", gu: "વ્યાજ કેલ્ક્યુલેટર", hi: "ब्याज कैलकुलेटर" },
+  navComplaint: { en: "My complaint", gu: "મારી ફરિયાદ", hi: "मेरी शिकायत" },
   calcIntro: {
     en: "Possession late? Work out the interest the promoter owes you for the delay, or your refund with interest if you withdraw, as the RERA Act (Section 18) and Gujarat RERA Rules (Rules 16 and 17) set it.",
     gu: "પઝેશન મોડું છે? RERA કાયદો (કલમ 18) અને ગુજરાત RERA નિયમો (નિયમ 16 અને 17) મુજબ વિલંબ માટે પ્રમોટરે આપવાનું વ્યાજ, અથવા પ્રોજેક્ટમાંથી નીકળો તો વ્યાજ સાથે રિફંડ ગણો.",

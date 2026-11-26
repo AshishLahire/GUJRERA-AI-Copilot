@@ -191,11 +191,33 @@ class Complaint(Base):
     channel: Mapped[str] = mapped_column(String(20), default="portal")  # portal | copilot
     # Complaints filed through the copilot are tracked with ref_no + a 6-digit code; only a hash is kept.
     tracking_code_hash: Mapped[str | None] = mapped_column(String(64))
+    # The next (or last) hearing the Authority fixed, and where it is held.
+    hearing_on: Mapped[date | None] = mapped_column(Date)
+    hearing_place: Mapped[str | None] = mapped_column(String(200))
     is_mock: Mapped[bool] = mapped_column(Boolean, default=True)
 
     events: Mapped[list[ComplaintEvent]] = relationship(
         back_populates="complaint", order_by="ComplaintEvent.at"
     )
+
+
+class ComplaintDocument(Base):
+    """A file attached to a complaint: the buyer's evidence (agreement, receipts, letters, photos) or an
+    officer's paper (a hearing notice). Stored in the uploads folder beside the database."""
+
+    __tablename__ = "complaint_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    complaint_id: Mapped[int] = mapped_column(ForeignKey("complaints.id"), index=True)
+    filename: Mapped[str] = mapped_column(String(160))
+    content_type: Mapped[str] = mapped_column(String(60))
+    size: Mapped[int] = mapped_column(Integer)
+    sha256: Mapped[str] = mapped_column(String(64))
+    stored_as: Mapped[str] = mapped_column(String(80))
+    note: Mapped[str | None] = mapped_column(String(200))
+    added_by: Mapped[str] = mapped_column(String(20))  # complainant | officer
+    added_by_user: Mapped[str | None] = mapped_column(String(80))
+    added_at: Mapped[datetime] = mapped_column(DateTime)
 
 
 class ComplaintEvent(Base):

@@ -151,7 +151,14 @@ class ComplaintStatusUpdate(BaseModel):
     status: str
     note: str | None = None
     hearing_on: date | None = None
+    hearing_place: str | None = Field(default=None, max_length=200)
     outcome: str | None = None
+
+
+class ComplaintLookup(BaseModel):
+    ref: str = Field(max_length=40)
+    code: str | None = Field(default=None, max_length=12)
+    lang: str = "en"
 
 
 class ComplianceUpdate(BaseModel):
@@ -693,6 +700,89 @@ def complaints_triage(lang: str = Query("en"), district: str | None = Query(None
     return _officer_or_403(triage, repo, _lang(lang), district=district, category=category)
 
 
+def _complaint_call(fn, *args, **kwargs):
+    """Errors from the complaint pages as HTTP: 403 not allowed, 404 not found, 400 bad input."""
+    try:
+        return fn(*args, **kwargs)
+    except AccessDenied as exc:
+        raise HTTPException(403, str(exc)) from None
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+def _file_response(path: Path, filename: str, content_type: str):
+    from fastapi.responses import FileResponse
+
+    return FileResponse(path, media_type=content_type, filename=filename,
+                        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})
+
+
+@router.get("/complaints/mine")
+def complaints_mine(lang: str = Query("en"), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """The logged-in buyer's complaints, with hearing and documents."""
+    from gujrera.complaints.documents import mine
+
+    return mine(repo, _lang(lang))
+
+
+@router.post("/complaints/lookup")
+def complaints_lookup(body: ComplaintLookup, repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """One complaint by reference number: the buyer who filed it (logged in), an officer, or anyone with the
+    tracking code. The code goes in the body, never in the URL."""
+    from gujrera.complaints.documents import lookup
+
+    return _complaint_call(lookup, repo, body.ref, body.code, _lang(body.lang))
+
+
+@router.post("/complaints/documents")
+async def complaints_add_document(file: UploadFile = File(...), ref: str = Form(..., max_length=40),
+                                  code: str | None = Form(default=None, max_length=12),
+                                  note: str | None = Form(default=None, max_length=200),
+                                  repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.complaints.documents import MAX_BYTES, add_document
+
+    data = await file.read(MAX_BYTES + 1)
+    return _complaint_call(add_document, repo, ref, code, file.filename or "", data, note)
+
+
+@router.post("/complaints/documents/{doc_id}/file")
+def complaints_document_file(doc_id: int, body: ComplaintLookup, repo: Repository = Depends(user_repo)):
+    from gujrera.complaints.documents import complaint_for, document_file
+
+    c = _complaint_call(complaint_for, repo, body.ref, body.code)
+    return _file_response(*_complaint_call(document_file, repo, c, doc_id))
+
+
+@router.get("/complaints/hearings")
+def complaints_hearings(days: int = Query(14, ge=1, le=90), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    """Hearings fixed in the next days, in the officer's district."""
+    from gujrera.complaints.documents import upcoming_hearings
+
+    if repo.p.role != "officer":
+        raise HTTPException(403, "This is for GUJRERA officers.")
+    return {"items": upcoming_hearings(repo, days)}
+
+
+@router.post("/complaints/{complaint_id}/documents")
+async def complaints_officer_add_document(complaint_id: int, file: UploadFile = File(...),
+                                          note: str | None = Form(default=None, max_length=200),
+                                          repo: Repository = Depends(user_repo)) -> dict[str, Any]:
+    from gujrera.complaints.documents import MAX_BYTES, officer_add_document
+
+    data = await file.read(MAX_BYTES + 1)
+    return _complaint_call(officer_add_document, repo, complaint_id, file.filename or "", data, note)
+
+
+@router.get("/complaints/{complaint_id}/documents/{doc_id}")
+def complaints_officer_document(complaint_id: int, doc_id: int, repo: Repository = Depends(user_repo)):
+    from gujrera.complaints.documents import document_file, officer_complaint
+
+    c = _complaint_call(officer_complaint, repo, complaint_id)
+    return _file_response(*_complaint_call(document_file, repo, c, doc_id))
+
+
 @router.get("/complaints/{complaint_id}/brief")
 def complaint_brief(complaint_id: int, lang: str = Query("en"), repo: Repository = Depends(user_repo)) -> dict[str, Any]:
     from gujrera.complaints.triage import brief
@@ -709,7 +799,7 @@ def complaint_status_update(complaint_id: int, body: ComplaintStatusUpdate,
     from gujrera.complaints.triage import update_status
 
     out = _officer_or_403(update_status, repo, complaint_id, body.status, note=body.note,
-                          hearing_on=body.hearing_on, outcome=body.outcome)
+                          hearing_on=body.hearing_on, outcome=body.outcome, hearing_place=body.hearing_place)
     if out is None:
         raise HTTPException(404, "Complaint not found.")
     return out

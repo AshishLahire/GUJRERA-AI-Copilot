@@ -1,6 +1,6 @@
 import { AnswerFeedback } from "./AnswerFeedback";
 import React, { useEffect, useRef, useState } from "react";
-import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openReport, sendChat, transcribeVoice } from "../api/gujrera";
+import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openMyComplaint, openReport, sendChat, transcribeVoice } from "../api/gujrera";
 import { useSaathi } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { StateChip } from "../saathi/OrderTrackerPage";
@@ -233,9 +233,12 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
   }
   if (card.type === "complaint_status") {
     const events = (card.events as { at: string; status: string; note: string | null }[]) ?? [];
+    const hearing = card.hearing as { text: string; upcoming: boolean } | undefined;
+    const docs = (card.documents as { filename: string }[] | undefined) ?? [];
     return (
       <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs">
         <div className="font-mono text-body mb-2">{String(card.ref_no)}</div>
+        {hearing?.upcoming && <div className="mb-2 rounded-md border border-accent-border bg-brand-soft px-2.5 py-1.5 font-semibold text-body">{hearing.text}</div>}
         <ol className="relative border-l border-warm-border ml-1.5 flex flex-col gap-2">
           {events.map((e, i) => (
             <li key={i} className="ml-3">
@@ -245,6 +248,12 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
             </li>
           ))}
         </ol>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {docs.length > 0 && <span className="text-muted">{docs.length} document{docs.length === 1 ? "" : "s"} attached</span>}
+          <button type="button" onClick={() => openMyComplaint(String(card.ref_no))} className="ml-auto px-3 py-1.5 rounded-md bg-primary-bg text-primary-text font-semibold">
+            Open my complaint →
+          </button>
+        </div>
       </div>
     );
   }
@@ -411,9 +420,14 @@ const SubmittedCard: React.FC<{ refNo: string; code: string; form: string }> = (
         <span className="opacity-80">Tracking code</span>
         <span className="font-mono font-bold text-base tracking-widest">{code}</span>
       </div>
-      <button type="button" onClick={copy} className="mt-2 px-2.5 py-1 rounded-md border border-current text-[11px] font-semibold">
-        {copied ? "Copied" : "Copy both"}
-      </button>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" onClick={copy} className="px-2.5 py-1 rounded-md border border-current text-[11px] font-semibold">
+          {copied ? "Copied" : "Copy both"}
+        </button>
+        <button type="button" onClick={() => openMyComplaint(refNo, code)} className="px-2.5 py-1 rounded-md bg-emerald-700 text-white text-[11px] font-semibold">
+          Add documents →
+        </button>
+      </div>
     </div>
   );
 };

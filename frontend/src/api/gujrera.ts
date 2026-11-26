@@ -879,6 +879,8 @@ export interface ComplaintBrief {
                 related: { ref_no: string; category: string; outcome: string; closed_on: string | null; same_project: boolean; summary: string }[] };
   other_open: { id: number; ref_no: string; category: string; filed_on: string }[];
   points_to_put: string[];
+  hearing: Hearing | null;
+  documents: ComplaintDoc[];
 }
 
 export function fetchTriage(token: string, lang: Lang, filters: { district?: string; category?: string }): Promise<TriageResponse> {
@@ -889,10 +891,84 @@ export function fetchBrief(token: string, id: number, lang: Lang): Promise<Compl
   return officerFetch(`${API_BASE}/api/gujrera/complaints/${id}/brief?lang=${lang}`, token);
 }
 export function updateComplaintStatus(token: string, id: number,
-  body: { status: string; note?: string; hearing_on?: string; outcome?: string }): Promise<{ status: string; timeline: { at: string; status: string; note: string | null }[] }> {
+  body: { status: string; note?: string; hearing_on?: string; hearing_place?: string; outcome?: string }): Promise<{ status: string; timeline: { at: string; status: string; note: string | null }[] }> {
   return officerFetch(`${API_BASE}/api/gujrera/complaints/${id}/status`, token, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
+}
+
+
+// ------------------------------------------------------------ a complaint's hearing and documents
+export interface Hearing { on: string; place: string | null; days_to: number; upcoming: boolean; text: string }
+export interface ComplaintDoc { id: number; filename: string; content_type: string; size: number; note: string | null; added_by: "complainant" | "officer"; added_at: string }
+export interface ComplaintView {
+  ref_no: string; form: string; category: string; category_label: string; relief: string | null;
+  filed_on: string; filed_text: string; status: string; status_label: string;
+  project: { name: string; rera_no: string } | null;
+  events: { at: string; status: string; status_label: string; note: string | null }[];
+  hearing: Hearing | null; documents: ComplaintDoc[]; can_add_documents: boolean; is_mock: boolean;
+}
+export interface UpcomingHearing { id: number; ref_no: string; on: string; days_to: number; place: string | null; category: string; project: string | null; district: string }
+
+export async function fetchMyComplaints(token: string, lang: Lang): Promise<{ complaints: ComplaintView[] }> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/complaints/mine?lang=${lang}`, { headers: authHeaders(token) }));
+}
+/** The tracking code goes in the request body, never in the URL. */
+export async function lookupComplaint(token: string | null, ref: string, code: string | null, lang: Lang): Promise<ComplaintView> {
+  return parse(await fetch(`${API_BASE}/api/gujrera/complaints/lookup`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders(token) },
+    body: JSON.stringify({ ref, code: code || null, lang }),
+  }));
+}
+export async function addComplaintDocument(token: string | null, ref: string, code: string | null, file: File, note?: string): Promise<ComplaintDoc> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("ref", ref);
+  if (code) form.append("code", code);
+  if (note) form.append("note", note);
+  return parse(await fetch(`${API_BASE}/api/gujrera/complaints/documents`, { method: "POST", headers: authHeaders(token), body: form }));
+}
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+export async function openComplaintDocument(token: string | null, ref: string, code: string | null, doc: ComplaintDoc): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/gujrera/complaints/documents/${doc.id}/file`, {
+    method: "POST", headers: { "Content-Type": "application/json", ...authHeaders(token) }, body: JSON.stringify({ ref, code: code || null }),
+  });
+  if (!res.ok) await parse(res);
+  saveBlob(await res.blob(), doc.filename);
+}
+export async function openOfficerDocument(token: string, complaintId: number, doc: ComplaintDoc): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/gujrera/complaints/${complaintId}/documents/${doc.id}`, { headers: authHeaders(token) });
+  if (res.status === 401) throw new AuthExpiredError("Your session has expired. Please log in again.");
+  if (!res.ok) await parse(res);
+  saveBlob(await res.blob(), doc.filename);
+}
+export function officerAddDocument(token: string, complaintId: number, file: File, note?: string): Promise<ComplaintDoc> {
+  const form = new FormData();
+  form.append("file", file);
+  if (note) form.append("note", note);
+  return officerFetch(`${API_BASE}/api/gujrera/complaints/${complaintId}/documents`, token, { method: "POST", body: form });
+}
+export function fetchUpcomingHearings(token: string, days = 14): Promise<{ items: UpcomingHearing[] }> {
+  return officerFetch(`${API_BASE}/api/gujrera/complaints/hearings?days=${days}`, token);
+}
+
+/** A reference number and code to open on the "My complaint" page (kept in memory only, never stored). */
+let complaintPrefill: { ref: string; code: string | null } | null = null;
+export function openMyComplaint(ref: string, code: string | null = null): void {
+  complaintPrefill = { ref, code };
+  navigateTo("complaints");
+}
+export function takeComplaintPrefill(): { ref: string; code: string | null } | null {
+  const p = complaintPrefill;
+  complaintPrefill = null;
+  return p;
 }
 
 

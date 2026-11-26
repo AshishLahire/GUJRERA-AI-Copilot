@@ -203,7 +203,14 @@ def dashboard(repo: Repository, today: date | None = None) -> dict[str, Any]:
             "ad_cases": {"count": len(ad_cases), "items": mark(ad_cases)},
             "complaints": {"count": comp_n, "items": mark(complaints)},
         },
+        "hearings": _hearings(repo, today),
     }
+
+
+def _hearings(repo: Repository, today: date) -> list[dict[str, Any]]:
+    from gujrera.complaints.documents import upcoming_hearings
+
+    return upcoming_hearings(repo, 14, today)
 
 
 def review(repo: Repository, item_type: str, item_key: str, status: str, note: str | None) -> dict[str, Any]:

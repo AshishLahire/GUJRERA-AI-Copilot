@@ -17,6 +17,7 @@ import { OrderTrackerPage } from "./OrderTrackerPage";
 import { QprPage } from "./QprPage";
 import { WatchBell, WatchPage } from "./WatchPage";
 import { AgreementPage } from "./AgreementPage";
+import { MyComplaintPage } from "./MyComplaintPage";
 import { OfficerDeskPage } from "./OfficerDeskPage";
 import { DataOnboardingPage } from "./DataOnboardingPage";
 import { AuditPage, UsersPage } from "./AdminPages";
@@ -24,7 +25,7 @@ import { CircularsPage } from "./CircularsPage";
 import { AccuracyPage } from "./AccuracyPage";
 import { StringKey, tr } from "./strings";
 
-const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today", "data", "users", "audit", "circulars", "accuracy"];
+const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today", "data", "users", "audit", "circulars", "accuracy", "complaints"];
 type NavItem = { page: Page; key: StringKey; icon: string };
 const ITEM: Record<Page, NavItem> = {
   home: { page: "home", key: "navOverview", icon: "grid" },
@@ -37,6 +38,7 @@ const ITEM: Record<Page, NavItem> = {
   ask: { page: "ask", key: "navAsk", icon: "chat" },
   check: { page: "check", key: "navCheck", icon: "shield" },
   calc: { page: "calc", key: "navCalc", icon: "calc" },
+  complaints: { page: "complaints", key: "navComplaint", icon: "complaint" },
   report: { page: "report", key: "navReport", icon: "doc" },
   agreement: { page: "agreement", key: "navAgreement", icon: "law" },
   orders: { page: "orders", key: "navOrders", icon: "law" },
@@ -59,7 +61,7 @@ function navFor(role: string | undefined, demo: boolean, statewide = false): Nav
         ? ["home", "ask", "promoter", "qpr", "check"]
         : role === "agent"
           ? ["home", "ask", "check", "report"]
-          : ["home", "check", "ask", "report", "agreement", "watch", "calc", ...(demo ? (["orders"] as Page[]) : [])];
+          : ["home", "check", "ask", "complaints", "report", "agreement", "watch", "calc", ...(demo ? (["orders"] as Page[]) : [])];
   return pages.map((p) => ITEM[p]);
 }
 const LANGS: { id: Lang; label: string; name: string }[] = [
@@ -289,6 +291,7 @@ const Shell: React.FC = () => {
           {page === "qpr" && <QprPage />}
           {page === "watch" && <WatchPage />}
           {page === "agreement" && <AgreementPage />}
+          {page === "complaints" && <MyComplaintPage />}
           </>)}
         </main>
 

@@ -209,6 +209,18 @@ def _get(repo: Repository, complaint_id: int) -> Complaint | None:
     return repo.s.scalar(_scope(repo, select(Complaint).where(Complaint.id == complaint_id)))
 
 
+def _hearing(c: Complaint, lang: str, today: date) -> dict[str, Any] | None:
+    from gujrera.complaints.documents import hearing
+
+    return hearing(c, lang, today)
+
+
+def _documents(repo: Repository, c: Complaint) -> list[dict[str, Any]]:
+    from gujrera.complaints.documents import documents
+
+    return documents(repo, c)
+
+
 def brief(repo: Repository, complaint_id: int, lang: str = "en", *, as_of: date | None = None) -> dict[str, Any] | None:
     """Everything an officer needs before the hearing, on one page."""
     from gujrera.tools.project_report import build_report
@@ -256,13 +268,16 @@ def brief(repo: Repository, complaint_id: int, lang: str = "en", *, as_of: date 
                                            "signals": [s.text for s in sorted(risk.signals, key=lambda s: -s.points)[:4]]},
         "precedents": {"category_outcomes": outcome_counts, "category_decided": len(decided), "related": precedents},
         "other_open": [{"id": o.id, "ref_no": o.ref_no, "category": o.category, "filed_on": o.filed_on.isoformat()} for o in others],
+        "hearing": _hearing(c, lang, today),
+        "documents": _documents(repo, c),
         "points_to_put": POINTS_TO_PUT.get(c.category, []),
         "is_mock": bool(c.is_mock),
     }
 
 
 def update_status(repo: Repository, complaint_id: int, status: str, *, note: str | None = None,
-                  hearing_on: date | None = None, outcome: str | None = None, today: date | None = None) -> dict[str, Any] | None:
+                  hearing_on: date | None = None, outcome: str | None = None, today: date | None = None,
+                  hearing_place: str | None = None) -> dict[str, Any] | None:
     """Move a complaint along. Each step is a ComplaintEvent, which the buyer's tracking shows."""
     _officer(repo)
     today = today or date.today()
@@ -277,8 +292,11 @@ def update_status(repo: Repository, complaint_id: int, status: str, *, note: str
     if status == "disposed" and outcome not in OUTCOMES:
         raise ValueError(f"Choose an outcome: {', '.join(OUTCOMES)}.")
     parts = []
+    place = (hearing_place or "").strip()[:200] or None
+    if status == "hearing_scheduled":  # the buyer sees this date and place on "My complaint" and in the chat
+        c.hearing_on, c.hearing_place = hearing_on, place
     if hearing_on:
-        parts.append(f"Hearing on {hearing_on.isoformat()}")
+        parts.append(f"Hearing on {hearing_on.isoformat()}" + (f" at {place}" if place else ""))
     if outcome:
         parts.append(f"Outcome: {outcome.replace('_', ' ')}")
     if note and note.strip():

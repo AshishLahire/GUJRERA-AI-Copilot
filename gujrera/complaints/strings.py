@@ -177,6 +177,32 @@ S: dict[str, dict[str, str]] = {
         "hi": "शिकायत {ref} गुजरेरा साथी से दर्ज नहीं हुई थी, इसलिए इसका ट्रैकिंग कोड नहीं है। "
               "इसकी स्थिति GUJRERA पोर्टल पर देखें।",
     },
+    "hearing_next": {
+        "en": "Next hearing: {date}, in {days} days{place}.",
+        "gu": "આગામી સુનાવણી: {date}, {days} દિવસમાં{place}.",
+        "hi": "अगली सुनवाई: {date}, {days} दिनों में{place}।",
+    },
+    "hearing_today": {
+        "en": "The hearing is today, {date}{place}.",
+        "gu": "સુનાવણી આજે છે, {date}{place}.",
+        "hi": "सुनवाई आज है, {date}{place}।",
+    },
+    "hearing_at": {"en": ", at {place}", "gu": ", સ્થળ: {place}", "hi": ", स्थान: {place}"},
+    "hearing_last": {
+        "en": "The last hearing was on {date}.",
+        "gu": "છેલ્લી સુનાવણી {date} ના રોજ થઈ હતી.",
+        "hi": "पिछली सुनवाई {date} को हुई थी।",
+    },
+    "documents_attached": {
+        "en": "Documents attached: {n}.",
+        "gu": "જોડેલા દસ્તાવેજ: {n}.",
+        "hi": "संलग्न दस्तावेज़: {n}।",
+    },
+    "add_documents": {
+        "en": "You can add your agreement, payment receipts, letters or photos (PDF, JPG or PNG) on the My complaint page, with your reference number and tracking code.",
+        "gu": "તમારો કરાર, ચુકવણીની રસીદો, પત્રો કે ફોટા (PDF, JPG કે PNG) \"મારી ફરિયાદ\" પાના પર, સંદર્ભ નંબર અને ટ્રેકિંગ કોડ સાથે ઉમેરી શકો છો.",
+        "hi": "आप अपना अनुबंध, भुगतान रसीदें, पत्र या फ़ोटो (PDF, JPG या PNG) \"मेरी शिकायत\" पेज पर, संदर्भ संख्या और ट्रैकिंग कोड के साथ जोड़ सकते हैं।",
+    },
     "status": {
         "en": "Complaint {ref} ({category}, Form {form}) was filed on {filed}. Current status: {status}.",
         "gu": "ફરિયાદ {ref} ({category}, ફોર્મ {form}) {filed} ના રોજ નોંધાઈ હતી. હાલની સ્થિતિ: {status}.",

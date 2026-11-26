@@ -326,7 +326,7 @@ def _submit(state: Any, repo: Repository, lang: str) -> FlowOut:
     state.complaint = None
     card = {"type": "complaint_submitted", "ref_no": result.ref_no, "tracking_code": result.tracking_code,
             "form": result.form, "is_mock": result.is_mock}
-    sentences = [_say("submitted", lang, ref=result.ref_no, code=result.tracking_code)]
+    sentences = [_say("submitted", lang, ref=result.ref_no, code=result.tracking_code), _say("add_documents", lang)]
     if result.is_mock:
         sentences.append(_say("mock_note", lang))
     return FlowOut("complaint_submitted", sentences, cards=[card])
@@ -403,6 +403,26 @@ def _status_out(ref: str, category: str, form: str, filed_on, status: str, proje
             "events": [{"at": e["at"], "status": label(e["status"], lang), "note": e["note"]} for e in events],
             "is_mock": is_mock}
     order_lines = []
+    if session is not None:  # the hearing date and place, and how many documents are attached
+        from sqlalchemy import select as _sel
+
+        from gujrera.complaints.documents import documents as _docs
+        from gujrera.complaints.documents import hearing as _hearing
+        from gujrera.db.models import Complaint as _C
+        from gujrera.db.repository import Principal as _P
+        from gujrera.db.repository import Repository as _R
+
+        row = session.scalar(_sel(_C).where(_C.ref_no == ref))
+        if row is not None:
+            h = _hearing(row, lang)
+            if h:
+                order_lines.append(Sentence(h["text"], [{"type": "complaint", "id": ref, "is_mock": is_mock}],
+                                            "complaint_hearing"))
+                card["hearing"] = h
+            docs = _docs(_R(session, _P.anonymous(), audit_sink=lambda _r: None), row)
+            card["documents"] = [{"filename": d["filename"], "added_by": d["added_by"]} for d in docs]
+            if docs:
+                order_lines.append(_say("documents_attached", lang, n=len(docs)))
     if session is not None and status == "disposed":  # what the order directs and whether it was done
         from sqlalchemy import select as _select
 
@@ -410,7 +430,7 @@ def _status_out(ref: str, category: str, form: str, filed_on, status: str, proje
         from gujrera.orders import sentences_for_complaint
 
         cid = session.scalar(_select(_Complaint.id).where(_Complaint.ref_no == ref))
-        order_lines = sentences_for_complaint(session, cid, lang) if cid else []
+        order_lines += sentences_for_complaint(session, cid, lang) if cid else []
     sentences = [sentence] + order_lines + ([_say("mock_note", lang)] if is_mock else [])
     return FlowOut("complaint_status", sentences, cards=[card])
 
