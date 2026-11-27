@@ -67,3 +67,109 @@ NEXT_STEPS: dict[str, dict[str, str]] = {
         "hi": "ज़्यादा साफ़ फ़ोटो अपलोड करें या विज्ञापन का पाठ पेस्ट करें।",
     },
 }
+
+
+# Detail lines: templates filled with the record's values. English is the text the check always had.
+DETAILS: dict[str, dict[str, str]] = {
+    "readable": {"en": "Only {n} characters could be read.",
+                 "gu": "ફક્ત {n} અક્ષરો વાંચી શકાયા.", "hi": "केवल {n} अक्षर पढ़े जा सके।"},
+    "no_number_offer": {
+        "en": "This looks like a property offer but shows no GUJRERA project registration number. Advertisements for real estate projects must show it (RERA Act, Section 11(2)).",
+        "gu": "આ મિલકતની ઓફર લાગે છે, પણ તેમાં GUJRERA પ્રોજેક્ટ નોંધણી નંબર નથી. રિયલ એસ્ટેટ પ્રોજેક્ટની જાહેરાતમાં તે બતાવવો ફરજિયાત છે (RERA કાયદો, કલમ 11(2)).",
+        "hi": "यह संपत्ति का ऑफ़र लगता है, पर इसमें GUJRERA प्रोजेक्ट पंजीकरण संख्या नहीं है। रियल एस्टेट प्रोजेक्ट के विज्ञापन में इसे दिखाना ज़रूरी है (RERA अधिनियम, धारा 11(2))।"},
+    "no_number": {"en": "No GUJRERA project registration number was found in the text.",
+                  "gu": "લખાણમાં GUJRERA પ્રોજેક્ટ નોંધણી નંબર મળ્યો નથી.", "hi": "पाठ में GUJRERA प्रोजेक्ट पंजीकरण संख्या नहीं मिली।"},
+    "payment": {
+        "en": "The ad asks for payment to an account number. Under RERA, buyer payments should go to the project's designated bank account named in the registration and agreement. Confirm the account with the promoter in writing before paying.",
+        "gu": "જાહેરાત એક ખાતા નંબરમાં ચુકવણી માગે છે. RERA હેઠળ ખરીદનારની ચુકવણી નોંધણી અને કરારમાં લખેલા પ્રોજેક્ટના નિયત બેંક ખાતામાં જ જવી જોઈએ. ચુકવણી પહેલાં પ્રમોટર પાસેથી ખાતાની લેખિત ખાતરી લો.",
+        "hi": "विज्ञापन एक खाता नंबर में भुगतान माँगता है। RERA के तहत खरीदार का भुगतान पंजीकरण और अनुबंध में लिखे प्रोजेक्ट के निर्धारित बैंक खाते में ही जाना चाहिए। भुगतान से पहले प्रमोटर से खाते की लिखित पुष्टि लें।"},
+    "not_found": {"en": "{number} is not in the GUJRERA registry data available to GujRERA Saathi.",
+                  "gu": "{number} ગુજરેરા સાથી પાસેના GUJRERA રજિસ્ટ્રી ડેટામાં નથી.", "hi": "{number} गुजरेरा साथी के पास उपलब्ध GUJRERA रजिस्ट्री डेटा में नहीं है।"},
+    "found": {"en": "{name} by {promoter}, {district}.",
+              "gu": "{name}, પ્રમોટર {promoter}, {district}.", "hi": "{name}, प्रमोटर {promoter}, {district}।"},
+    "found_differs": {"en": " The number in the document ({doc}) differs from the registry ({reg}) in some segments.",
+                      "gu": " દસ્તાવેજમાંનો નંબર ({doc}) રજિસ્ટ્રીના નંબર ({reg}) થી અમુક ભાગમાં અલગ છે.",
+                      "hi": " दस्तावेज़ का नंबर ({doc}) रजिस्ट्री के नंबर ({reg}) से कुछ हिस्सों में अलग है।"},
+    "segments": {"en": "Registry: {reg}; document: {doc}.",
+                 "gu": "રજિસ્ટ્રી: {reg}; દસ્તાવેજ: {doc}.", "hi": "रजिस्ट्री: {reg}; दस्तावेज़: {doc}।"},
+    "mock": {"en": "This registry record is mock data for the prototype, not a real GUJRERA project.",
+             "gu": "આ રજિસ્ટ્રી રેકોર્ડ પ્રોટોટાઇપ માટેનો ડેમો ડેટા છે, ખરો GUJRERA પ્રોજેક્ટ નથી.",
+             "hi": "यह रजिस्ट्री रिकॉर्ड प्रोटोटाइप का डेमो डेटा है, असली GUJRERA प्रोजेक्ट नहीं।"},
+    "unverified": {
+        "en": "The registered completion date ({date}) has passed, and the public records imported here do not show whether the project was completed. Check the project's page on the GUJRERA portal before paying.",
+        "gu": "નોંધાયેલી પૂર્ણતા તારીખ ({date}) વીતી ગઈ છે, અને અહીં લીધેલા જાહેર રેકોર્ડમાં પ્રોજેક્ટ પૂર્ણ થયો કે નહીં તે દેખાતું નથી. ચુકવણી પહેલાં GUJRERA પોર્ટલ પર પ્રોજેક્ટનું પાનું તપાસો.",
+        "hi": "पंजीकृत पूर्णता तिथि ({date}) बीत चुकी है, और यहाँ लिए गए सार्वजनिक रिकॉर्ड में यह नहीं दिखता कि प्रोजेक्ट पूरा हुआ या नहीं। भुगतान से पहले GUJRERA पोर्टल पर प्रोजेक्ट का पेज जाँचें।"},
+    "revoked": {"en": "The registry shows this registration as revoked.",
+                "gu": "રજિસ્ટ્રી મુજબ આ નોંધણી રદ થયેલી છે.", "hi": "रजिस्ट्री के अनुसार यह पंजीकरण रद्द है।"},
+    "lapsed": {"en": "Registration was valid until {date} and no extension is recorded.",
+               "gu": "નોંધણી {date} સુધી માન્ય હતી અને કોઈ મુદત વધારો નોંધાયેલો નથી.", "hi": "पंजीकरण {date} तक मान्य था और कोई अवधि विस्तार दर्ज नहीं है।"},
+    "valid": {"en": "Status {status}; valid until {date}.",
+              "gu": "સ્થિતિ: {status}; {date} સુધી માન્ય.", "hi": "स्थिति: {status}; {date} तक मान्य।"},
+    "promoter_unknown": {
+        "en": "The public records imported here do not name this project's promoter; compare the name in the document with the project's page on the GUJRERA portal.",
+        "gu": "અહીં લીધેલા જાહેર રેકોર્ડમાં આ પ્રોજેક્ટના પ્રમોટરનું નામ નથી; દસ્તાવેજમાંનું નામ GUJRERA પોર્ટલ પરના પ્રોજેક્ટના પાના સાથે સરખાવો.",
+        "hi": "यहाँ लिए गए सार्वजनिक रिकॉर्ड में इस प्रोजेक्ट के प्रमोटर का नाम नहीं है; दस्तावेज़ का नाम GUJRERA पोर्टल पर प्रोजेक्ट के पेज से मिलाएँ।"},
+    "promoter_match": {"en": "The document names the registered promoter, {name}.",
+                       "gu": "દસ્તાવેજમાં નોંધાયેલા પ્રમોટર {name} નું નામ છે.", "hi": "दस्तावेज़ में पंजीकृत प्रमोटर {name} का नाम है।"},
+    "promoter_mismatch": {"en": "The document names {other}, but this registration belongs to {name}.",
+                          "gu": "દસ્તાવેજમાં {other} નું નામ છે, પણ આ નોંધણી {name} ની છે.", "hi": "दस्तावेज़ में {other} का नाम है, पर यह पंजीकरण {name} का है।"},
+    "promoter_not_named": {"en": "The document does not name the registered promoter ({name}).",
+                           "gu": "દસ્તાવેજમાં નોંધાયેલા પ્રમોટર ({name}) નું નામ નથી.", "hi": "दस्तावेज़ में पंजीकृत प्रमोटर ({name}) का नाम नहीं है।"},
+    "name_match": {"en": "The document names {name}.", "gu": "દસ્તાવેજમાં {name} નું નામ છે.", "hi": "दस्तावेज़ में {name} का नाम है।"},
+    "name_missing": {"en": "The registered name {name} does not appear in the document.",
+                     "gu": "નોંધાયેલું નામ {name} દસ્તાવેજમાં નથી.", "hi": "पंजीकृत नाम {name} दस्तावेज़ में नहीं है।"},
+    "district": {"en": "The document mentions {named}; the registered project is in {district}.",
+                 "gu": "દસ્તાવેજમાં {named} લખ્યું છે; નોંધાયેલો પ્રોજેક્ટ {district} માં છે.", "hi": "दस्तावेज़ में {named} लिखा है; पंजीकृत प्रोजेक्ट {district} में है।"},
+    "poss_after_unverified": {
+        "en": "The document promises possession around {when}, later than the completion date in the imported records ({date}). Check the GUJRERA portal for an extension before paying.",
+        "gu": "દસ્તાવેજ {when} આસપાસ પઝેશનનું વચન આપે છે, જે લીધેલા રેકોર્ડની પૂર્ણતા તારીખ ({date}) પછીનું છે. ચુકવણી પહેલાં GUJRERA પોર્ટલ પર મુદત વધારો તપાસો.",
+        "hi": "दस्तावेज़ {when} के आसपास कब्ज़े का वादा करता है, जो लिए गए रिकॉर्ड की पूर्णता तिथि ({date}) के बाद है। भुगतान से पहले GUJRERA पोर्टल पर अवधि विस्तार जाँचें।"},
+    "poss_after": {
+        "en": "The document promises possession around {when}, later than the registered completion date {date}.",
+        "gu": "દસ્તાવેજ {when} આસપાસ પઝેશનનું વચન આપે છે, જે નોંધાયેલી પૂર્ણતા તારીખ {date} પછીનું છે.",
+        "hi": "दस्तावेज़ {when} के आसपास कब्ज़े का वादा करता है, जो पंजीकृत पूर्णता तिथि {date} के बाद है।"},
+    "poss_earlier": {
+        "en": "The document promises possession around {when}, but the project is registered to complete by {date}. Ask the promoter to put the earlier date in the agreement for sale.",
+        "gu": "દસ્તાવેજ {when} આસપાસ પઝેશનનું વચન આપે છે, પણ પ્રોજેક્ટ {date} સુધીમાં પૂર્ણ થવા નોંધાયેલો છે. પ્રમોટરને વહેલી તારીખ વેચાણ કરારમાં લખવા કહો.",
+        "hi": "दस्तावेज़ {when} के आसपास कब्ज़े का वादा करता है, पर प्रोजेक्ट {date} तक पूरा होने के लिए पंजीकृत है। प्रमोटर से पहले की तारीख बिक्री अनुबंध में लिखने को कहें।"},
+    "poss_ok": {"en": "Registered completion: {date}.", "gu": "નોંધાયેલી પૂર્ણતા: {date}.", "hi": "पंजीकृत पूर्णता: {date}।"},
+    "delay": {"en": "{days} days past its original completion date ({date}).",
+              "gu": "મૂળ પૂર્ણતા તારીખ ({date}) થી {days} દિવસ વધુ.", "hi": "मूल पूर्णता तिथि ({date}) से {days} दिन अधिक।"},
+    "approvals": {"en": "Pending: {items}.", "gu": "બાકી: {items}.", "hi": "लंबित: {items}।"},
+    "promoter_record": {
+        "en": "{open} open complaints, {orders} show-cause, penalty or revocation orders across {projects} projects.",
+        "gu": "{projects} પ્રોજેક્ટમાં {open} ખુલ્લી ફરિયાદો, {orders} કારણદર્શક, દંડ કે રદ કરવાના આદેશો.",
+        "hi": "{projects} प्रोजेक्ट में {open} खुली शिकायतें, {orders} कारण बताओ, दंड या रद्द करने के आदेश।"},
+    "agent_not_found": {"en": "{number} is not in the GUJRERA agent registry data.",
+                        "gu": "{number} GUJRERA એજન્ટ રજિસ્ટ્રી ડેટામાં નથી.", "hi": "{number} GUJRERA एजेंट रजिस्ट्री डेटा में नहीं है।"},
+    "agent_invalid": {"en": "{name}: status {status}, valid until {date}.",
+                      "gu": "{name}: સ્થિતિ {status}, {date} સુધી માન્ય.", "hi": "{name}: स्थिति {status}, {date} तक मान्य।"},
+    "agent_ok": {"en": "{name}, valid until {date}.", "gu": "{name}, {date} સુધી માન્ય.", "hi": "{name}, {date} तक मान्य।"},
+    "booking": {
+        "en": "The document asks for about {pct}% at booking. A promoter cannot take more than 10% of the cost before a registered agreement for sale (RERA Act, Section 13).",
+        "gu": "દસ્તાવેજ બુકિંગ વખતે લગભગ {pct}% માગે છે. નોંધાયેલા વેચાણ કરાર પહેલાં પ્રમોટર કિંમતના 10% થી વધુ લઈ શકે નહીં (RERA કાયદો, કલમ 13).",
+        "hi": "दस्तावेज़ बुकिंग पर लगभग {pct}% माँगता है। पंजीकृत बिक्री अनुबंध से पहले प्रमोटर कीमत के 10% से अधिक नहीं ले सकता (RERA अधिनियम, धारा 13)।"},
+}
+
+# Registry status words shown inside detail lines
+STATUS: dict[str, dict[str, str]] = {
+    "ongoing": {"en": "ongoing", "gu": "ચાલુ", "hi": "चालू"},
+    "completed": {"en": "completed", "gu": "પૂર્ણ", "hi": "पूर्ण"},
+    "lapsed": {"en": "lapsed", "gu": "મુદત પૂરી", "hi": "समाप्त"},
+    "revoked": {"en": "revoked", "gu": "રદ", "hi": "रद्द"},
+    "unverified": {"en": "completion not recorded", "gu": "પૂર્ણતા નોંધાઈ નથી", "hi": "पूर्णता दर्ज नहीं"},
+    "active": {"en": "active", "gu": "સક્રિય", "hi": "सक्रिय"},
+    "expired": {"en": "expired", "gu": "મુદત પૂરી", "hi": "समाप्त"},
+}
+
+
+def detail(key: str, **values) -> dict[str, str]:
+    """A detail line in English, Gujarati and Hindi. A value given as {"en":..,"gu":..,"hi":..} is used per language."""
+    out = {}
+    for lang, template in DETAILS[key].items():
+        out[lang] = template.format(**{k: (v.get(lang, v.get("en")) if isinstance(v, dict) else v) for k, v in values.items()})
+    return out
+
+
+def status_word(status: str) -> dict[str, str]:
+    return STATUS.get(status, {"en": status, "gu": status, "hi": status})

@@ -374,7 +374,7 @@ export const ReraCheckPage: React.FC = () => {
                     />
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-body">{c.title_i18n?.[lang] ?? c.title}</div>
-                      <div className="text-xs text-muted leading-relaxed">{c.detail}</div>
+                      <div className="text-xs text-muted leading-relaxed">{c.detail_i18n?.[lang] ?? c.detail}</div>
                       {c.evidence && (
                         <div className="mt-1 text-[11px] font-mono text-body bg-subtle rounded px-2 py-1 break-words">
                           “{c.evidence}”

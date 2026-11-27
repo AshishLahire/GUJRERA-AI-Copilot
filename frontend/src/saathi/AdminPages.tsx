@@ -36,6 +36,7 @@ const CATEGORIES: [string, Said][] = [
   ["admin", { en: "Accounts", gu: "ખાતાં", hi: "खाते" }],
   ["login", { en: "Logins", gu: "લૉગિન", hi: "लॉगिन" }],
   ["work", { en: "Officer work", gu: "અધિકારીનું કામ", hi: "अधिकारी का कार्य" }],
+  ["public", { en: "Citizen and public use", gu: "નાગરિક અને જાહેર ઉપયોગ", hi: "नागरिक और सार्वजनिक उपयोग" }],
 ];
 
 const useAdmin = () => {
@@ -252,7 +253,7 @@ export const UsersPage: React.FC = () => {
                       <div className="font-semibold text-body">{u.username}{self && <span className="ml-1 text-muted font-normal">{say({ en: "(you)", gu: "(તમે)", hi: "(आप)" }, lang)}</span>}</div>
                       <div className="text-muted">{u.display_name}{u.organisation ? ` · ${u.organisation}` : ""}{u.is_demo ? ` · ${say({ en: "demo", gu: "ડેમો", hi: "डेमो" }, lang)}` : ""}</div>
                     </td>
-                    <td className="py-2 pr-2 text-body">{u.role_label}</td>
+                    <td className="py-2 pr-2 text-body">{u.role_label_i18n?.[lang] ?? u.role_label}</td>
                     <td className="py-2 pr-2">
                       {u.role === "officer" ? (
                         <select value={u.district_scope ?? ""} disabled={self}
@@ -392,10 +393,10 @@ export const AuditPage: React.FC = () => {
                 <tr key={e.id} className="border-b border-warm-border last:border-0 align-top cursor-pointer hover:bg-subtle/60"
                   onClick={() => setOpen(open === e.id ? null : e.id)}>
                   <td className="py-1.5 pr-2 text-muted whitespace-nowrap tabular-nums">{e.at.replace("T", " ")}</td>
-                  <td className="py-1.5 pr-2"><span className="text-body font-semibold">{e.user ?? "—"}</span><span className="block text-muted">{e.role}</span></td>
+                  <td className="py-1.5 pr-2"><span className="text-body font-semibold">{e.user ?? "—"}</span><span className="block text-muted">{e.role_i18n?.[lang] ?? e.role}</span></td>
                   <td className="py-1.5 pr-2">
-                    <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-semibold mr-1 ${CAT_STYLE[e.category] ?? "border-warm-border text-muted"}`}>{e.category}</span>
-                    <span className="text-body">{e.label}</span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-semibold mr-1 ${CAT_STYLE[e.category] ?? "border-warm-border text-muted"}`}>{(() => { const c = CATEGORIES.find(([k]) => k === e.category); return c ? say(c[1], lang) : e.category; })()}</span>
+                    <span className="text-body">{e.label_i18n?.[lang] ?? e.label}</span>
                   </td>
                   <td className="py-1.5 text-muted break-words">
                     {open === e.id ? <pre className="whitespace-pre-wrap font-mono text-[11px] text-body">{JSON.stringify(e.detail, null, 2)}</pre> : detailText(e.detail)}

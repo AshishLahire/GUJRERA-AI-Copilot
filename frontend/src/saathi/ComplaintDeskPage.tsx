@@ -1,3 +1,4 @@
+import { complaintLabel } from "./complaintLabels";
 import React, { useCallback, useEffect, useState } from "react";
 import { AuthExpiredError, ComplaintBrief, OrderStatus, TriageResponse, UpcomingHearing, fetchBrief, fetchOrdersToEnforce, fetchTriage, fetchUpcomingHearings,
   officerAddDocument, openOfficerDocument, updateComplaintStatus, updateCompliance } from "../api/gujrera";
@@ -110,9 +111,9 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
           <div className="text-xs text-muted">{tr("deskBrief", lang)}{lang !== "en" ? ` · ${tr("deskBrief", "en")}` : ""}</div>
           <h3 className="font-heading text-lg font-bold text-body">{c.ref_no}</h3>
           <div className="text-xs text-muted">{say({
-            en: `Form ${c.form} · ${nice(c.category)} · filed ${fmt(c.filed_on)} via ${c.channel}`,
-            gu: `ફોર્મ ${c.form} · ${nice(c.category)} · ${fmt(c.filed_on)} ના રોજ ${c.channel} દ્વારા નોંધાઈ`,
-            hi: `फ़ॉर्म ${c.form} · ${nice(c.category)} · ${fmt(c.filed_on)} को ${c.channel} से दर्ज`,
+            en: `Form ${c.form} · ${complaintLabel(c.category, lang)} · filed ${fmt(c.filed_on)} via ${c.channel}`,
+            gu: `ફોર્મ ${c.form} · ${complaintLabel(c.category, lang)} · ${fmt(c.filed_on)} ના રોજ ${c.channel} દ્વારા નોંધાઈ`,
+            hi: `फ़ॉर्म ${c.form} · ${complaintLabel(c.category, lang)} · ${fmt(c.filed_on)} को ${c.channel} से दर्ज`,
           }, lang)} · {label(c.status)}</div>
         </div>
         <div className="text-right">
@@ -127,7 +128,7 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
       <section>
         <h4 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">{say({ en: "Complaint", gu: "ફરિયાદ", hi: "शिकायत" }, lang)}</h4>
         <p className="text-sm text-body bg-subtle rounded-md p-3">{c.summary}</p>
-        {c.relief && <p className="text-xs text-muted mt-1">{say({ en: "Relief sought:", gu: "માંગેલી રાહત:", hi: "माँगी गई राहत:" }, lang)} {nice(c.relief)}</p>}
+        {c.relief && <p className="text-xs text-muted mt-1">{say({ en: "Relief sought:", gu: "માંગેલી રાહત:", hi: "माँगी गई राहत:" }, lang)} {complaintLabel(c.relief, lang)}</p>}
       </section>
 
       {b.hearing && (
@@ -195,12 +196,12 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
           ))}
         </div>
         <p className="text-xs text-muted mt-1">
-          {nice(c.category)}, {b.precedents.category_decided} {say({ en: "decided", gu: "નિર્ણય થયા", hi: "निर्णीत" }, lang)}: {OUTCOMES.map((o) => `${outcomeName(o)} ${outcomes[o] ?? 0}`).join(" · ")}
+          {complaintLabel(c.category, lang)}, {b.precedents.category_decided} {say({ en: "decided", gu: "નિર્ણય થયા", hi: "निर्णीत" }, lang)}: {OUTCOMES.map((o) => `${outcomeName(o)} ${outcomes[o] ?? 0}`).join(" · ")}
         </p>
         {b.precedents.related.length > 0 && (
           <ul className="mt-2 text-xs flex flex-col gap-1">
             {b.precedents.related.map((r) => (
-              <li key={r.ref_no}><span className="font-mono">{r.ref_no}</span> · {nice(r.category)} · <b>{outcomeName(r.outcome)}</b>{r.same_project
+              <li key={r.ref_no}><span className="font-mono">{r.ref_no}</span> · {complaintLabel(r.category, lang)} · <b>{outcomeName(r.outcome)}</b>{r.same_project
                 ? say({ en: " · same project", gu: " · એ જ પ્રોજેક્ટ", hi: " · वही प्रोजेक्ट" }, lang)
                 : say({ en: " · same promoter", gu: " · એ જ પ્રમોટર", hi: " · वही प्रमोटर" }, lang)}</li>
             ))}
@@ -215,7 +216,7 @@ const Brief: React.FC<{ id: number; onChanged: () => void }> = ({ id, onChanged 
             gu: `આ પ્રોજેક્ટ પરની અન્ય ખુલ્લી ફરિયાદો (${b.other_open.length}): સાથે સુનાવણી કરવી?`,
             hi: `इस प्रोजेक्ट पर अन्य खुली शिकायतें (${b.other_open.length}): साथ में सुनवाई करें?`,
           }, lang)}</h4>
-          <p className="text-xs text-body">{b.other_open.map((o) => `${o.ref_no} (${nice(o.category)})`).join(", ")}</p>
+          <p className="text-xs text-body">{b.other_open.map((o) => `${o.ref_no} (${complaintLabel(o.category, lang)})`).join(", ")}</p>
         </section>
       )}
 
@@ -403,7 +404,7 @@ export const ComplaintDeskPage: React.FC = () => {
                       <span className="font-semibold text-body">{fmt(h.on)}{h.days_to === 0
                         ? say({ en: " · today", gu: " · આજે", hi: " · आज" }, lang)
                         : say({ en: ` · in ${h.days_to} days`, gu: ` · ${h.days_to} દિવસમાં`, hi: ` · ${h.days_to} दिन में` }, lang)}</span>
-                      <span className="block text-muted"><span className="font-mono">{h.ref_no}</span> · {h.project ?? nice(h.category)}{h.place ? ` · ${h.place}` : ""}</span>
+                      <span className="block text-muted"><span className="font-mono">{h.ref_no}</span> · {h.project ?? complaintLabel(h.category, lang)}{h.place ? ` · ${h.place}` : ""}</span>
                     </button>
                   </li>
                 ))}
@@ -423,7 +424,7 @@ export const ComplaintDeskPage: React.FC = () => {
             <select aria-label={say({ en: "Category", gu: "પ્રકાર", hi: "श्रेणी" }, lang)} value={category} onChange={(e) => { setCategory(e.target.value); setSelected(null); }}
               className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2">
               <option value="">{say({ en: "All categories", gu: "બધા પ્રકાર", hi: "सभी श्रेणियाँ" }, lang)}</option>
-              {Object.keys(s.by_category).map((c) => <option key={c} value={c}>{nice(c)} ({s.by_category[c]})</option>)}
+              {Object.keys(s.by_category).map((c) => <option key={c} value={c}>{complaintLabel(c, lang)} ({s.by_category[c]})</option>)}
             </select>
             {data!.district_scope && <span className="text-sm text-muted">{data!.district_scope}</span>}
           </div>
@@ -461,7 +462,7 @@ export const ComplaintDeskPage: React.FC = () => {
                         {selected === i.id && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand" />}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-body"><span className="font-mono text-xs">{i.ref_no}</span> · {nice(i.category)}</div>
+                            <div className="text-sm font-semibold text-body"><span className="font-mono text-xs">{i.ref_no}</span> · {complaintLabel(i.category, lang)}</div>
                             <div className="text-[11px] text-muted truncate">{i.project ?? "—"} · {i.district}{i.group_size > 1
                               ? say({ en: ` · ${i.group_size} on project`, gu: ` · પ્રોજેક્ટ પર ${i.group_size}`, hi: ` · प्रोजेक्ट पर ${i.group_size}` }, lang)
                               : ""}</div>
@@ -485,7 +486,7 @@ export const ComplaintDeskPage: React.FC = () => {
                         en: `${g.complaints.length} open · oldest ${g.oldest_days} days`,
                         gu: `${g.complaints.length} ખુલ્લી · સૌથી જૂની ${g.oldest_days} દિવસ`,
                         hi: `${g.complaints.length} खुली · सबसे पुरानी ${g.oldest_days} दिन`,
-                      }, lang)} · {Object.entries(g.categories).map(([k, n]) => `${nice(k)} ${n}`).join(", ")}</div>
+                      }, lang)} · {Object.entries(g.categories).map(([k, n]) => `${complaintLabel(k, lang)} ${n}`).join(", ")}</div>
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {g.complaints.map((ref) => (
                           <button key={ref} type="button" disabled={!byRef.has(ref)} onClick={() => { setSelected(byRef.get(ref)!); setTab("queue"); }}

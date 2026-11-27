@@ -33,6 +33,8 @@ from factcheck.forensics.checks import (
 )
 from gujrera.db.models import Approval, Promoter
 from gujrera.db.repository import Repository
+from gujrera.trust.i18n import detail as _d
+from gujrera.trust.i18n import status_word as _st
 from gujrera.trust.extract import TrustClaim, extract_claim
 
 MIN_TEXT_CHARS = 20
@@ -118,6 +120,12 @@ class Check:
     evidence: str | None = None
     source: dict[str, Any] | None = None
     verdict_hint: str | None = None  # the verdict this check forces when it fails
+    detail_i18n: dict[str, str] | None = None  # the detail in en, gu and hi (en == detail)
+
+
+def _c(id_: str, status: str, severity: str, title: str, d: dict[str, str], **kw: Any) -> Check:
+    """A check whose detail comes in English, Gujarati and Hindi."""
+    return Check(id_, status, severity, title, d["en"], detail_i18n=d, **kw)
 
 
 @dataclass
@@ -176,8 +184,8 @@ def check_text(text: str, repo: Repository, *, as_of: date | None = None) -> Tru
     records: list[dict[str, Any]] = []
 
     if len(claim.text.strip()) < MIN_TEXT_CHARS:
-        checks.append(Check("readable", "fail", "critical", "Not enough text",
-                            f"Only {len(claim.text.strip())} characters could be read.", verdict_hint="unreadable"))
+        checks.append(_c("readable", "fail", "critical", "Not enough text",
+                         _d("readable", n=len(claim.text.strip())), verdict_hint="unreadable"))
         return _finish(checks, claim, records, as_of)
 
     text_lc = claim.text.lower()
@@ -185,14 +193,11 @@ def check_text(text: str, repo: Repository, *, as_of: date | None = None) -> Tru
 
     if not claim.project_numbers:
         if claim.looks_like_property_offer:
-            checks.append(Check(
+            checks.append(_c(
                 "rera_number_present", "fail", "warning", "No RERA registration number",
-                "This looks like a property offer but shows no GUJRERA project registration number. "
-                "Advertisements for real estate projects must show it (RERA Act, Section 11(2)).",
-                verdict_hint="no_rera_number"))
+                _d("no_number_offer"), verdict_hint="no_rera_number"))
         else:
-            checks.append(Check("rera_number_present", "info", "info", "No RERA registration number",
-                                "No GUJRERA project registration number was found in the text."))
+            checks.append(_c("rera_number_present", "info", "info", "No RERA registration number", _d("no_number")))
     for number in claim.project_numbers:
         checks.extend(_check_project(number, claim, text_lc, repo, as_of, records))
     for number in claim.agent_numbers:
@@ -236,9 +241,8 @@ def _forensic_checks(text: str) -> list[Check]:
         detail = f.explanation
         if f.cue_id == "payment_to_account":
             title = "Payment asked to an account in the ad"
-            detail = ("The ad asks for payment to an account number. Under RERA, buyer payments should go to "
-                      "the project's designated bank account named in the registration and agreement. "
-                      "Confirm the account with the promoter in writing before paying.")
+            out.append(_c(f"forensic_{f.cue_id}", status, f.severity, title, _d("payment"), evidence=f.evidence))
+            continue
         out.append(Check(f"forensic_{f.cue_id}", status, f.severity, title, detail, evidence=f.evidence))
     return out
 
@@ -251,112 +255,97 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
         from gujrera.officer_desk import record_unknown_number
 
         record_unknown_number(repo.s, number.normalised, "ad_check")  # citizen signal for officers
-        out.append(Check(
+        out.append(_c(
             "registry_lookup", "fail", "critical", "Registration number not found",
-            f"{number.normalised} is not in the GUJRERA registry data available to GujRERA Saathi.",
-            evidence=number.normalised, verdict_hint="not_found"))
+            _d("not_found", number=number.normalised), evidence=number.normalised, verdict_hint="not_found"))
         return out
 
     src = project["source"]
     records.append(project)
     exact = project["rera_no"] == number.normalised
-    out.append(Check(
-        "registry_lookup", "pass", "info", "Registration found",
-        f"{project['name']} by {_core(project['promoter_name'])}, {project['district']}."
-        + ("" if exact else f" The number in the document ({number.normalised}) differs from the registry "
-                            f"({project['rera_no']}) in some segments."),
-        evidence=number.normalised, source=src))
+    found = _d("found", name=project["name"], promoter=_core(project["promoter_name"]), district=project["district"])
     if not exact:
-        out.append(Check("number_segments", "warn", "warning", "Registration number partly differs",
-                         f"Registry: {project['rera_no']}; document: {number.normalised}.",
-                         evidence=number.normalised, source=src))
+        differs = _d("found_differs", doc=number.normalised, reg=project["rera_no"])
+        found = {k: v + differs[k] for k, v in found.items()}
+    out.append(_c("registry_lookup", "pass", "info", "Registration found", found, evidence=number.normalised, source=src))
+    if not exact:
+        out.append(_c("number_segments", "warn", "warning", "Registration number partly differs",
+                      _d("segments", reg=project["rera_no"], doc=number.normalised), evidence=number.normalised, source=src))
     if src.get("is_mock"):
-        out.append(Check("mock_record", "info", "info", "Demo record",
-                         "This registry record is mock data for the prototype, not a real GUJRERA project.",
-                         source=src))
+        out.append(_c("mock_record", "info", "info", "Demo record", _d("mock"), source=src))
 
     # Registration validity
     valid_until = project["reg_valid_until"]
     if project["status"] == "unverified":
-        out.append(Check("registration_valid", "info", "info", "Completion not recorded",
-                         f"The registered completion date ({valid_until.isoformat()}) has passed, and the public "
-                         "records imported here do not show whether the project was completed. Check the "
-                         "project's page on the GUJRERA portal before paying.", source=src))
+        out.append(_c("registration_valid", "info", "info", "Completion not recorded",
+                      _d("unverified", date=valid_until.isoformat()), source=src))
     elif project["status"] == "revoked":
-        out.append(Check("registration_valid", "fail", "critical", "Registration revoked",
-                         "The registry shows this registration as revoked.", source=src,
-                         verdict_hint="lapsed_or_revoked"))
+        out.append(_c("registration_valid", "fail", "critical", "Registration revoked", _d("revoked"), source=src,
+                      verdict_hint="lapsed_or_revoked"))
     elif project["status"] == "lapsed" or (project["status"] != "completed" and valid_until < as_of):
-        out.append(Check("registration_valid", "fail", "critical", "Registration lapsed",
-                         f"Registration was valid until {valid_until.isoformat()} and no extension is recorded.",
-                         source=src, verdict_hint="lapsed_or_revoked"))
+        out.append(_c("registration_valid", "fail", "critical", "Registration lapsed",
+                      _d("lapsed", date=valid_until.isoformat()), source=src, verdict_hint="lapsed_or_revoked"))
     else:
-        out.append(Check("registration_valid", "pass", "info", "Registration valid",
-                         f"Status {project['status']}; valid until {valid_until.isoformat()}.", source=src))
+        out.append(_c("registration_valid", "pass", "info", "Registration valid",
+                      _d("valid", status={**_st(project["status"]), "en": project["status"]}, date=valid_until.isoformat()),
+                      source=src))
 
     # Promoter named in the document
     out.append(_promoter_check(project, text_lc, repo))
 
     # Project name
     if max(_mentioned(project["name"], text_lc), _mentioned(project.get("name_gu"), text_lc)) >= NAME_MATCH:
-        out.append(Check("project_name", "pass", "info", "Project name matches",
-                         f"The document names {project['name']}.", source=src))
+        out.append(_c("project_name", "pass", "info", "Project name matches", _d("name_match", name=project["name"]), source=src))
     else:
-        out.append(Check("project_name", "warn", "warning", "Project name not found",
-                         f"The registered name {project['name']} does not appear in the document.", source=src))
+        out.append(_c("project_name", "warn", "warning", "Project name not found",
+                      _d("name_missing", name=project["name"]), source=src))
 
     # District
     named = {d for k, d in GUJARAT_DISTRICTS.items() if re.search(rf"(?<!\w){re.escape(k)}(?!\w)", text_lc)}
     if named and project["district"] not in named:
-        out.append(Check("district", "warn", "warning", "Location differs",
-                         f"The document mentions {', '.join(sorted(named))}; the registered project is in "
-                         f"{project['district']}.", source=src))
+        out.append(_c("district", "warn", "warning", "Location differs",
+                      _d("district", named=", ".join(sorted(named)), district=project["district"]), source=src))
 
     # Advertised possession vs registered completion
     if claim.possession:
         if claim.possession.value > valid_until and project["status"] == "unverified":
             # Our copy may lack a later extension: ask the buyer to confirm rather than call it a mismatch.
-            out.append(Check(
+            out.append(_c(
                 "possession_date", "warn", "warning", "Advertised possession is after the registered date",
-                f"The document promises possession around {claim.possession.text!r}, later than the completion "
-                f"date in the imported records ({valid_until.isoformat()}). Check the GUJRERA portal for an "
-                "extension before paying.", evidence=claim.possession.text, source=src))
+                _d("poss_after_unverified", when=repr(claim.possession.text), date=valid_until.isoformat()),
+                evidence=claim.possession.text, source=src))
         elif claim.possession.value > valid_until:
-            out.append(Check(
+            out.append(_c(
                 "possession_date", "fail", "critical", "Advertised possession is after the registered date",
-                f"The document promises possession around {claim.possession.text!r}, later than the registered "
-                f"completion date {valid_until.isoformat()}.", evidence=claim.possession.text, source=src,
-                verdict_hint="mismatch"))
+                _d("poss_after", when=repr(claim.possession.text), date=valid_until.isoformat()),
+                evidence=claim.possession.text, source=src, verdict_hint="mismatch"))
         elif project["status"] != "completed" and (valid_until - claim.possession.value).days > 90:
             # Promising handover well before the registered date is a common misleading pitch (RERA Act s.12).
-            out.append(Check(
+            out.append(_c(
                 "possession_date", "warn", "warning", "Advertised possession is earlier than the registered date",
-                f"The document promises possession around {claim.possession.text!r}, but the project is registered "
-                f"to complete by {valid_until.isoformat()}. Ask the promoter to put the earlier date in the "
-                "agreement for sale.", evidence=claim.possession.text, source=src))
+                _d("poss_earlier", when=repr(claim.possession.text), date=valid_until.isoformat()),
+                evidence=claim.possession.text, source=src))
         else:
-            out.append(Check("possession_date", "pass", "info", "Possession date consistent",
-                             f"Registered completion: {valid_until.isoformat()}.",
-                             evidence=claim.possession.text, source=src))
+            out.append(_c("possession_date", "pass", "info", "Possession date consistent",
+                          _d("poss_ok", date=valid_until.isoformat()), evidence=claim.possession.text, source=src))
 
     # Registry facts a buyer should know
     if project["is_delayed"] and project["status"] != "completed":
-        out.append(Check("delay", "warn", "warning", "Project is delayed",
-                         f"{project['delay_days']} days past its original completion date "
-                         f"({project['proposed_completion'].isoformat()}).", source=src))
+        out.append(_c("delay", "warn", "warning", "Project is delayed",
+                      _d("delay", days=project["delay_days"], date=project["proposed_completion"].isoformat()), source=src))
     pending = repo.s.scalars(select(Approval).where(Approval.project_id == project["id"],
                                                     Approval.status == "pending")).all()
     if pending:
-        out.append(Check("approvals", "warn", "warning", "Approvals pending",
-                         "Pending: " + ", ".join(a.kind.replace("_", " ") for a in pending) + ".", source=src))
+        out.append(_c("approvals", "warn", "warning", "Approvals pending",
+                      _d("approvals", items=", ".join(a.kind.replace("_", " ") for a in pending)), source=src))
     card = repo.promoter_scorecard(project["promoter_id"])
     if card:
         records.append(card)
         if card["complaints_open"] >= OPEN_COMPLAINTS_WARN or card["adverse_orders"]:
-            out.append(Check(
+            out.append(_c(
                 "promoter_record", "warn", "warning", "Promoter has open complaints or adverse orders",
-                f"{card['complaints_open']} open complaints, {card['adverse_orders']} show-cause, penalty or "
-                f"revocation orders across {card['projects']} projects.", source=card["source"]))
+                _d("promoter_record", open=card["complaints_open"], orders=card["adverse_orders"], projects=card["projects"]),
+                source=card["source"]))
     return out
 
 
@@ -364,37 +353,32 @@ def _promoter_check(project: dict[str, Any], text_lc: str, repo: Repository) -> 
     src = project["source"]
     promoter = repo.s.get(Promoter, project["promoter_id"])
     if promoter.promoter_type == "unknown":
-        return Check("promoter_match", "info", "info", "Promoter not in imported records",
-                     "The public records imported here do not name this project's promoter; compare the name in "
-                     "the document with the project's page on the GUJRERA portal.", source=src)
+        return _c("promoter_match", "info", "info", "Promoter not in imported records", _d("promoter_unknown"), source=src)
     if max(_mentioned(promoter.name, text_lc), _mentioned(promoter.name_gu, text_lc)) >= NAME_MATCH:
-        return Check("promoter_match", "pass", "info", "Promoter matches",
-                     f"The document names the registered promoter, {_core(promoter.name)}.", source=src)
+        return _c("promoter_match", "pass", "info", "Promoter matches", _d("promoter_match", name=_core(promoter.name)), source=src)
     for other in repo.s.scalars(select(Promoter).where(Promoter.id != promoter.id,
                                                         Promoter.promoter_type != "unknown")):
         score = max(_mentioned(other.name, text_lc), _mentioned(other.name_gu, text_lc))
         if score >= OTHER_PROMOTER_MATCH:
-            return Check(
+            return _c(
                 "promoter_match", "fail", "critical", "Promoter name mismatch",
-                f"The document names {_core(other.name)}, but this registration belongs to "
-                f"{_core(promoter.name)}.", evidence=_core(other.name), source=src, verdict_hint="mismatch")
-    return Check("promoter_match", "info", "info", "Promoter not named",
-                 f"The document does not name the registered promoter ({_core(promoter.name)}).", source=src)
+                _d("promoter_mismatch", other=_core(other.name), name=_core(promoter.name)),
+                evidence=_core(other.name), source=src, verdict_hint="mismatch")
+    return _c("promoter_match", "info", "info", "Promoter not named", _d("promoter_not_named", name=_core(promoter.name)), source=src)
 
 
 def _check_agent(number, repo: Repository, as_of: date, records: list[dict[str, Any]]) -> list[Check]:
     agent = repo.get_agent(number.normalised)
     if agent is None:
-        return [Check("agent_registration", "fail", "critical", "Agent registration not found",
-                      f"{number.normalised} is not in the GUJRERA agent registry data.",
-                      evidence=number.normalised, verdict_hint="mismatch")]
+        return [_c("agent_registration", "fail", "critical", "Agent registration not found",
+                   _d("agent_not_found", number=number.normalised), evidence=number.normalised, verdict_hint="mismatch")]
     records.append(agent)
     if agent["status"] != "active" or agent["valid_until"] < as_of:
-        return [Check("agent_registration", "fail", "critical", "Agent registration not valid",
-                      f"{_core(agent['name'])}: status {agent['status']}, valid until "
-                      f"{agent['valid_until'].isoformat()}.", source=agent["source"], verdict_hint="mismatch")]
-    return [Check("agent_registration", "pass", "info", "Agent registered",
-                  f"{_core(agent['name'])}, valid until {agent['valid_until'].isoformat()}.", source=agent["source"])]
+        return [_c("agent_registration", "fail", "critical", "Agent registration not valid",
+                   _d("agent_invalid", name=_core(agent["name"]), status={**_st(agent["status"]), "en": agent["status"]},
+                      date=agent["valid_until"].isoformat()), source=agent["source"], verdict_hint="mismatch")]
+    return [_c("agent_registration", "pass", "info", "Agent registered",
+               _d("agent_ok", name=_core(agent["name"]), date=agent["valid_until"].isoformat()), source=agent["source"])]
 
 
 def _check_booking(claim: TrustClaim, checks: list[Check]) -> None:
@@ -406,8 +390,7 @@ def _check_booking(claim: TrustClaim, checks: list[Check]) -> None:
         pct = 100.0 * float(claim.booking_amount.value) / float(claim.price.value)
         evidence = f"{claim.booking_amount.text} / {claim.price.text}"
     if pct is not None and pct > BOOKING_LIMIT_PERCENT:
-        checks.append(Check(
-            "booking_over_limit", "warn", "critical", "Booking amount above 10%",
-            f"The document asks for about {pct:.0f}% at booking. A promoter cannot take more than 10% of the "
-            "cost before a registered agreement for sale (RERA Act, Section 13).", evidence=evidence))
+        checks.append(_c(
+            "booking_over_limit", "warn", "critical", "Booking amount above 10%", _d("booking", pct=f"{pct:.0f}"),
+            evidence=evidence))
 

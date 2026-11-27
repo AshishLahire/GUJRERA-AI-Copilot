@@ -169,6 +169,54 @@ def _headers(records: list[dict[str, Any]]) -> list[str]:
     return list(seen)
 
 
+# Gujarati and Hindi for what the check screen shows (English above). Native-speaker review pending.
+KIND_I18N = {
+    "project": ("પ્રોજેક્ટ: નવા કે બદલાયેલા રેકોર્ડ", "प्रोजेक्ट: नए या बदले हुए रिकॉर्ड"),
+    "agent": ("રિયલ એસ્ટેટ એજન્ટ", "रियल एस्टेट एजेंट"),
+    "project_update": ("લોડ થયેલા પ્રોજેક્ટની વધારાની વિગતો (સરનામું, તારીખો, સ્થિતિ)",
+                       "लोड हो चुके प्रोजेक्ट का अतिरिक्त विवरण (पता, तारीखें, स्थिति)"),
+}
+LABEL_I18N = {
+    "rera_no": ("RERA નોંધણી નંબર", "RERA पंजीकरण संख्या"),
+    "project_name": ("પ્રોજેક્ટનું નામ", "प्रोजेक्ट का नाम"),
+    "project_name_gu": ("પ્રોજેક્ટનું નામ (ગુજરાતી)", "प्रोजेक्ट का नाम (गुजराती)"),
+    "promoter_name": ("પ્રમોટરનું નામ", "प्रमोटर का नाम"),
+    "promoter_name_gu": ("પ્રમોટરનું નામ (ગુજરાતી)", "प्रमोटर का नाम (गुजराती)"),
+    "district": ("જિલ્લો", "जिला"),
+    "taluka": ("તાલુકો", "तालुका"),
+    "planning_authority": ("આયોજન સત્તામંડળ", "योजना प्राधिकरण"),
+    "project_type": ("પ્રોજેક્ટનો પ્રકાર", "प्रोजेक्ट का प्रकार"),
+    "status": ("સ્થિતિ", "स्थिति"),
+    "units": ("એકમોની સંખ્યા", "इकाइयों की संख्या"),
+    "reg_date": ("નોંધણી તારીખ", "पंजीकरण तिथि"),
+    "start_date": ("પ્રોજેક્ટ શરૂ થવાની તારીખ", "प्रोजेक्ट शुरू होने की तिथि"),
+    "proposed_completion": ("પ્રસ્તાવિત પૂર્ણતા તારીખ", "प्रस्तावित पूर्णता तिथि"),
+    "revised_completion": ("સુધારેલી પૂર્ણતા તારીખ", "संशोधित पूर्णता तिथि"),
+    "actual_completion": ("ખરેખર પૂર્ણતા તારીખ", "वास्तविक पूर्णता तिथि"),
+    "source_url": ("સ્રોત લિંક", "स्रोत लिंक"),
+    "date_range": ("પ્રોજેક્ટની તારીખો (શરૂ - અંત)", "प्रोजेक्ट की तारीखें (शुरू - अंत)"),
+    "entity_type": ("રેકોર્ડનો પ્રકાર", "रिकॉर्ड का प्रकार"),
+    "address": ("સ્થળનું સરનામું", "स्थल का पता"),
+    "locality": ("વિસ્તાર", "इलाका"),
+    "reg_no": ("એજન્ટ નોંધણી નંબર", "एजेंट पंजीकरण संख्या"),
+    "name": ("એજન્ટનું નામ", "एजेंट का नाम"),
+    "name_gu": ("એજન્ટનું નામ (ગુજરાતી)", "एजेंट का नाम (गुजराती)"),
+    "valid_until": ("નોંધણી ક્યાં સુધી માન્ય", "पंजीकरण कब तक मान्य"),
+}
+HINT_I18N = {
+    "proposed_completion": ("અથવા 'Project dates'", "या 'Project dates'"),
+    "reg_date": ("અથવા 'Project start date' / 'Project dates'", "या 'Project start date' / 'Project dates'"),
+    "address": ("જાણીતા વિસ્તારનું નામ હોય તો વિસ્તાર પણ નક્કી કરે છે", "किसी जाने-पहचाने इलाके का नाम हो तो इलाका भी तय करता है"),
+    "source_url": ("નહીં તો નીચેની સ્રોત લિંક વપરાય છે", "नहीं तो नीचे दी गई स्रोत लिंक इस्तेमाल होती है"),
+}
+
+
+def _tri(en: str | None, pair: tuple[str, str] | None) -> dict[str, str] | None:
+    if en is None:
+        return None
+    return {"en": en, "gu": pair[0], "hi": pair[1]} if pair else {"en": en, "gu": en, "hi": en}
+
+
 def describe_sheet(name: str, records: list[dict[str, Any]]) -> dict[str, Any]:
     headers = _headers(records)
     kinds = {}
@@ -176,7 +224,10 @@ def describe_sheet(name: str, records: list[dict[str, Any]]) -> dict[str, Any]:
         mapping, unused = _column_map(headers, spec)
         kinds[kind] = {
             "label": KIND_LABELS[kind],
-            "fields": [{"key": k, "label": LABELS.get(k, k), "required": k in REQUIRED[kind], "hint": HINTS.get(k)}
+            "label_i18n": _tri(KIND_LABELS[kind], KIND_I18N.get(kind)),
+            "fields": [{"key": k, "label": LABELS.get(k, k), "required": k in REQUIRED[kind], "hint": HINTS.get(k),
+                        "label_i18n": _tri(LABELS.get(k, k), LABEL_I18N.get(k)),
+                        "hint_i18n": _tri(HINTS.get(k), HINT_I18N.get(k))}
                        for k in spec if k != "entity_type"],
             "mapping": mapping, "unused": unused,
         }

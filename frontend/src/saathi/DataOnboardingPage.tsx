@@ -203,7 +203,7 @@ export const DataOnboardingPage: React.FC = () => {
 
   const step = loaded ? 4 : check ? 3 : up ? 1 : 0;
   const spec = sheet ? sheet.kinds[kind] : null;
-  const missing = spec ? spec.fields.filter((f) => f.required && !mapping[f.key]).map((f) => f.label) : [];
+  const missing = spec ? spec.fields.filter((f) => f.required && !mapping[f.key]).map((f) => f.label_i18n?.[lang] ?? f.label) : [];
   const estimate = sheet ? Math.max(2, Math.round(sheet.rows / 500)) : 0;
   const rowsWord = say({ en: "rows", gu: "પંક્તિઓ", hi: "पंक्तियाँ" }, lang);
 
@@ -274,7 +274,7 @@ export const DataOnboardingPage: React.FC = () => {
               <button key={k} type="button" role="radio" aria-checked={kind === k}
                 onClick={() => { setKind(k); setMapping({ ...sheet.kinds[k].mapping }); setCheck(null); setLoaded(null); }}
                 className={`text-left rounded-xl border p-3 text-xs transition ${kind === k ? "border-brand bg-brand-soft ring-1 ring-brand" : "border-warm-border bg-card hover:border-warm-strong"}`}>
-                <span className="block font-semibold text-body text-sm">{sheet.kinds[k].label}</span>
+                <span className="block font-semibold text-body text-sm">{sheet.kinds[k].label_i18n?.[lang] ?? sheet.kinds[k].label}</span>
                 {sheet.suggested_kind === k && <span className="mt-1 inline-block rounded-full bg-card border border-accent-border px-2 py-0.5 text-[10px] font-semibold text-accent-amber-strong">{say({ en: "Suggested for this file", gu: "આ ફાઇલ માટે સૂચવેલ", hi: "इस फ़ाइल के लिए सुझाया गया" }, lang)}</span>}
               </button>
             ))}
@@ -294,11 +294,11 @@ export const DataOnboardingPage: React.FC = () => {
                   return (
                     <tr key={f.key} className="border-b border-warm-border last:border-0">
                       <td className="py-1.5 pr-3 text-body">
-                        {f.label}{f.required && <span className="ml-1 text-red-700 dark:text-red-300" title={say({ en: "Required", gu: "જરૂરી", hi: "आवश्यक" }, lang)}>*</span>}
-                        {f.hint && <span className="block text-[10px] text-muted">{f.hint}</span>}
+                        {f.label_i18n?.[lang] ?? f.label}{f.required && <span className="ml-1 text-red-700 dark:text-red-300" title={say({ en: "Required", gu: "જરૂરી", hi: "आवश्यक" }, lang)}>*</span>}
+                        {f.hint && <span className="block text-[10px] text-muted">{f.hint_i18n?.[lang] ?? f.hint}</span>}
                       </td>
                       <td className="py-1.5 pr-3">
-                        <select value={col} aria-label={say({ en: `Column for ${f.label}`, gu: `${f.label} માટે કૉલમ`, hi: `${f.label} के लिए कॉलम` }, lang)}
+                        <select value={col} aria-label={say({ en: `Column for ${f.label}`, gu: `${f.label_i18n?.gu ?? f.label} માટે કૉલમ`, hi: `${f.label_i18n?.hi ?? f.label} के लिए कॉलम` }, lang)}
                           onChange={(e) => { setMapping((m) => ({ ...m, [f.key]: e.target.value })); setCheck(null); setLoaded(null); }}
                           className={`w-full max-w-[240px] rounded-md border bg-card text-body px-2 py-1 ${col ? "border-warm-border" : f.required ? "border-red-400" : "border-warm-border text-muted"}`}>
                           <option value="">{say({ en: "— not in this file —", gu: "— આ ફાઇલમાં નથી —", hi: "— इस फ़ाइल में नहीं —" }, lang)}</option>

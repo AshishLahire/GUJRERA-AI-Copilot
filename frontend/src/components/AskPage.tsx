@@ -1,7 +1,8 @@
 import { AnswerFeedback } from "./AnswerFeedback";
 import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openMyComplaint, openReport, sendChat, transcribeVoice } from "../api/gujrera";
-import { Said, say, useSaathi } from "../saathi/context";
+import { complaintLabel } from "../saathi/complaintLabels";
+import { Said, say, useSaathi, useUiLang } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { StateChip } from "../saathi/OrderTrackerPage";
 import { WatchButton } from "../saathi/WatchPage";
@@ -89,6 +90,7 @@ const CitedText: React.FC<{ text: string }> = ({ text }) => {
 };
 
 const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = ({ card, question }) => {
+  const cardLang = useUiLang();
   if (card.type === "project") {
     return (
       <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs grid grid-cols-2 gap-2">
@@ -313,7 +315,7 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
         <ul className="flex flex-col gap-1">
           {items.map((i) => (
             <li key={i.ref_no} className="flex items-center justify-between gap-3">
-              <span className="truncate"><span className="font-mono">{i.ref_no}</span> <span className="text-muted">· {i.category.replace(/_/g, " ")} · {i.project ?? ""}</span></span>
+              <span className="truncate"><span className="font-mono">{i.ref_no}</span> <span className="text-muted">· {complaintLabel(i.category, cardLang)} · {i.project ?? ""}</span></span>
               <span className="font-semibold whitespace-nowrap">{i.age_days} days · {i.band}</span>
             </li>
           ))}

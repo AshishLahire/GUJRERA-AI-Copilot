@@ -25,6 +25,7 @@ export interface TrustCheck {
   severity: "critical" | "warning" | "info";
   title: string;
   title_i18n?: Partial<Record<Lang, string>>;
+  detail_i18n?: Partial<Record<Lang, string>> | null;
   detail: string;
   evidence: string | null;
   source: RecordSource | null;
@@ -494,10 +495,10 @@ export interface ImportRun {
   inserted: number; updated: number; unchanged: number; rejected: number;
   uploaded_by: string | null; uploaded_at: string; loaded_by: string | null; loaded_at: string | null;
 }
-export interface ImportField { key: string; label: string; required: boolean; hint: string | null }
+export interface ImportField { key: string; label: string; required: boolean; hint: string | null; label_i18n?: Partial<Record<Lang, string>>; hint_i18n?: Partial<Record<Lang, string>> | null }
 export interface ImportSheet {
   name: string; rows: number; headers: string[]; suggested_kind: ImportKind;
-  kinds: Record<ImportKind, { label: string; fields: ImportField[]; mapping: Record<string, string>; unused: string[] }>;
+  kinds: Record<ImportKind, { label: string; label_i18n?: Partial<Record<Lang, string>>; fields: ImportField[]; mapping: Record<string, string>; unused: string[] }>;
   sample: Record<string, string>[];
 }
 export interface ImportUpload { run: ImportRun; sheets: ImportSheet[] }
@@ -546,13 +547,14 @@ export async function downloadRejected(token: string, id: string, filename: stri
 
 // ------------------------------------------------------------ administration (state-level officers)
 export interface AdminUser {
-  id: number; username: string; display_name: string | null; role: string; role_label: string;
+  id: number; username: string; display_name: string | null; role: string; role_label: string; role_label_i18n?: Partial<Record<Lang, string>>;
   district_scope: string | null; organisation: string | null; is_active: boolean; is_demo: boolean;
   created_at: string | null; last_login_at: string | null;
 }
 export interface AdminUsers { users: AdminUser[]; counts: Record<string, number>; districts: string[]; creatable_roles: string[] }
 export interface AuditEntry {
   id: number; at: string; user: string | null; role: string; action: string; label: string; category: string;
+  label_i18n?: Partial<Record<Lang, string>>; role_i18n?: Partial<Record<Lang, string>>;
   detail: Record<string, unknown>;
 }
 export interface AuditLogResponse {

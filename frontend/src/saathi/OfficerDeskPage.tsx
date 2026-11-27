@@ -12,6 +12,7 @@ import {
 } from "../api/gujrera";
 import { Icon } from "./Brand";
 import { ChartCard, ColumnChart, HBarChart } from "./Charts";
+import { complaintLabel } from "./complaintLabels";
 import { useSaathi } from "./context";
 import { LoginPrompt } from "./RolePages";
 
@@ -126,7 +127,7 @@ const detail = (it: DeskItem, lang: Lang): string => {
     case "ad_case":
       return `${it.kind ?? ""} · ${it.claimed_rera ?? "—"} · ${fmt(it.opened_on)}`;
     case "complaint":
-      return `${it.category ?? ""} · ${it.status ?? ""} · ${days(it.age_days ?? 0, "days old", "દિવસ જૂની", "दिन पुरानी")}`;
+      return `${complaintLabel(it.category, lang)} · ${complaintLabel(it.status, lang)} · ${days(it.age_days ?? 0, "days old", "દિવસ જૂની", "दिन पुरानी")}`;
   }
 };
 
