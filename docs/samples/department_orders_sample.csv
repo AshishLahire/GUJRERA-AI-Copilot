@@ -1,0 +1,3 @@
+Order No,Order Type,Order Date,RERA Registration No,Complaint No,Penalty Amount,Penalty Paid,Direction
+SAMPLE-ORD-0001,Penalty order,20/10/2026,PR/GJ/AHMEDABAD/AHMEDABAD CITY/AUDA/MOCK00020/190825,,"Rs 2,50,000",No,Penalty for not filing quarterly progress reports
+SAMPLE-ORD-0002,Final order,25/11/2026,,SAMPLE-CMP-0001,,,Refund with interest within 45 days

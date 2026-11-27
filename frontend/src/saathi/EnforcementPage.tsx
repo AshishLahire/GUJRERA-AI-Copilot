@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AuthExpiredError, EnfCase, EnfList, fetchCase, fetchCases, updateCase } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { Said, say, useSaathi } from "./context";
+import { Said, say, uiLocale, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { StringKey, tr } from "./strings";
@@ -38,7 +38,7 @@ const FILTERS: [string, Said][] = [
 ];
 const DISTRICTS = ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar", "Bhavnagar"];
 
-const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(uiLocale(), { day: "numeric", month: "short", year: "numeric" });
 
 const KindChip: React.FC<{ kind: EnfCase["kind"] }> = ({ kind }) => {
   const { lang } = useSaathi();

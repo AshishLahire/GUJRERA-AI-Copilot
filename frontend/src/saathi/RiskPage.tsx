@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AuthExpiredError, RiskItem, RiskResponse, fetchRisk } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { say, useSaathi } from "./context";
+import { say, uiLocale, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { StringKey, tr } from "./strings";
@@ -33,7 +33,7 @@ const BAND_BAR: Record<Band, string> = { high: "bg-red-600 dark:bg-red-400", med
 const BAND_KEY: Record<Band, StringKey> = { high: "riskHigh", medium: "riskMedium", low: "riskLow" };
 
 const fmtDate = (iso: string | null) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "—";
+  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(uiLocale(), { month: "short", year: "numeric" }) : "—";
 
 const BandChip: React.FC<{ band: Band }> = ({ band }) => {
   const { lang } = useSaathi();

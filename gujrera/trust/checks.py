@@ -33,6 +33,7 @@ from factcheck.forensics.checks import (
 )
 from gujrera.db.models import Approval, Promoter
 from gujrera.db.repository import Repository
+from gujrera.trust.i18n import approvals_list as _approvals
 from gujrera.trust.i18n import detail as _d
 from gujrera.trust.i18n import status_word as _st
 from gujrera.trust.extract import TrustClaim, extract_claim
@@ -337,7 +338,7 @@ def _check_project(number, claim: TrustClaim, text_lc: str, repo: Repository, as
                                                     Approval.status == "pending")).all()
     if pending:
         out.append(_c("approvals", "warn", "warning", "Approvals pending",
-                      _d("approvals", items=", ".join(a.kind.replace("_", " ") for a in pending)), source=src))
+                      _d("approvals", items=_approvals([a.kind for a in pending])), source=src))
     card = repo.promoter_scorecard(project["promoter_id"])
     if card:
         records.append(card)

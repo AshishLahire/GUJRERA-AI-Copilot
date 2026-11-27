@@ -13,7 +13,7 @@ import {
 import { Icon } from "./Brand";
 import { ChartCard, ColumnChart, HBarChart } from "./Charts";
 import { complaintLabel } from "./complaintLabels";
-import { useSaathi } from "./context";
+import { uiLocale, useSaathi } from "./context";
 import { LoginPrompt } from "./RolePages";
 
 type L3 = { en: string; gu: string; hi: string };
@@ -111,7 +111,7 @@ const UI = {
   loading: { en: "Loading the work queue…", gu: "કાર્યસૂચિ લોડ થઈ રહી છે…", hi: "कार्यसूची लोड हो रही है…" } as L3,
 };
 
-const fmt = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
+const fmt = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(uiLocale(), { day: "numeric", month: "short", year: "numeric" }) : "");
 
 const detail = (it: DeskItem, lang: Lang): string => {
   const days = (n: number, en: string, gu: string, hi: string) => (lang === "gu" ? `${n} ${gu}` : lang === "hi" ? `${n} ${hi}` : `${n} ${en}`);
@@ -235,7 +235,7 @@ export const OfficerDeskPage: React.FC = () => {
               <ChartCard title={t3(UI.chartEnding, lang)} sub={t3(UI.chartEndingSub, lang)}>
                 <ColumnChart head={[t3(UI.month, lang), t3(UI.registrations, lang)]}
                   data={data.charts.ending_by_month.map((m) => ({
-                    label: new Date(`${m.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+                    label: new Date(`${m.month}-01T00:00:00`).toLocaleDateString(uiLocale(), { month: "short", year: "2-digit" }),
                     value: m.count,
                   }))} />
               </ChartCard>

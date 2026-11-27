@@ -173,3 +173,21 @@ def detail(key: str, **values) -> dict[str, str]:
 
 def status_word(status: str) -> dict[str, str]:
     return STATUS.get(status, {"en": status, "gu": status, "hi": status})
+
+
+# Approval kinds named in "Approvals pending"
+APPROVALS: dict[str, dict[str, str]] = {
+    "building_permission": {"en": "building permission", "gu": "બાંધકામ પરવાનગી", "hi": "भवन निर्माण अनुमति"},
+    "environment_clearance": {"en": "environment clearance", "gu": "પર્યાવરણ મંજૂરી", "hi": "पर्यावरण मंज़ूरी"},
+    "fire_noc": {"en": "fire noc", "gu": "ફાયર NOC", "hi": "फ़ायर NOC"},
+    "layout_plan": {"en": "layout plan", "gu": "લેઆઉટ પ્લાન", "hi": "लेआउट प्लान"},
+    "non_agricultural": {"en": "non agricultural", "gu": "બિનખેતી (NA)", "hi": "गैर-कृषि (NA)"},
+}
+
+
+def approvals_list(kinds: list[str]) -> dict[str, str]:
+    """The pending approvals, comma-separated, in each language (English exactly as before)."""
+    out = {}
+    for lang in ("en", "gu", "hi"):
+        out[lang] = ", ".join(APPROVALS.get(k, {}).get(lang) or k.replace("_", " ") for k in kinds)
+    return out

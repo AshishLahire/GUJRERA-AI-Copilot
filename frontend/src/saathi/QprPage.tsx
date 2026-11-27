@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { AuthExpiredError, QprDraft, QprInput, QprIssue, QprProject, checkQpr, fetchQprDraft, fetchQprOverview, submitQpr } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { say, useSaathi } from "./context";
+import { say, uiLocale, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { tr } from "./strings";
 
-const fmt = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const fmt = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString(uiLocale(), { day: "numeric", month: "short", year: "numeric" });
 const num = (v: string) => (v.trim() === "" ? null : Number(v.replace(/[,\s₹]/g, "")));
 const inputCls = "w-full rounded-lg border border-warm-border bg-card text-body px-3 py-2 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/30";
 

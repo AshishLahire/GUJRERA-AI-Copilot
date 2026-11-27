@@ -12,13 +12,17 @@ A state-level officer (the data admin in the POC) loads them in four steps:
 4. **Load.** The same run, committed. The chat's name index is refreshed so the assistants answer from the
    new records straight away, and the rejected rows can be downloaded to fix and load again.
 
-Three kinds of file:
+Eight kinds of file. Public registry records:
 
 * ``project``: full project records (new projects are added, existing ones updated);
 * ``agent``: real estate agent records;
 * ``project_update``: extra fields for projects already in the registry, matched by RERA number, such as
   the site address (which also sets the locality, so "projects in Bopal" is answered exactly), a revised
   or actual completion date, the status or the promoter.
+
+And the department's internal records, which the authority assistant answers from (see
+``gujrera/onboarding_internal.py``): ``complaint``, ``order`` (with penalty amounts), ``notice``, ``scrutiny``
+and ``default``, each matched to its project by RERA number.
 
 Only mapped columns are read; any other column in the file (phone numbers, e-mails) is ignored. Every
 check and load is written to the audit log with the officer's name.
@@ -153,6 +157,15 @@ def _sheets(path: Path, display: str | None = None) -> list[tuple[str, list[dict
 
 # ------------------------------------------------------------------ step 1: upload and describe
 def suggest_kind(records: list[dict[str, Any]]) -> str:
+    # The department's internal records are recognised by a column only they have.
+    keys = {str(h).strip().lower().replace("_", " ") for h in (records[0].keys() if records else [])}
+    for kind, marks in (("order", ("order no", "order number", "order type")),
+                        ("notice", ("notice no", "notice number", "notice type")),
+                        ("complaint", ("complaint no", "complaint number", "complaint type", "complaint id")),
+                        ("default", ("default type", "non compliance", "non-compliance")),
+                        ("scrutiny", ("application type", "scrutiny status", "current stage"))):
+        if keys & set(marks):
+            return kind
     kind = detect_kind(records)
     if kind == "project":
         mapping, _ = _column_map(records[0].keys(), SPECS["project"])
@@ -209,6 +222,19 @@ HINT_I18N = {
     "address": ("જાણીતા વિસ્તારનું નામ હોય તો વિસ્તાર પણ નક્કી કરે છે", "किसी जाने-पहचाने इलाके का नाम हो तो इलाका भी तय करता है"),
     "source_url": ("નહીં તો નીચેની સ્રોત લિંક વપરાય છે", "नहीं तो नीचे दी गई स्रोत लिंक इस्तेमाल होती है"),
 }
+
+
+# The department's internal records (gujrera/onboarding_internal.py): same console, five more kinds.
+from gujrera import onboarding_internal as _internal  # noqa: E402
+
+SPECS.update(_internal.SPECS)
+REQUIRED.update(_internal.REQUIRED)
+KIND_LABELS.update(_internal.KIND_LABELS)
+KIND_I18N.update(_internal.KIND_I18N)
+for _k, _v in _internal.LABELS.items():
+    LABELS.setdefault(_k, _v)
+for _k, _v in _internal.LABEL_I18N.items():
+    LABEL_I18N.setdefault(_k, _v)
 
 
 def _tri(en: str | None, pair: tuple[str, str] | None) -> dict[str, str] | None:
@@ -406,8 +432,10 @@ def _apply_rows(s: Session, records: list[dict[str, Any]], clean: dict[str, str]
                     outcome = _apply_project(s, row, src, today, tally)
                 elif kind == "agent":
                     outcome = _apply_agent(s, row, src, today)
-                else:
+                elif kind == "project_update":
                     outcome = _apply_update(s, row, today)
+                else:
+                    outcome = _internal.APPLY[kind](s, row)
             setattr(tally, outcome, getattr(tally, outcome) + 1)
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
             tally.rejected += 1

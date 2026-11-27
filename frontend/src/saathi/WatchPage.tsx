@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AuthExpiredError, WATCH_CHANGED_EVENT, Watch, fetchUnread, fetchWatches, markWatchSeen, navigateTo, unwatchProject, watchProject } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { say, useSaathi } from "./context";
+import { say, uiLocale, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { tr } from "./strings";
 
 const TONE_DOT: Record<string, string> = { good: "bg-emerald-600", warn: "bg-brand", bad: "bg-red-600", info: "bg-warm-strong" };
-const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(uiLocale(), { day: "numeric", month: "short", year: "numeric" });
 const changed = () => window.dispatchEvent(new Event(WATCH_CHANGED_EVENT));
 
 /** Watch / Watching toggle for one project. Buyers only; others are pointed to log in. */

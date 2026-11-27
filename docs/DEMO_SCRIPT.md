@@ -64,6 +64,7 @@ Say first: "this window is demo data shaped like GUJRERA's internal tables; in w
 
 | Tab | Do this | Point out |
 |---|---|---|
+| **Data onboarding** (`officer_state`) | Upload `docs/samples/department_complaints_sample.csv`, then `department_scrutiny_sample.csv`; check, then load each. | The department's internal exports load the same way as projects, matched by RERA number. One complaint is rejected with the reason (its project is not in the registry). |
 | **For officers** (`officer_state`) | Ask the department's four sample questions: **Projects under scrutiny in Ahmedabad**; **Developers issued notices in the last six months**; **Defaulting developers in Ahmedabad in the last six months**; **Penalty orders with amounts**. | 5, 11, 1 and 16 rows. "Default" is defined on screen. Try one in Gujarati or with another district. |
 | **Risk watch** | Open it. | Projects most at risk of delay, with the reasons. |
 | **Order tracker** | Open it. | Orders and whether they were complied with. |

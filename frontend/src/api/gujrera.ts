@@ -488,7 +488,7 @@ export async function reviewDeskItem(token: string, item_type: string, item_key:
 }
 
 // ------------------------------------------------------------ data onboarding (state-level officers)
-export type ImportKind = "project" | "agent" | "project_update";
+export type ImportKind = "project" | "agent" | "project_update" | "complaint" | "order" | "notice" | "scrutiny" | "default";
 export interface ImportRun {
   id: string; filename: string; size_bytes: number; status: "uploaded" | "checked" | "loaded";
   kind: ImportKind | null; kind_label: string | null; sheet: string | null; rows: number;

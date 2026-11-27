@@ -4,7 +4,7 @@ import { AuthExpiredError, ComplaintBrief, OrderStatus, TriageResponse, Upcoming
   officerAddDocument, openOfficerDocument, updateComplaintStatus, updateCompliance } from "../api/gujrera";
 import { OrderCard } from "./OrderTrackerPage";
 import { Icon } from "./Brand";
-import { Said, say, useSaathi } from "./context";
+import { Said, say, uiLocale, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { StringKey, tr } from "./strings";
@@ -42,7 +42,7 @@ const OUTCOME_LABEL: Record<string, Said> = {
   settled: { en: "settled", gu: "સમાધાન", hi: "समझौता" },
 };
 const nice = (s: string) => s.replace(/_/g, " ");
-const fmt = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+const fmt = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString(uiLocale(), { day: "numeric", month: "short", year: "numeric" });
 
 const Clock: React.FC<{ left: number }> = ({ left }) => {
   const { lang } = useSaathi();

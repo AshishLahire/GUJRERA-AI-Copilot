@@ -4,7 +4,7 @@ import { BrandMark, Icon } from "./Brand";
 import { ProjectPicker } from "./CalculatorPage";
 import { StateChip } from "./OrderTrackerPage";
 import { WatchButton } from "./WatchPage";
-import { say, useSaathi } from "./context";
+import { say, uiLocale, useSaathi } from "./context";
 import { En } from "./En";
 import { StringKey, tr } from "./strings";
 
@@ -17,7 +17,7 @@ const TONE_BANNER: Record<Tone, string> = {
 };
 const TONE_KEY: Record<Tone, StringKey> = { good: "repGood", warn: "repWarn", bad: "repBad" };
 const fmt = (iso: string | null) =>
-  iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString(uiLocale(), { day: "numeric", month: "short", year: "numeric" }) : "—";
 
 const H: React.FC<{ k: StringKey }> = ({ k }) => {
   const { lang } = useSaathi();

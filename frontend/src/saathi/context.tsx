@@ -35,11 +35,20 @@ interface SaathiState {
 
 const Ctx = createContext<SaathiState | null>(null);
 
+// The interface language for code outside React state (date formatting); set on every render of the provider.
+let currentLang: Lang = "gu";
+
+/** The locale for dates in the interface language: "5 Dec 2026", "5 ડિસે, 2026", "5 दिस॰ 2026". */
+export function uiLocale(): string {
+  return { en: "en-IN", gu: "gu-IN", hi: "hi-IN" }[currentLang];
+}
+
 export const SaathiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<Lang>(() => {
     const saved = read(LANG_KEY);
     return saved === "en" || saved === "hi" || saved === "gu" ? saved : "gu";
   });
+  currentLang = lang;
   const [token, setToken] = useState<string | null>(() => read(TOKEN_KEY));
   const [user, setUser] = useState<AuthUser | null>(null);
 

@@ -317,7 +317,7 @@ export const DataOnboardingPage: React.FC = () => {
               <span key={h} className="inline-block mr-1 mb-1 px-2 py-0.5 rounded-full bg-subtle border border-warm-border">{h}</span>
             ))}</p>
           )}
-          {kind !== "project_update" && (
+          {(kind === "project" || kind === "agent") && (
             <label className="text-xs text-muted flex flex-col gap-1 max-w-xl">
               {say({
                 en: "Source link cited in answers for rows without their own link",
