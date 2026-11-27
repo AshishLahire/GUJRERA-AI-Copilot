@@ -75,5 +75,7 @@ Say first: "this window is demo data shaped like GUJRERA's internal tables; in w
 
 - **"Who is the builder of Shilp Revanta?"** The public search results we imported don't include builder names, so the app says so and shows the project. The portal's project pages do have them (Shilp Revanta's promoter is AYB BUILDCON LLP); we have asked the department for an export.
 - **"Projects in Bopal"** On public data, matched by project name; with the department's addresses it uses the address.
+- **"What if the AI or the server is down?"** The app checks every 15 seconds; if it cannot reach the service it shows fixed answers to common questions (from the RERA Act) and links to the GUJRERA portal, in the chosen language, and returns by itself when the service is back. To show it, close window B's API window.
+- **Accessibility?** The citizen screens pass an automated WCAG 2.1 AA check in both themes and down to 320 px wide (`docs/gujrera_accessibility_check.md`); the formal GIGW/WCAG audit is done before go-live.
 - **First question slow?** Only before the warm-up finishes (about 40 seconds after starting).
 - **Hindi or Gujarati question slower than English?** Questions the rules don't recognise go through the local AI model: 2 to 5 seconds.

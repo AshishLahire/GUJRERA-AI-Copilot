@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { CalcSeed, Lang, NAVIGATE_EVENT, OPEN_CALC_EVENT, OPEN_REPORT_EVENT, fetchHealth } from "../api/gujrera";
 import { AccountBar } from "../components/AccountBar";
 import { AskPage } from "../components/AskPage";
@@ -23,6 +23,7 @@ import { DataOnboardingPage } from "./DataOnboardingPage";
 import { AuditPage, UsersPage } from "./AdminPages";
 import { CircularsPage } from "./CircularsPage";
 import { AccuracyPage } from "./AccuracyPage";
+import { FallbackPage } from "./FallbackPage";
 import { StringKey, tr } from "./strings";
 
 const PAGES: Page[] = ["home", "ask", "check", "calc", "promoter", "officer", "risk", "enforce", "report", "desk", "orders", "qpr", "watch", "agreement", "today", "data", "users", "audit", "circulars", "accuracy", "complaints"];
@@ -108,9 +109,32 @@ const Shell: React.FC = () => {
   // Label the data honestly: demo records, or records imported from the public GUJRERA portal.
   // null until the health check answers: show neither label nor demo-only pages before we know.
   const [demo, setDemo] = useState<boolean | null>(null);
-  useEffect(() => {
-    fetchHealth().then((h) => setDemo(h.mock_projects > 0 || h.projects === 0)).catch(() => setDemo(true));
+  // Service status: when the server cannot be reached, the main area shows fixed answers and portal links
+  // (FallbackPage) instead of pages that would only fail. Checked every 15 s and when the tab is shown again.
+  const [down, setDown] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const check = useCallback(() => {
+    setChecking(true);
+    fetchHealth()
+      .then((h) => {
+        setDown(false);
+        setDemo(h.mock_projects > 0 || h.projects === 0);
+      })
+      .catch(() => setDown(true))
+      .finally(() => setChecking(false));
   }, []);
+  useEffect(() => {
+    check();
+    const timer = window.setInterval(check, 15000);
+    const onShow = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("online", check);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("online", check);
+    };
+  }, [check]);
   const NAV = restoring ? [] : navFor(user?.role, demo === true, user?.role === "officer" && !user.district_scope);
   const current = ITEM[page] ?? ITEM.home;
   // An officer lands on their own work queue; leaving a role returns to that role's first page.
@@ -275,8 +299,10 @@ const Shell: React.FC = () => {
         </header>
 
         <main id="main" className="flex-1">
-          {restoring && <div className="max-w-7xl mx-auto px-6 py-10 text-sm text-muted" role="status">Loading your account…</div>}
-          {!restoring && (<>
+          {down && <FallbackPage onRetry={check} checking={checking} />}
+          {restoring && !down && <div className="max-w-7xl mx-auto px-6 py-10 text-sm text-muted" role="status">Loading your account…</div>}
+          {/* Kept mounted (hidden) while the service is down, so a chat in progress returns with it. */}
+          {!restoring && (<div hidden={down}>
           {page === "home" && <HomePage onAsk={ask} onNavigate={setPage} />}
           {page === "today" && <OfficerDeskPage />}
           {page === "data" && <DataOnboardingPage />}
@@ -303,7 +329,7 @@ const Shell: React.FC = () => {
           {page === "watch" && <WatchPage />}
           {page === "agreement" && <AgreementPage />}
           {page === "complaints" && <MyComplaintPage />}
-          </>)}
+          </div>)}
         </main>
 
         <footer className="print:hidden lg:hidden border-t border-warm-border">
