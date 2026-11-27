@@ -40,6 +40,8 @@ def rerank(question: str, hits: list[Hit], generate: Callable[[str], str], *, k:
     listing = "\n".join(f"{i}. {_describe(h)}" for i, h in enumerate(top, 1))
     terms = english_terms(question)
     hint = f"\nKey terms in English: {terms}" if terms and not question.isascii() else ""
+    # A 7B model reads "file a QPR" as filing a complaint: spell the abbreviation out for it
+    question = re.sub(r"\bQPRs?\b", "quarterly progress report", question, flags=re.IGNORECASE)
     try:
         raw = generate(PROMPT.format(question=question[:400], terms=hint, candidates=listing))
     except Exception:  # noqa: BLE001 - model unavailable: keep the search order
