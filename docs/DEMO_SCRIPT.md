@@ -2,6 +2,8 @@
 
 About 25 minutes. Every step below was rehearsed on fresh copies on 27 November 2026; the figures are what the app showed.
 
+Exact inputs for every tab, with the expected results: `docs/DEMO_INPUTS.md`.
+
 ## Before the meeting
 
 1. Start the apps about a minute before (they load the AI models and answer the suggested questions in the background):
@@ -42,7 +44,7 @@ Logins (all `gujrera-demo`): `citizen_01`, `officer_surat`, `officer_state` (sta
 | Tab | Do this | Point out |
 |---|---|---|
 | **My work queue** | Log in as `officer_surat`. | Only Surat: registrations ending, projects past their date, citizens' checks. A district officer never sees another district. |
-| **Complaint desk** | Open the complaint you just filed. Set **Hearing scheduled**, a date and a place (e.g. *GujRERA office, Gandhinagar, Court 2*), **Update**. | The brief: the law, the project record, similar decided complaints, the buyer's document. Then switch to the buyer's **My complaint**: "Next hearing: …, in N days, at …". |
+| **Complaint desk** | Log out and in as `officer_state` (the complaint is about an Ahmedabad project, so the Surat officer does not see it). Open the complaint you just filed. Set **Hearing scheduled**, a date and a place (e.g. *GujRERA office, Gandhinagar, Court 2*), **Update**. | The brief: the law, the project record, similar decided complaints, the buyer's document. Then switch to the buyer's **My complaint**: "Next hearing: …, in N days, at …". |
 | **For officers** | Ask **What percentage of projects are delayed?**, then **Show district-wise project registration trends**, then **How many complaints were received this quarter?** | A plain answer, a table and chart, and the read-only SQL shown. |
 | **For officers** | After a report, type **only Surat**; then **Export to Excel**. | Follow-ups refine the last report; export to Excel or PDF; save a report. |
 | **Ad enforcement** | Open the list. | Ads that citizens checked and reported, grouped by project. |
