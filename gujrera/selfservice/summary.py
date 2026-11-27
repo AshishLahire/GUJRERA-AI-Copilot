@@ -118,6 +118,27 @@ S: dict[str, dict[str, str]] = {
         "gu": "બાકી ચુકવણી, નોટિસ અને ફાઈલિંગ ખાનગી છે. તે જોવા માટે પ્રમોટર અથવા એજન્ટ તરીકે લોગિન કરો.",
         "hi": "बकाया, नोटिस और फाइलिंग निजी हैं। इन्हें देखने के लिए प्रमोटर या एजेंट के रूप में लॉगिन करें।",
     },
+    "application": {
+        "en": "{project}: {subject} application, {stage} (since {date}).",
+        "gu": "{project}: {subject} માટેની અરજી, {stage} ({date} થી).",
+        "hi": "{project}: {subject} का आवेदन, {stage} ({date} से)।",
+    },
+    "application_query": {
+        "en": "GUJRERA has raised a query on the {subject} application for {project}: please submit the "
+              "documents or reply it asks for.",
+        "gu": "{project} ની {subject} અરજી પર GUJRERA એ પ્રશ્ન ઉઠાવ્યો છે: તેમાં માગેલા દસ્તાવેજ અથવા જવાબ રજૂ કરો.",
+        "hi": "{project} के {subject} आवेदन पर GUJRERA ने प्रश्न उठाया है: कृपया माँगे गए दस्तावेज़ या जवाब जमा करें।",
+    },
+    "no_applications": {
+        "en": "You have no applications under examination by GUJRERA.",
+        "gu": "GUJRERA પાસે તમારી કોઈ અરજી તપાસ હેઠળ નથી.",
+        "hi": "GUJRERA के पास आपका कोई आवेदन जाँच में नहीं है।",
+    },
+    "no_documents": {
+        "en": "No documents or filings are pending from you.",
+        "gu": "તમારી પાસેથી કોઈ દસ્તાવેજ કે ફાઈલિંગ બાકી નથી.",
+        "hi": "आपकी ओर से कोई दस्तावेज़ या फाइलिंग लंबित नहीं है।",
+    },
     "only_own": {
         "en": "You can only see your own dues, notices and filings.",
         "gu": "તમે ફક્ત તમારી પોતાની બાકી ચુકવણી, નોટિસ અને ફાઈલિંગ જોઈ શકો છો.",
@@ -135,6 +156,21 @@ FOCUS_WORDS: dict[str, tuple[str, ...]] = {
                      "નોંધણી", "મુદત", "નવીનીકરણ", "पंजीकरण", "विस्तार", "नवीनीकरण"),
     "approvals": ("approval", "approvals", "noc", "permission", "મંજૂરી", "अनुमोदन", "मंजूरी"),
     "complaints": ("complaint", "complaints", "ફરિયાદ", "शिकायत"),
+    "applications": ("application", "applications", "applied", "scrutiny", "અરજી", "आवेदन"),
+    # Pending documents: unfiled quarterly reports, pending approvals and applications with a query raised
+    "documents": ("document", "documents", "submission", "submissions", "દસ્તાવેજ", "दस्तावेज", "दस्तावेज़"),
+}
+
+APPLICATION_SUBJECTS = {
+    "registration": {"en": "registration", "gu": "નોંધણી", "hi": "पंजीकरण"},
+    "extension": {"en": "extension", "gu": "મુદત વધારો", "hi": "विस्तार"},
+    "alteration": {"en": "alteration", "gu": "ફેરફાર", "hi": "परिवर्तन"},
+}
+APPLICATION_STAGES = {
+    "under_scrutiny": {"en": "under scrutiny", "gu": "તપાસ હેઠળ", "hi": "जाँच में"},
+    "query_raised": {"en": "query raised", "gu": "પ્રશ્ન ઉઠાવાયો", "hi": "प्रश्न उठाया गया"},
+    "cleared": {"en": "cleared", "gu": "મંજૂર", "hi": "स्वीकृत"},
+    "rejected": {"en": "rejected", "gu": "નામંજૂર", "hi": "अस्वीकृत"},
 }
 SELF_WORDS = ("my ", "mine", "our ", "pending", "summary", "compliance", "dashboard", "what do i",
               "મારા", "મારી", "મારું", "મારો", "અમારા", "સારાંશ", "अनुपालन", "मेरे", "मेरी", "मेरा", "हमारे", "सारांश", "અનુપાલન")
@@ -170,7 +206,13 @@ def _word_in(word: str, text_lc: str) -> bool:
 
 
 def focus_of(text_lc: str) -> set[str]:
-    return {f for f, words in FOCUS_WORDS.items() if any(_word_in(w, text_lc) for w in words)}
+    focus = {f for f, words in FOCUS_WORDS.items() if any(_word_in(w, text_lc) for w in words)}
+    if "documents" in focus:
+        focus |= {"qpr", "approvals", "applications"}
+        if not any(_word_in(w, text_lc) for w in ("fee", "fees", "pay", "payment", "dues", "ફી", "ચુકવણી", "शुल्क",
+                                                     "भुगतान", "बकाया")):
+            focus.discard("dues")  # "કયા દસ્તાવેજ બાકી છે?": બાકી means pending here, not money owed
+    return focus
 
 
 PRIVATE_WORDS = ("dues", "outstanding", "what do i owe", "બાકી ચુકવણી", "बकाया")
@@ -212,7 +254,7 @@ def promoter_summary(repo: Repository, lang: str, focus: set[str] | None = None,
                      today: date | None = None) -> Summary:
     """Compliance summary for the logged-in promoter (raises AccessDenied for anyone else)."""
     today = today or date.today()
-    want = focus or set(FOCUS_WORDS)
+    want = focus or set(FOCUS_WORDS) - {"documents"}
     dues_all = repo.dues_notices()  # role-scoped: only the caller's promoter
     promoter = repo.s.get(Promoter, repo.p.promoter_id)
     out = Summary(is_mock=promoter.is_mock)
@@ -285,6 +327,21 @@ def promoter_summary(repo: Repository, lang: str, focus: set[str] | None = None,
             if pending:
                 out.add("approvals", lang, [a["source"] for a in pending], project=p["name"],
                         items=", ".join(word(a["kind"], lang) for a in pending))
+    if "applications" in want:
+        apps = [a for a in repo.own_applications() if a["stage"] in ("under_scrutiny", "query_raised")
+                or ("applications" in (focus or set()) and "documents" not in (focus or set()))]
+        for a in apps[:6]:
+            subject = APPLICATION_SUBJECTS.get(a["subject"], {}).get(lang, a["subject"])
+            if a["stage"] == "query_raised":
+                out.add("application_query", lang, [a["source"]], project=a["project"], subject=subject)
+            else:
+                out.add("application", lang, [a["source"]], project=a["project"], subject=subject,
+                        stage=APPLICATION_STAGES.get(a["stage"], {}).get(lang, a["stage"]),
+                        date=fmt_date(a["opened_on"], lang))
+        if not apps and "documents" not in (focus or set()):
+            out.add("no_applications", lang, [])
+        card["applications"] = [{"project": a["project"], "subject": a["subject"], "stage": a["stage"],
+                                 "opened_on": a["opened_on"]} for a in apps]
     if "complaints" in want:
         counts = repo.complaint_counts(promoter_id=promoter.id)
         if counts["total"]:

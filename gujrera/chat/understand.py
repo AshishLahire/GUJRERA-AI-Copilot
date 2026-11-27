@@ -7,6 +7,8 @@ router for messages these rules do not understand.
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import re
 from dataclasses import dataclass, field
 
@@ -27,7 +29,7 @@ INTENT_WORDS: dict[str, tuple[str, ...]] = {
     "possession": ("possession", "handover", "hand over", "completion", "complete", "completed", "ready",
                    "when will", "deadline", "પઝેશન", "કબજો", "ક્યારે", "પૂર્ણ", "kyare", "malse",
                    "कब्जा", "कब्ज़ा", "पज़ेशन", "पजेशन", "कब", "पूरा", "kab", "milega"),
-    "promoter": ("builder", "developer", "promoter", "બિલ્ડર", "ડેવલપર", "પ્રમોટર", "बिल्डर", "डेवलपर",
+    "promoter": ("builder", "developer", "promoter", "builders", "developers", "promoters", "બિલ્ડર", "ડેવલપર", "પ્રમોટર", "बिल्डर", "डेवलपर",
                  "प्रमोटर", "track record", "history"),
     "complaint_file": ("file a complaint", "register a complaint", "lodge", "my complaint", "my complaints", "complaint status",
                        "track my complaint", "track complaint", "complain", "raise a complaint",
@@ -107,8 +109,27 @@ def _has(text_lc: str, phrase: str) -> bool:
     return phrase in text_lc
 
 
+PROCEDURE_WORDS = ("how do i", "how to", "how can i", "how should i", "procedure", "process for", "steps to",
+                   "કેવી રીતે", "પ્રક્રિયા", "कैसे", "प्रक्रिया")
+
+
+# What a RERA procedure is about; "how do I cook dal" is not one.
+PROCEDURE_TOPICS = ("qpr", "quarterly", "progress report", "registration", "register", "extension", "renew",
+                    "agent", "rera", "project", "promoter", "apply", "application", "file", "filing", "form",
+                    "નોંધણી", "રજીસ્ટ્રેશન", "મુદત", "એજન્ટ", "અરજી", "ફાઈલ", "ફાઇલ", "ભરવ", "રેરા", "પ્રોજેક્ટ",
+                    "पंजीकरण", "रजिस्ट्रेशन", "विस्तार", "एजेंट", "आवेदन", "दाखिल", "भर", "रेरा", "प्रोजेक्ट")
+
+
+def asks_procedure(text_lc: str) -> bool:
+    """"How do I file a QPR?": the steps the law sets, not the asker's own records."""
+    return any(_has(text_lc, w) for w in PROCEDURE_WORDS) and any(_has(text_lc, w) for w in PROCEDURE_TOPICS)
+
+
 def detect_intents(text_lc: str) -> set[str]:
-    return {intent for intent, words in INTENT_WORDS.items() if any(_has(text_lc, w) for w in words)}
+    intents = {intent for intent, words in INTENT_WORDS.items() if any(_has(text_lc, w) for w in words)}
+    if asks_procedure(text_lc):
+        intents.add("legal")  # how-to questions on QPR, extension, agent registration: Act, Rules, circulars
+    return intents
 
 
 DISTRICT_WORDS = {
@@ -201,7 +222,19 @@ def indic_to_latin(text: str | None) -> str:
             continue
         else:
             out.append(ch)
-    return "".join(out)
+    return " ".join(_LATIN_FIX.get(w, w) for w in "".join(out).split(" "))
+
+
+# English words common in project names, as Hindi and Gujarati speech-to-text spell them, after the letter
+# mapping above: their sound keys differ from the English ("rejidensi" -> "rjdns", "residency" -> "rsdns").
+_LATIN_FIX = {
+    "rejidensi": "residency", "rejidensy": "residency", "rejidansi": "residency",
+    "rejidenshi": "residency", "resijensi": "residency", "rejijensi": "residency",
+    "skvayar": "square", "skvayr": "square", "skveyar": "square", "skvear": "square", "skver": "square",
+    "skvar": "square", "skvair": "square",
+    "haits": "heights", "haights": "heights", "haaits": "heights", "hights": "heights",
+    "kvins": "queens", "kvin": "queen",
+}
 
 
 # Words in many project names. A name made only of these (and numbers), such as "86 Residency", is matched by
@@ -214,8 +247,9 @@ commercial shops shop flats flat tenament tenaments duplex rowhouse row ews lig 
 center corporate hights avenue elegance paradise royal galaxy""".split()
 
 
-def _generic_sounds() -> set[str]:
-    return {sound_key(w) for w in GENERIC_NAME_WORDS}
+@lru_cache(maxsize=1)
+def _generic_sounds() -> frozenset[str]:
+    return frozenset(sound_key(w) for w in GENERIC_NAME_WORDS)
 
 
 def _sounds_contained(name: str, query_key: list[str]) -> bool:
@@ -240,7 +274,8 @@ class _Entry:
     district: str
     variants: tuple[str, ...]  # lower-cased name, Gujarati name, Gujarati name in Hindi script
     core: str  # name without "(Demo)", for sound matching
-    sounds: tuple[str, ...] | None  # sound key words, only for names with no Gujarati spelling
+    sounds: tuple[str, ...] | None  # sound key words of the English name (Gujarati/Hindi speech spells names
+    # its own way: "प्लाजा" is not the registry's Gujarati "પ્લાઝા", but both sound like "plaza")
     sound_all: str = ""  # sound key of the name, for "did you mean ...?"
 
 
@@ -280,11 +315,11 @@ def _name_index(session: Session) -> _NameIndex:
     for p in session.scalars(select(Promoter).where(Promoter.promoter_type != "unknown")):
         entries.append(_Entry("promoter", p.id, p.name, p.district,
                               (_core(p.name), _core(p.name_gu), gu_to_deva(_core(p.name_gu))), _core(p.name),
-                              None if p.name_gu else tuple(sound_key(_core(p.name)).split())))
+                              tuple(sound_key(_core(p.name)).split())))
     for p in session.scalars(select(Project)):
         entries.append(_Entry("project", p.id, p.name, p.district,
                               (_spaced(p.name), _spaced(p.name_gu), _spaced(gu_to_deva(p.name_gu))), _core(p.name),
-                              None if p.name_gu else tuple(sound_key(_core(p.name)).split())))
+                              tuple(sound_key(_core(p.name)).split())))
     by_prefix: dict[str, set[int]] = {}
     by_sound: dict[str, set[int]] = {}
     for i, e in enumerate(entries):
@@ -360,6 +395,7 @@ _SOUND_RULES = [(r"ph", "f"), (r"[qc]k|ck|q", "k"), (r"c(?=[eiy])", "s"), (r"c",
                 (r"z", "j"), (r"v", "w"), (r"x", "ks"), (r"h", ""), (r"[aeiouy]", ""), (r"(.)\1+", r"\1")]
 
 
+@lru_cache(maxsize=65536)
 def sound_key(text: str) -> str:
     """Consonant skeleton of romanised words, so speech-to-text spellings of Gujarati names line up:
     "Mongol arcade" / "Mangal Arcade" -> "mngl rkd", "Gerner" / "Girnar" -> "jrnr", "sovarna" / "Suvarna"
@@ -428,11 +464,21 @@ def suggest_names(session: Session, query: str, min_score: float = 85, limit: in
     return sorted(out, key=lambda c: (-c.score, c.kind != "project", c.id))[:limit]
 
 
+@lru_cache(maxsize=1024)
+def _whole_word(w: str) -> re.Pattern:
+    return re.compile(rf"(?<![a-z]){re.escape(w)}(?![a-z])")
+
+
 def _leftover(text_lc: str, intents: set[str]) -> str:
     cleaned = text_lc
     for intent in intents:
         for w in INTENT_WORDS[intent]:
-            cleaned = cleaned.replace(w, " ")
+            if w in ("builders", "developers", "promoters"):
+                continue  # part of the name: "Suvarna Builders"
+            if re.fullmatch(r"[a-z ]+", w):  # whole English words only: "builder" must not leave "s" of "builders"
+                cleaned = _whole_word(w).sub(" ", cleaned)
+            else:
+                cleaned = cleaned.replace(w, " ")
     words = [w for w in re.findall(r"[\w઀-૿ऀ-ॿ]+", cleaned)
              if w not in STOPWORDS and w not in ROMAN_GU and w not in ROMAN_HI]
     return " ".join(words)[:60].strip()

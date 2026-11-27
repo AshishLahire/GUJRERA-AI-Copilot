@@ -274,6 +274,25 @@ class Repository:
         self._audit("dues_notices", {"promoter_id": promoter_id, "n": len(rows)})
         return [_row(r, "due_notice", str(r.id)) for r in rows]
 
+    # ------------------------------------------------------- scoped: applications
+    def own_applications(self) -> list[dict[str, Any]]:
+        """The logged-in promoter's registration, extension and alteration applications and their stage.
+        The officer's note is internal and is never returned."""
+        from gujrera.db.models import ProjectScrutiny
+
+        if self.p.role != "developer":
+            raise AccessDenied("Applications are visible only to the promoter who made them.")
+        rows = self.s.execute(select(ProjectScrutiny, Project.name).join(Project, Project.id == ProjectScrutiny.project_id)
+                              .where(Project.promoter_id == self.p.promoter_id)
+                              .order_by(ProjectScrutiny.opened_on.desc())).all()
+        self._audit("own_applications", {"n": len(rows)})
+        out = []
+        for sc, name in rows:
+            d = _row(sc, "application", str(sc.id), exclude=("officer_note",))
+            d["project"] = name
+            out.append(d)
+        return out
+
     # ----------------------------------------------------------------- helpers
     @staticmethod
     def _fuzzy(query: str, candidates: list[Any], names, limit: int, min_score: float):

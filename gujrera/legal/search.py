@@ -127,7 +127,9 @@ class LegalIndex:
                 if c["kind"] == kind and c["number"].upper() == number.upper()]
 
     def search(self, query: str, *, k: int = 5, kinds: tuple[str, ...] | None = None) -> list[Hit]:
-        text = normalize_digits(query or "")
+        from gujrera.legal.numbers import spoken_numbers
+
+        text = spoken_numbers(normalize_digits(query or ""))  # "धारा अठारह" (speech) -> "धारा 18"
         exact: list[Hit] = []
         m = SECTION_RE.search(text)
         if m:

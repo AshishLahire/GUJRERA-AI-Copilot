@@ -31,7 +31,15 @@ from gujrera.analytics.reports import AUTHORITY_REPORTS, find_locality, looks_li
 from gujrera.analytics.reports import ANALYTICS_CUES
 from gujrera.chat.llm_router import Routed
 from gujrera.chat.llm_router import route as llm_route
-from gujrera.chat.understand import Candidate, Understanding, detect_intents, find_candidates, suggest_names, understand
+from gujrera.chat.understand import (
+    Candidate,
+    Understanding,
+    asks_procedure,
+    detect_intents,
+    find_candidates,
+    suggest_names,
+    understand,
+)
 from gujrera.legal.answer import answer as legal_answer
 from gujrera.complaints.flow import (
     CODE_RE,
@@ -284,6 +292,35 @@ def _report(question: str, state: ChatState, repo: Repository, lang: str) -> Rep
     return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
 
 
+# Reports computed only from the public project registry: anyone may ask them ("How many projects are delayed?").
+# Rankings of promoters stay with officers.
+PUBLIC_REPORTS = frozenset({"delayed_share", "delayed_projects", "projects_registered", "projects_by_district",
+                            "registration_trend"})
+COUNT_WORDS = ("how many", "number of", "count", "કેટલા", "કેટલી", "કિતને", "कितने", "कितनी", "संख्या")
+
+
+def _public_report(question: str, repo: Repository, lang: str, key: str) -> Reply:
+    """A registry report for a citizen, promoter or agent; nothing internal is reachable from these views."""
+    q = question
+    if key == "delayed_projects" and any(w in question.lower() for w in COUNT_WORDS):
+        q = f"{question} share"  # "how many are delayed?" is a count: the share report gives "N of M (x%)"
+    a = analytics_answer(q, repo, lang, generate=None)
+    if a.card is not None:
+        a.card["question"] = question
+    return Reply(lang, a.intent, a.sentences, cards=[a.card] if a.card else [], suggestions=a.suggestions)
+
+
+def _own_records(text_lc: str, repo: Repository, u: Understanding) -> bool:
+    """A logged-in promoter or agent asking about their own dues, notices, filings or applications."""
+    if asks_procedure(text_lc):
+        return False  # "How do I file a QPR?" is about the procedure, not the asker's filings
+    if is_self_service(text_lc):
+        return True
+    # "Have I received any notices?": a promoter's topic with no other project or builder named
+    return (repo.p.role in ("developer", "agent") and bool(focus_of(text_lc)) and not u.candidates
+            and not u.project_numbers and not u.names_something)
+
+
 def _route(message: str, u: Understanding, state: ChatState, repo: Repository, lang: str) -> Reply:
     # 0. An officer narrowing the last report: "only Bopal", "last 3 months", "in Surat instead", "top 5"
     if repo.p.role == "officer" and state.last_report:
@@ -333,7 +370,8 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         return _from_flow(start_tracking(message, state, repo, lang), lang)
     report = match_report(msg_lc)
     officer_report = repo.p.role == "officer" and report is not None
-    if repo.p.role != "officer" and report is not None and report.key in AUTHORITY_REPORTS and not u.candidates:
+    if (repo.p.role != "officer" and report is not None and report.key in AUTHORITY_REPORTS and not u.candidates
+            and not (repo.p.role in ("developer", "agent") and _own_records(msg_lc, repo, u))):
         # Internal authority records (scrutiny, notices, defaults, penalties): officers only, no data shown.
         return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
     if state.last_list and is_followup(message) and not u.candidates and not u.project_numbers:
@@ -418,12 +456,16 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
         return Reply(lang, "risk", sentences, cards=[card] if card else [])
     if repo.p.role == "officer" and (match_report(text_lc) or (looks_like_analytics(text_lc) and not u.candidates)):
         return _report(message, state, repo, lang)
+    public = match_report(text_lc) if repo.p.role != "officer" else None
+    if (public and public.key in PUBLIC_REPORTS and looks_like_report_request(text_lc) and not u.candidates
+            and not _names_a_builder(message, u) and not _own_records(text_lc, repo, u)):
+        return _public_report(message, repo, lang, public.key)
     if repo.p.role != "officer" and match_report(text_lc) and looks_like_report_request(text_lc) \
-            and not u.candidates and not _names_a_builder(message, u):
+            and not u.candidates and not _names_a_builder(message, u) and not _own_records(text_lc, repo, u):
         return Reply(lang, "officer_only", [Sentence(analytics_text("officer_only", lang), [], "an_officer_only")])
 
     # 5. Promoter / agent self-service (role-scoped), or a login prompt for private data
-    if is_self_service(text_lc) and not (repo.p.role == "citizen" and "complaint_file" in u.intents):
+    if _own_records(text_lc, repo, u) and not (repo.p.role == "citizen" and "complaint_file" in u.intents):
         reply = _self_service(text_lc, u, repo, lang)
         if reply:
             return reply
@@ -524,6 +566,8 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     if "promoter" in u.intents and any(c.kind == "promoter" for c in cands):
         cands = [c for c in cands if c.kind == "promoter"]
     focus = _focus(u)
+    if len(cands) == 1 and cands[0].kind == "promoter" and focus == "possession":
+        focus = None  # "How many projects has X completed?": the builder's profile counts them
     if len(cands) == 1:
         state.entity = {"kind": cands[0].kind, "id": cands[0].id}
         if "promoter" in u.intents and cands[0].kind == "project":

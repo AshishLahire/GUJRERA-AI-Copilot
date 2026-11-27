@@ -72,6 +72,9 @@ ENGLISH_TERMS: dict[str, str] = {
     "deposit": "advance payment", "token amount": "advance payment", "late": "delay",
     "handover": "possession", "hand over": "possession", "sale deed": "conveyance deed",
     "decides": "adjudicate", "decide": "adjudicate", "claim": "adjudging compensation",
+    "qpr": "functions and duties of promoter quarterly up-to-date web page of the Authority",
+    "quarterly progress": "functions and duties of promoter quarterly up-to-date web page of the Authority",
+    "progress report": "functions and duties of promoter quarterly up-to-date web page of the Authority",
 }
 
 

@@ -68,7 +68,7 @@ Say first: "this window is demo data shaped like GUJRERA's internal tables; in w
 | **For officers** (`officer_state`) | Ask the department's four sample questions: **Projects under scrutiny in Ahmedabad**; **Developers issued notices in the last six months**; **Defaulting developers in Ahmedabad in the last six months**; **Penalty orders with amounts**. | 7, 13, 2 and 17 rows after loading the five sample files (5, 11, 1 and 16 before). "Default" is defined on screen. Try one in Gujarati or with another district. |
 | **Risk watch** | Open it. | Projects most at risk of delay, with the reasons. |
 | **Order tracker** | Open it. | Orders and whether they were complied with. |
-| **For promoters** | Log in as `dev_002`. | A promoter sees only its own projects, dues and notices. |
+| **For promoters** | Log in as `dev_002`; in Ask Saathi ask **Have I received any notices?**, **Which documents are pending?**, **What is the status of my application?**, then **How do I file a QPR?** | A promoter sees only its own projects, dues, notices and applications (never the officer's notes); a how-to question is answered from the Act (Section 11), not from its records. |
 | **Quarterly reports** | As `dev_002`. | Which quarterly reports are due, filed or late. |
 
 ## If asked

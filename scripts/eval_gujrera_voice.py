@@ -2,7 +2,9 @@
 
     python scripts/eval_gujrera_voice.py --make-sheet      # write the prompts and the recording sheet
     python scripts/eval_gujrera_voice.py --synthetic-en    # make English clips with Windows' offline voices
+    python scripts/eval_gujrera_voice.py --synthetic-indic # make Gujarati and Hindi clips with Edge's online voices
     python scripts/eval_gujrera_voice.py                   # transcribe every clip found and score it
+    python scripts/eval_gujrera_voice.py --engines whisper,indic   # compare Whisper and IndicConformer
 
 30 prompts (10 each in Gujarati, Hindi and English) about the demo registry:
 possession dates, builders, projects, complaints and the law. People read them
@@ -171,6 +173,28 @@ def synthetic_en(rows: list[dict]) -> None:
     print(f"Wrote synthetic English clips to {CLIPS.relative_to(ROOT)} (*.syn.wav)")
 
 
+# Microsoft Edge's online neural voices (Windows has no offline Gujarati or Hindi voice). Only the
+# prompt text, a question about the demo registry, is sent to Microsoft.
+EDGE_VOICES = {"gu": ("gu-IN-DhwaniNeural", "gu-IN-NiranjanNeural"), "hi": ("hi-IN-SwaraNeural", "hi-IN-MadhurNeural")}
+
+
+def synthetic_indic(rows: list[dict]) -> None:
+    """Gujarati and Hindi clips from Edge's online voices, alternating a female and a male speaker."""
+    import asyncio
+
+    import edge_tts
+
+    CLIPS.mkdir(parents=True, exist_ok=True)
+
+    async def run() -> None:
+        for lang, voices in EDGE_VOICES.items():
+            for i, r in enumerate(x for x in rows if x["lang"] == lang):
+                await edge_tts.Communicate(r["text"], voices[i % 2]).save(str(CLIPS / f"{r['id']}.syn.mp3"))
+
+    asyncio.run(run())
+    print(f"Wrote synthetic Gujarati and Hindi clips to {CLIPS.relative_to(ROOT)} (*.syn.mp3)")
+
+
 def _normaliser():
     spec = importlib.util.spec_from_file_location("eval_asr", ROOT / "scripts" / "eval_asr.py")
     mod = importlib.util.module_from_spec(spec)
@@ -183,12 +207,13 @@ def find_clips(r: dict) -> list[tuple[Path, bool]]:
     for ext in EXTS:
         if (CLIPS / f"{r['id']}{ext}").exists():
             out.append((CLIPS / f"{r['id']}{ext}", False))
-    if (CLIPS / f"{r['id']}.syn.wav").exists():
-        out.append((CLIPS / f"{r['id']}.syn.wav", True))
+    for ext in (".syn.wav", ".syn.mp3"):
+        if (CLIPS / f"{r['id']}{ext}").exists():
+            out.append((CLIPS / f"{r['id']}{ext}", True))
     return out
 
 
-def evaluate() -> None:
+def evaluate(engines: list[str]) -> None:
     import jiwer
 
     from factcheck.ingest.audio.transcribe import transcribe_audio
@@ -197,10 +222,13 @@ def evaluate() -> None:
     rows = read_prompts()
     engine, Session = demo_db()
     results = []
-    for r in rows:
-        for path, synthetic in find_clips(r):
+    for asr, r, (path, synthetic) in ((a, r, c) for a in engines for r in rows for c in find_clips(r)):
+            if asr == "indic" and r["lang"] == "en":
+                continue  # IndicConformer is for Indian languages; English stays on Whisper
             t0 = time.perf_counter()
-            tr = transcribe_audio(path, language=r["lang"], engine="whisper", use_cache=False)
+            tr = transcribe_audio(path, language=r["lang"], engine=asr, use_cache=False)
+            if tr.get("engine") != asr:
+                raise SystemExit(f"{asr} was asked for but {tr.get('engine')} ran: {tr.get('notes')}")
             secs = time.perf_counter() - t0
             hyp = (tr.get("text") or "").strip()
             ref_n, hyp_n = norm(r["text"]), norm(hyp)
@@ -216,23 +244,23 @@ def evaluate() -> None:
                             for src in reply.get("sources", []))
             offered = reply["intent"] == "did_you_mean" and any(
                 o.get("kind") == r["expect_type"] and str(o.get("id")) in want for o in reply.get("options", []))
-            results.append({**r, "file": path.name, "synthetic": synthetic, "hyp": hyp, "wer": wer, "cer": cer,
+            results.append({**r, "file": path.name, "synthetic": synthetic, "asr": asr, "hyp": hyp, "wer": wer, "cer": cer,
                             "task_ok": ok_intent and ok_entity, "offered": offered, "intent": reply["intent"], "secs": secs})
-            print(f"{r['id']} {'SYN' if synthetic else 'REAL'} WER {wer:.2f} task {'ok' if ok_intent and ok_entity else 'FAIL'}"
+            print(f"{asr} {r['id']} {'SYN' if synthetic else 'REAL'} WER {wer:.2f} task {'ok' if ok_intent and ok_entity else 'FAIL'}"
                   f" | {hyp}")
     engine.dispose()
-    report(rows, results)
+    report(rows, results, engines)
 
 
-def report(rows, results) -> None:
+def report(rows, results, engines=("whisper",)) -> None:
     names = {"gu": "Gujarati", "hi": "Hindi", "en": "English"}
     lines = [
         "# Voice evaluation",
         "",
-        "Spoken questions about the demo registry, transcribed with the self-hosted Whisper small the app uses "
-        "(language as picked in the app), then sent to the chat. Reproduce with "
-        "`python scripts/eval_gujrera_voice.py`; the prompts and how to record them are in "
-        "`docs/gujrera_voice_recording_sheet.md`.",
+        "Spoken questions about the demo registry, transcribed on this machine (language as picked in the app) "
+        "with Whisper small and, for Gujarati and Hindi, AI4Bharat IndicConformer, then sent to the chat. "
+        "Reproduce with `python scripts/eval_gujrera_voice.py --engines whisper,indic`; the prompts and how to "
+        "record them are in `docs/gujrera_voice_recording_sheet.md`.",
         "",
         "- **WER / CER**: word / character error rate against the prompt text (lower is better).",
         "- **Task success**: the transcript, sent to the chat, gets the expected answer type and cites the "
@@ -242,35 +270,38 @@ def report(rows, results) -> None:
         "…?\" with the right project or builder, so the user gets the answer with one tap (☝️ below).",
         "",
     ]
-    for synthetic, title in ((False, "Real speakers"), (True, "Computer voices (Windows, offline; much easier "
-                                                                "than real speech)")):
+    for synthetic, title in ((False, "Real speakers"), (True, "Computer voices (English: Windows offline; Gujarati "
+                                                                "and Hindi: Edge online; much easier than real speech)")):
         group = [x for x in results if x["synthetic"] == synthetic]
         lines += [f"## {title}", ""]
         if not group:
             lines += ["No clips yet." + (" Record them with the sheet above." if not synthetic else ""), ""]
             continue
-        lines += ["| Language | Clips | WER | CER | Answered right | Right name offered (one tap) | "
-                  "Avg. transcription time |", "|:--|:-:|:-:|:-:|:-:|:-:|:-:|"]
+        lines += ["| Language | Engine | Clips | WER | CER | Answered right | Right name offered (one tap) | "
+                  "Avg. transcription time |", "|:--|:--|:-:|:-:|:-:|:-:|:-:|:-:|"]
         by = defaultdict(list)
         for x in group:
-            by[x["lang"]].append(x)
+            by[(x["lang"], x["asr"])].append(x)
         for lang in ("gu", "hi", "en"):
-            g = by.get(lang)
-            if not g:
-                lines.append(f"| {names[lang]} | 0 of 10 | – | – | – | – | – |")
+          for asr in engines:
+            if asr == "indic" and lang == "en":
                 continue
-            lines.append(f"| {names[lang]} | {len(g)} of 10 | {sum(x['wer'] for x in g) / len(g):.0%} | "
+            g = by.get((lang, asr))
+            label = {"whisper": "Whisper small", "indic": "IndicConformer"}[asr]
+            if not g:
+                lines.append(f"| {names[lang]} | {label} | 0 of 10 | – | – | – | – | – |")
+                continue
+            lines.append(f"| {names[lang]} | {label} | {len(g)} of 10 | {sum(x['wer'] for x in g) / len(g):.0%} | "
                          f"{sum(x['cer'] for x in g) / len(g):.0%} | {sum(x['task_ok'] for x in g)}/{len(g)} | {sum(x['offered'] for x in g)}/{len(g)} | "
                          f"{sum(x['secs'] for x in g) / len(g):.1f} s |")
         lines += ["", "<details><summary>Every clip</summary>", "",
-                  "| ID | Said | Heard | WER | Task |", "|:--|:--|:--|:-:|:-:|"]
-        lines += [f"| {x['id']} | {x['text']} | {x['hyp']} | {x['wer']:.0%} | {'✅' if x['task_ok'] else ('☝️' if x['offered'] else '❌')} "
+                  "| ID | Engine | Said | Heard | WER | Task |", "|:--|:--|:--|:--|:-:|:-:|"]
+        lines += [f"| {x['id']} | {x['asr']} | {x['text']} | {x['hyp']} | {x['wer']:.0%} | {'✅' if x['task_ok'] else ('☝️' if x['offered'] else '❌')} "
                   f"({x['intent']}) |" for x in group]
         lines += ["", "</details>", ""]
     lines += [
-        "Gujarati is the known weak spot of Whisper small (the deck cites about 64% WER). The app therefore "
-        "puts the transcript in the text box for the user to check before sending, and warns for Gujarati. "
-        "The PoC plan replaces it with IndicConformer for Gujarati and Hindi.",
+        "Whatever the engine, the app puts the transcript in the text box for the user to check before "
+        "sending. Computer voices are clean studio speech: the figures that matter are real speakers'.",
         "",
     ]
     OUT.write_text("\n".join(lines), encoding="utf-8")
@@ -281,6 +312,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--make-sheet", action="store_true")
     ap.add_argument("--synthetic-en", action="store_true")
+    ap.add_argument("--synthetic-indic", action="store_true")
+    ap.add_argument("--engines", default="whisper", help="comma-separated: whisper, indic")
     args = ap.parse_args()
     if args.make_sheet or not PROMPTS.exists():
         engine, Session = demo_db()
@@ -288,8 +321,10 @@ def main() -> None:
         engine.dispose()
     if args.synthetic_en:
         synthetic_en(read_prompts())
-    if not (args.make_sheet or args.synthetic_en):
-        evaluate()
+    if args.synthetic_indic:
+        synthetic_indic(read_prompts())
+    if not (args.make_sheet or args.synthetic_en or args.synthetic_indic):
+        evaluate([e.strip() for e in args.engines.split(",") if e.strip()])
 
 
 if __name__ == "__main__":
