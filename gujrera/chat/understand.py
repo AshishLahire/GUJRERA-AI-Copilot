@@ -502,4 +502,12 @@ def understand(session: Session, message: str) -> Understanding:
     if not numbers:
         u.candidates = find_candidates(session, text_lc)
         u.leftover = _leftover(text_lc, intents)
+        if "promoter" in intents and u.candidates:
+            # "Are there complaints against Aangan Developers?": "developers" is part of the name, not a
+            # question about the builder; recheck with the matched names left out.
+            rest = text_lc
+            for cand in u.candidates:
+                rest = rest.replace(_core(cand.label), " ")
+            if not any(_has(rest, w) for w in INTENT_WORDS["promoter"]):
+                intents.discard("promoter")
     return u

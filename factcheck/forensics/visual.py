@@ -37,15 +37,18 @@ def _load(path: Path) -> np.ndarray | None:
         try:
             import pypdfium2 as pdfium
             doc = pdfium.PdfDocument(str(path))
-            if len(doc) > 0:
-                bitmap = doc[0].render(scale=200 / 72)
-                pil_image = bitmap.to_pil()
-                img = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-                h, w = img.shape[:2]
-                scale = MAX_SIDE / max(h, w)
-                if scale < 1.0:
-                    img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-                return img
+            try:  # closed afterwards: Windows keeps an open file locked
+                if len(doc) > 0:
+                    bitmap = doc[0].render(scale=200 / 72)
+                    pil_image = bitmap.to_pil()
+                    img = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+                    h, w = img.shape[:2]
+                    scale = MAX_SIDE / max(h, w)
+                    if scale < 1.0:
+                        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+                    return img
+            finally:
+                doc.close()
         except Exception:
             pass
     data = np.fromfile(str(path), dtype=np.uint8)  # handles non-ASCII Windows paths

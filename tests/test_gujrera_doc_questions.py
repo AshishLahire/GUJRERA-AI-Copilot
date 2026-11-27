@@ -67,6 +67,16 @@ def test_developer_completed_count(Session):
     assert out["intent"] == "promoter_profile"
 
 
+@pytest.mark.parametrize("template", ["Are there complaints against {n}?", "Complaints against the builder {n}"])
+def test_complaints_against_a_named_builder(Session, template):
+    """"Developers" or "Builders" in the name must not turn a complaints question into a general profile."""
+    with Session() as s:
+        name = s.scalars(select(Promoter.name).where(Promoter.name.like("%Builders%") | Promoter.name.like("%Developers%"))
+                         .order_by(Promoter.id)).first()
+    out = ask(Session, Principal.anonymous(), template.format(n=name.replace(" (Demo)", "")))
+    assert out["intent"] == "complaints"
+
+
 @pytest.mark.parametrize("q", ["What is the status of my application?", "મારી અરજીની સ્થિતિ શું છે?",
                                "मेरे आवेदन की स्थिति क्या है?"])
 def test_promoter_application_status(Session, promoter, q):

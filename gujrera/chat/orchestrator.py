@@ -568,6 +568,8 @@ def _route(message: str, u: Understanding, state: ChatState, repo: Repository, l
     focus = _focus(u)
     if len(cands) == 1 and cands[0].kind == "promoter" and focus == "possession":
         focus = None  # "How many projects has X completed?": the builder's profile counts them
+    if len(cands) == 1 and cands[0].kind == "promoter" and "complaints" in u.intents and focus is None:
+        focus = "complaints"  # "Complaints against the builder Kesar Builders": its complaint record
     if len(cands) == 1:
         state.entity = {"kind": cands[0].kind, "id": cands[0].id}
         if "promoter" in u.intents and cands[0].kind == "project":

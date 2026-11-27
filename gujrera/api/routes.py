@@ -1161,7 +1161,10 @@ async def trust_upload(
         return check_document(path, repo, allow_cloud=allow_fallback)
     finally:
         for leftover in UPLOAD_DIR.glob(f"{path.stem}*"):
-            leftover.unlink(missing_ok=True)
+            try:
+                leftover.unlink(missing_ok=True)
+            except OSError:  # still locked by a reader on Windows: the check is done, never fail the request
+                pass
 
 
 # ------------------------------------------------------------ data onboarding (state-level officers)

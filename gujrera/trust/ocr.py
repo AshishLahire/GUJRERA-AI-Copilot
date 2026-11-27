@@ -67,12 +67,16 @@ def ocr_file(path: Path) -> OcrOut:
     if path.suffix.lower() == ".pdf":
         import pypdfium2 as pdfium
 
-        page = pdfium.PdfDocument(str(path))[0]
-        layer = page.get_textpage().get_text_range().strip()
-        if len(layer) >= 40:
-            return OcrOut(layer, "pdf-text", None, "Only page 1 of the PDF was read.")
-        text, conf = _ocr_pil(page.render(scale=300 / 72).to_pil())
-        return OcrOut(text, "tesseract", conf, "Only page 1 of the PDF was read.")
+        doc = pdfium.PdfDocument(str(path))
+        try:  # closed afterwards: Windows keeps an open file locked, so the upload could not be deleted
+            page = doc[0]
+            layer = page.get_textpage().get_text_range().strip()
+            if len(layer) >= 40:
+                return OcrOut(layer, "pdf-text", None, "Only page 1 of the PDF was read.")
+            text, conf = _ocr_pil(page.render(scale=300 / 72).to_pil())
+            return OcrOut(text, "tesseract", conf, "Only page 1 of the PDF was read.")
+        finally:
+            doc.close()
     with Image.open(path) as img:
         text, conf = _ocr_pil(img)
     return OcrOut(text, "tesseract", conf)

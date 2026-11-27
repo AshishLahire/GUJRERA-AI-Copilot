@@ -262,7 +262,7 @@ export const CalculatorPage: React.FC<{ seed: CalcSeed | null; onAsk: (q: string
 
           <div>
             <Label k="calcRate" />
-            <div className="flex flex-col gap-2 text-sm">
+            <div className="flex flex-col gap-2 text-sm" role="radiogroup" aria-label={tr("calcRate", lang)}>
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="radio" name="rate" checked={!useAgreementRate} onChange={() => setUseAgreementRate(false)} className="mt-1 accent-[var(--brand)]" />
                 <span className="text-body">
