@@ -1,6 +1,6 @@
 # GujRERA Saathi: demo script, tab by tab
 
-About 25 minutes. Every step below was run on 26 November 2026; the figures are what the app showed.
+About 25 minutes. Every step below was rehearsed on fresh copies on 27 November 2026; the figures are what the app showed.
 
 ## Before the meeting
 
@@ -31,9 +31,9 @@ Logins (all `gujrera-demo`): `citizen_01`, `officer_surat`, `officer_state` (sta
 | **Ask Saathi** | Type **Is Qwzx Plaza registered?** | It says "not in the registry" instead of guessing. Never a made-up answer. |
 | **Check an ad** | Click **Fake RERA number**, then **Check**; then the Gujarati sample with no number. | Flags a number that isn't in the registry, and an ad with no RERA number. |
 | **Before-you-buy report** | Type **Shilp Revanta**, pick it, then **Save as PDF / Print**. | One page from the registry: dates, status, points to check before paying. |
-| **Interest calculator** | From the report, click **Interest the builder owes me**; enter **5000000** and **Calculate**. | ₹10,42,500 for 695 days of delay at 10.95% (SBI MCLR + 2%, Rule 16), with the law cited. |
+| **Interest calculator** | From the report, click **Interest the builder owes me**; enter **5000000** and **Calculate**. | About ₹10.4 lakh (₹10,44,000 for 696 days on 27 November; it grows each day) at 10.95% (SBI MCLR + 2%, Rule 16), with the law cited. |
 | **Agreement checker** | Load the **one-sided sample** and check it. | Clauses that break the model agreement are flagged, with the rule. The samples use a made-up project. |
-| **Ask Saathi** | Type **I want to file a complaint**, answer the questions (project **Shilp Revanta**, a short problem, **Refund with interest**, a name, a test mobile), confirm. | A complaint filed by chat in a few messages; a reference number and a 6-digit tracking code. |
+| **Ask Saathi** | Type **I want to file a complaint**, answer the questions (project **Shilp Revanta**, a short problem, **Refund with interest**, a name, a test mobile, **skip** twice), agree, then **Submit** (typing *yes* also submits). | A complaint filed by chat in a few messages; a reference number and a 6-digit tracking code. Note both for the next steps. |
 | **My complaint** | Click **Add documents** on the filed card; add any PDF. | The buyer adds evidence; PDF, JPG or PNG only, checked by content. |
 | **Watched projects** | Log in as `citizen_01`, watch a project from its report. | Alerts when the project's quarterly report is filed or missed. |
 
@@ -64,8 +64,8 @@ Say first: "this window is demo data shaped like GUJRERA's internal tables; in w
 
 | Tab | Do this | Point out |
 |---|---|---|
-| **Data onboarding** (`officer_state`) | Upload `docs/samples/department_complaints_sample.csv`, then `department_scrutiny_sample.csv`; check, then load each. | The department's internal exports load the same way as projects, matched by RERA number. One complaint is rejected with the reason (its project is not in the registry). |
-| **For officers** (`officer_state`) | Ask the department's four sample questions: **Projects under scrutiny in Ahmedabad**; **Developers issued notices in the last six months**; **Defaulting developers in Ahmedabad in the last six months**; **Penalty orders with amounts**. | 5, 11, 1 and 16 rows. "Default" is defined on screen. Try one in Gujarati or with another district. |
+| **Data onboarding** (`officer_state`) | Upload the five `docs/samples/department_*_sample.csv` files (complaints first, then orders, notices, scrutiny, defaults); check, then load each. | The department's internal exports load the same way as projects, matched by RERA number. One complaint is rejected with the reason (its project is not in the registry). |
+| **For officers** (`officer_state`) | Ask the department's four sample questions: **Projects under scrutiny in Ahmedabad**; **Developers issued notices in the last six months**; **Defaulting developers in Ahmedabad in the last six months**; **Penalty orders with amounts**. | 7, 13, 2 and 17 rows after loading the five sample files (5, 11, 1 and 16 before). "Default" is defined on screen. Try one in Gujarati or with another district. |
 | **Risk watch** | Open it. | Projects most at risk of delay, with the reasons. |
 | **Order tracker** | Open it. | Orders and whether they were complied with. |
 | **For promoters** | Log in as `dev_002`. | A promoter sees only its own projects, dues and notices. |

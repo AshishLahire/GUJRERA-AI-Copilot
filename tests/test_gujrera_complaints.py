@@ -167,6 +167,16 @@ def test_edit_from_review(repo):
     assert any(f["value"] == "Ramesh Kumar Patel" for f in out["cards"][0]["fields"])
 
 
+@pytest.mark.parametrize("word", ["yes", "હા", "हाँ"])
+def test_yes_at_review_submits(repo, word):
+    p = _project(repo)
+    state = ChatState()
+    talk(repo, state, STORY.format(p=p.name), "1", "Ramesh Patel", "9876543210", "skip", "skip", "1")
+    assert state.complaint.awaiting == "review"
+    out = talk(repo, state, word)
+    assert out["intent"] == "complaint_submitted"
+
+
 def test_asks_for_project_when_not_named(repo):
     p = _project(repo)
     state = ChatState()

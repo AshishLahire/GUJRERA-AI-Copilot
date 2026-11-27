@@ -187,7 +187,7 @@ def continue_filing(message: str, state: Any, repo: Repository, lang: str) -> Fl
             error = "ask_consent"
     elif field_ == "review":
         answer = _choice(message, flow.options) or (message or "").strip().lower()
-        if answer in ("submit", *SUBMIT):
+        if answer in ("submit", *SUBMIT, *YES):  # "yes" / "હા" at the review step means submit
             return _submit(state, repo, lang)
         if answer in ("edit", *EDIT):
             flow.awaiting = "edit"
