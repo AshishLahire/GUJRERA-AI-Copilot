@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { reportAd } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { useSaathi } from "./context";
+import { say, useSaathi } from "./context";
 import { En } from "./En";
 import { tr } from "./strings";
 
@@ -18,7 +18,7 @@ export const ReportAd: React.FC<{ text: string; channel: "text" | "upload" | "ch
     setState("sending");
     try {
       const r = await reportAd(text, channel, token);
-      setMsg(r.duplicate ? `${r.receipt} · already reported` : r.receipt);
+      setMsg(r.duplicate ? say({ en: `${r.receipt} · already reported`, gu: `${r.receipt} · પહેલેથી જાણ કરેલ છે`, hi: `${r.receipt} · पहले ही सूचना दी जा चुकी है` }, lang) : r.receipt);
       setState("sent");
     } catch (e) {
       setMsg((e as Error).message);

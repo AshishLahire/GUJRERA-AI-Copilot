@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { exportReport } from "../api/gujrera";
-import { useSaathi } from "../saathi/context";
+import { Lang, exportReport } from "../api/gujrera";
+import { say, useSaathi, useUiLang } from "../saathi/context";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 type Cell = string | number | null;
@@ -46,7 +46,7 @@ const label = (c: string) => c.replace(/_/g, " ");
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch] as string));
 
 /** A clean printable page (Save as PDF from the print dialog): title, question, scope, time, table. */
-function printReport(card: AnalyticsCardData, question?: string) {
+function printReport(card: AnalyticsCardData, lang: Lang, question?: string) {
   const w = window.open("", "_blank", "noopener=no,width=1000,height=800");
   if (!w) return;
   const head = card.columns.map((c) => `<th>${esc(label(c))}</th>`).join("");
@@ -56,9 +56,9 @@ function printReport(card: AnalyticsCardData, question?: string) {
 .meta{color:#5E6370;margin:0 0 12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #E3D09A;padding:4px 6px;text-align:left;vertical-align:top}
 th{background:#FFF1BF}tr:nth-child(even) td{background:#FFFCF0}.foot{margin-top:10px;color:#5E6370;font-size:10px}</style></head><body>
 <h1>${esc(card.title)}</h1>
-<p class="meta">${question ? `Question: ${esc(question)} · ` : ""}${card.scoped_to ? `${esc(card.scoped_to)} only · ` : "All districts · "}${card.rows.length} rows · ${esc(new Date().toLocaleString("en-IN"))}</p>
+<p class="meta">${question ? `${say({ en: "Question:", gu: "પ્રશ્ન:", hi: "प्रश्न:" }, lang)} ${esc(question)} · ` : ""}${card.scoped_to ? `${esc(say({ en: `${card.scoped_to} only`, gu: `ફક્ત ${card.scoped_to}`, hi: `केवल ${card.scoped_to}` }, lang))} · ` : `${say({ en: "All districts", gu: "બધા જિલ્લા", hi: "सभी ज़िले" }, lang)} · `}${say({ en: `${card.rows.length} rows`, gu: `${card.rows.length} પંક્તિઓ`, hi: `${card.rows.length} पंक्तियाँ` }, lang)} · ${esc(new Date().toLocaleString("en-IN"))}</p>
 <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
-<p class="foot">GujRERA Saathi · read-only query on the reporting views, logged.</p>
+<p class="foot">${say({ en: "GujRERA Saathi · read-only query on the reporting views, logged.", gu: "GujRERA Saathi · રિપોર્ટિંગ વ્યૂ પર ફક્ત વાંચવા માટેની ક્વેરી, લૉગ થયેલી.", hi: "GujRERA Saathi · रिपोर्टिंग व्यू पर केवल पढ़ने वाली क्वेरी, लॉग की गई।" }, lang)}</p>
 <script>window.onload=function(){window.print()}</script></body></html>`);
   w.document.close();
 }
@@ -73,7 +73,8 @@ function themeColor(name: string, fallback: string): string {
 }
 
 export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: string }> = ({ card, question }) => {
-  const { token, lang } = useSaathi();
+  const { token } = useSaathi();
+  const lang = useUiLang();
   const asked = question ?? card.question;
   const [sort, setSort] = useState<{ col: number; dir: 1 | -1 } | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -114,11 +115,13 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: strin
               : "border-warm-border text-muted"
           }`}
         >
-          {card.source === "llm" ? "AI-written query" : "Standard report"}
+          {card.source === "llm"
+            ? say({ en: "AI-written query", gu: "AI દ્વારા લખાયેલી ક્વેરી", hi: "AI द्वारा लिखी गई क्वेरी" }, lang)
+            : say({ en: "Standard report", gu: "માનક રિપોર્ટ", hi: "मानक रिपोर्ट" }, lang)}
         </span>
         {card.scoped_to && (
           <span className="px-2 py-0.5 rounded-full border border-warm-border text-[10px] text-muted">
-            {card.scoped_to} only
+            {say({ en: `${card.scoped_to} only`, gu: `ફક્ત ${card.scoped_to}`, hi: `केवल ${card.scoped_to}` }, lang)}
           </span>
         )}
         {card.rows.length > 0 && (
@@ -126,12 +129,12 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: strin
             {asked && token && (
               <button type="button" onClick={() => void toExcel()} disabled={exporting}
                 className="px-2.5 py-1 rounded-md bg-primary-bg text-primary-text font-semibold disabled:opacity-60">
-                {exporting ? "Preparing…" : "Excel"}
+                {exporting ? say({ en: "Preparing…", gu: "તૈયાર થઈ રહ્યું છે…", hi: "तैयार हो रहा है…" }, lang) : "Excel"}
               </button>
             )}
-            <button type="button" onClick={() => printReport({ ...card, rows }, asked)}
+            <button type="button" onClick={() => printReport({ ...card, rows }, lang, asked)}
               className="px-2.5 py-1 rounded-md border border-warm-border bg-card text-body font-semibold hover:border-brand">
-              Print / PDF
+              {say({ en: "Print / PDF", gu: "છાપો / PDF", hi: "प्रिंट करें / PDF" }, lang)}
             </button>
             <button type="button" onClick={() => download({ ...card, rows })}
               className="px-2.5 py-1 rounded-md border border-warm-border bg-card text-body font-semibold hover:border-brand">
@@ -142,7 +145,11 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: strin
       </div>
       {exportError && <div role="alert" className="text-red-700 dark:text-red-300">{exportError}</div>}
       {chartData && (
-        <div className="h-56 w-full" aria-label={`Bar chart of ${label(card.chart!.y)} by ${label(card.chart!.x)}`}>
+        <div className="h-56 w-full" aria-label={say({
+          en: `Bar chart of ${label(card.chart!.y)} by ${label(card.chart!.x)}`,
+          gu: `${label(card.chart!.x)} પ્રમાણે ${label(card.chart!.y)} નો બાર ચાર્ટ`,
+          hi: `${label(card.chart!.x)} के अनुसार ${label(card.chart!.y)} का बार चार्ट`,
+        }, lang)}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
               <XAxis type="number" tick={{ fontSize: 10, fill: themeColor("--text-muted", "#55657F") }} axisLine={false} tickLine={false} allowDecimals={false} />
@@ -165,7 +172,7 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: strin
                 {card.columns.map((c, i) => (
                   <th key={c} className="px-0 py-0 font-semibold text-muted border-b border-warm-border whitespace-nowrap capitalize"
                     aria-sort={sort?.col === i ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
-                    <button type="button" onClick={() => toggle(i)} title="Sort by this column"
+                    <button type="button" onClick={() => toggle(i)} title={say({ en: "Sort by this column", gu: "આ કૉલમ પ્રમાણે ગોઠવો", hi: "इस कॉलम के अनुसार क्रम दें" }, lang)}
                       className="w-full text-left px-2 py-1.5 hover:text-body capitalize">
                       {label(c)}{sort?.col === i ? (sort.dir === 1 ? " ▲" : " ▼") : ""}
                     </button>
@@ -187,13 +194,20 @@ export const AnalyticsCard: React.FC<{ card: AnalyticsCardData; question?: strin
           </table>
         </div>
       )}
-      {card.rows.length > 100 && <div className="text-muted">Showing 100 of {card.rows.length} rows; Excel, CSV and print have all of them.</div>}
-      {card.truncated && <div className="text-muted">Results were capped at the row limit.</div>}
+      {card.rows.length > 100 && <div className="text-muted">{say({
+        en: `Showing 100 of ${card.rows.length} rows; Excel, CSV and print have all of them.`,
+        gu: `${card.rows.length} માંથી 100 પંક્તિઓ બતાવી છે; Excel, CSV અને છાપવામાં બધી છે.`,
+        hi: `${card.rows.length} में से 100 पंक्तियाँ दिखाई गई हैं; Excel, CSV और प्रिंट में सभी हैं।`,
+      }, lang)}</div>}
+      {card.truncated && <div className="text-muted">{say({ en: "Results were capped at the row limit.", gu: "પરિણામો પંક્તિ મર્યાદા સુધી સીમિત છે.", hi: "परिणाम पंक्ति सीमा तक सीमित हैं।" }, lang)}</div>}
 
       <details>
-        <summary className="cursor-pointer text-muted">SQL used{card.elapsed_ms !== undefined ? ` · ${card.elapsed_ms} ms` : ""} · read-only, logged</summary>
+        <summary className="cursor-pointer text-muted">{(() => {
+          const ms = card.elapsed_ms !== undefined ? ` · ${card.elapsed_ms} ms` : "";
+          return say({ en: `SQL used${ms} · read-only, logged`, gu: `વપરાયેલી SQL${ms} · ફક્ત વાંચવા માટે, લૉગ થયેલી`, hi: `उपयोग की गई SQL${ms} · केवल पढ़ने के लिए, लॉग की गई` }, lang);
+        })()}</summary>
         <pre className="mt-1 p-2 rounded bg-card border border-warm-border font-mono text-[11px] text-body whitespace-pre-wrap break-words">{card.sql}</pre>
-        {card.refused && <div className="mt-1 text-red-700 dark:text-red-300">Refused: {card.refused}</div>}
+        {card.refused && <div className="mt-1 text-red-700 dark:text-red-300">{say({ en: "Refused:", gu: "નકાર્યું:", hi: "अस्वीकार:" }, lang)} {card.refused}</div>}
       </details>
     </div>
   );

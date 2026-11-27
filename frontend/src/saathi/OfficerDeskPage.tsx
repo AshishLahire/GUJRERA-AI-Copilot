@@ -78,12 +78,12 @@ const AGE: Record<string, L3> = {
   over_2_years: { en: "over 2 years", gu: "2 વર્ષથી વધુ", hi: "2 साल से अधिक" },
 };
 const REVIEW: Record<DeskReview["status"], L3> = {
-  reviewed: { en: "Reviewed", gu: "જોયું", hi: "देखा" },
+  reviewed: { en: "Reviewed", gu: "સમીક્ષા થઈ", hi: "समीक्षा हो चुकी" },
   actioned: { en: "Action taken", gu: "કાર્યવાહી કરી", hi: "कार्रवाई की" },
   dismissed: { en: "Not an issue", gu: "મુદ્દો નથી", hi: "मुद्दा नहीं" },
 };
 const UI = {
-  title: { en: "My work queue", gu: "મારી કાર્યસૂચિ", hi: "मेरी कार्य सूची" } as L3,
+  title: { en: "My work queue", gu: "મારી કાર્યસૂચિ", hi: "मेरी कार्यसूची" } as L3,
   scope: { en: "district", gu: "જિલ્લો", hi: "जिला" } as L3,
   statewide: { en: "All districts", gu: "બધા જિલ્લા", hi: "सभी जिले" } as L3,
   lead: { en: "What needs your action, from the GUJRERA registry and what citizens check and report in this app.",
@@ -107,7 +107,7 @@ const UI = {
   registrations: { en: "Registrations ending", gu: "પૂરી થતી નોંધણીઓ", hi: "समाप्त होने वाले पंजीकरण" } as L3,
   taluka: { en: "Taluka", gu: "તાલુકો", hi: "तालुका" } as L3,
   projectsCol: { en: "Projects", gu: "પ્રોજેક્ટ", hi: "प्रोजेक्ट" } as L3,
-  loading: { en: "Loading the work queue…", gu: "કાર્યસૂચિ લોડ થઈ રહી છે…", hi: "कार्य सूची लोड हो रही है…" } as L3,
+  loading: { en: "Loading the work queue…", gu: "કાર્યસૂચિ લોડ થઈ રહી છે…", hi: "कार्यसूची लोड हो रही है…" } as L3,
 };
 
 const fmt = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");

@@ -205,7 +205,7 @@ const Shell: React.FC = () => {
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-border bg-accent-surface px-2 py-0.5 font-semibold text-accent-amber-strong mb-2">
             <span className="w-1.5 h-1.5 rounded-full bg-brand" /> {tr(demo ? "demoData" : "publicData", "en")}
           </span>
-          <p>{tr(demo ? "footer" : "footerPublic", "en")}</p>
+          <p>{tr(demo ? "footer" : "footerPublic", lang)}</p>
           </>)}
         </div>
       </aside>

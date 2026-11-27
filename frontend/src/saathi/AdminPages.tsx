@@ -12,20 +12,41 @@ import {
   resetAdminPassword,
   updateAdminUser,
 } from "../api/gujrera";
-import { useSaathi } from "./context";
+import { Said, say, useSaathi } from "./context";
 
 const n = (v: number) => v.toLocaleString("en-IN");
 const when = (iso: string | null) => (iso ? iso.replace("T", " ") : "—");
 
+const ADMIN: Said = { en: "Administration", gu: "વહીવટ", hi: "प्रशासन" };
+
+const ROLE_FILTER: Record<string, Said> = {
+  "": { en: "All roles", gu: "બધી ભૂમિકાઓ", hi: "सभी भूमिकाएँ" },
+  officer: { en: "Officers", gu: "અધિકારીઓ", hi: "अधिकारी" },
+  citizen: { en: "Home buyers", gu: "ઘર ખરીદનારા", hi: "घर खरीदार" },
+  developer: { en: "Promoters", gu: "પ્રમોટરો", hi: "प्रमोटर" },
+  agent: { en: "Agents", gu: "એજન્ટો", hi: "एजेंट" },
+};
+const CITIZENS: Said = { en: "Citizens", gu: "નાગરિકો", hi: "नागरिक" };
+
+const CATEGORIES: [string, Said][] = [
+  ["", { en: "All", gu: "બધું", hi: "सभी" }],
+  ["refusal", { en: "Refusals", gu: "ઇનકાર", hi: "इनकार" }],
+  ["report", { en: "Reports", gu: "રિપોર્ટ", hi: "रिपोर्ट" }],
+  ["data", { en: "Data loads", gu: "ડેટા લોડ", hi: "डेटा लोड" }],
+  ["admin", { en: "Accounts", gu: "ખાતાં", hi: "खाते" }],
+  ["login", { en: "Logins", gu: "લૉગિન", hi: "लॉगिन" }],
+  ["work", { en: "Officer work", gu: "અધિકારીનું કામ", hi: "अधिकारी का कार्य" }],
+];
+
 const useAdmin = () => {
-  const { user, token, logout } = useSaathi();
+  const { user, token, logout, lang } = useSaathi();
   const allowed = user?.role === "officer" && !user.district_scope;
   const [error, setError] = useState<string | null>(null);
   const fail = useCallback((e: unknown) => {
     if (e instanceof AuthExpiredError) logout();
     setError((e as Error).message);
   }, [logout]);
-  return { user, token, allowed, error, setError, fail };
+  return { user, token, allowed, error, setError, fail, lang };
 };
 
 const Hero: React.FC<{ eyebrow: string; title: string; lead: string }> = ({ eyebrow, title, lead }) => (
@@ -36,9 +57,14 @@ const Hero: React.FC<{ eyebrow: string; title: string; lead: string }> = ({ eyeb
   </section>
 );
 
-const NotAllowed: React.FC = () => (
-  <div className="max-w-3xl mx-auto px-4 py-8 text-sm text-muted">Administration is for state-level GUJRERA officers.</div>
-);
+const NotAllowed: React.FC = () => {
+  const { lang } = useSaathi();
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8 text-sm text-muted">
+      {say({ en: "Administration is for state-level GUJRERA officers.", gu: "વહીવટ ફક્ત રાજ્ય સ્તરના GUJRERA અધિકારીઓ માટે છે.", hi: "प्रशासन केवल राज्य स्तर के GUJRERA अधिकारियों के लिए है।" }, lang)}
+    </div>
+  );
+};
 
 const Tile: React.FC<{ label: string; value: number; tone?: "bad" | "plain" }> = ({ label, value, tone = "plain" }) => (
   <div className={`warm-card p-3 border-l-4 ${tone === "bad" && value > 0 ? "border-l-red-600" : "border-l-warm-strong"}`}>
@@ -49,23 +75,34 @@ const Tile: React.FC<{ label: string; value: number; tone?: "bad" | "plain" }> =
 
 /** A one-time password, shown once with a copy button. */
 const OneTime: React.FC<{ who: string; password: string; onClose: () => void }> = ({ who, password, onClose }) => {
+  const { lang } = useSaathi();
   const [copied, setCopied] = useState(false);
   return (
     <div role="status" className="warm-card p-4 border-l-4 border-l-emerald-600 flex flex-wrap items-center gap-3">
       <div className="text-sm text-body flex-1 min-w-[240px]">
-        One-time password for <b>{who}</b>. It is shown only now and is not stored in clear: hand it over in person or by phone.
+        {lang === "gu" ? (
+          <><b>{who}</b> માટે એક વખતનો પાસવર્ડ. તે ફક્ત અત્યારે જ દેખાય છે અને ખુલ્લા સ્વરૂપે સંગ્રહિત નથી: રૂબરૂ અથવા ફોન પર આપો.</>
+        ) : lang === "hi" ? (
+          <><b>{who}</b> के लिए एक बार का पासवर्ड. यह केवल अभी दिखाया जा रहा है और खुले रूप में संग्रहीत नहीं है: इसे व्यक्तिगत रूप से या फ़ोन पर दें।</>
+        ) : (
+          <>One-time password for <b>{who}</b>. It is shown only now and is not stored in clear: hand it over in person or by phone.</>
+        )}
       </div>
       <code className="px-3 py-1.5 rounded-lg bg-subtle border border-warm-border font-mono text-sm text-body select-all">{password}</code>
       <button type="button" onClick={() => { void navigator.clipboard?.writeText(password).then(() => setCopied(true)); }}
-        className="text-xs px-3 py-1.5 rounded-lg border border-warm-border text-body hover:border-brand">{copied ? "Copied" : "Copy"}</button>
-      <button type="button" onClick={onClose} className="text-xs px-3 py-1.5 rounded-lg bg-primary-bg text-primary-text font-semibold">Done</button>
+        className="text-xs px-3 py-1.5 rounded-lg border border-warm-border text-body hover:border-brand">
+        {copied ? say({ en: "Copied", gu: "કૉપિ થયું", hi: "कॉपी हो गया" }, lang) : say({ en: "Copy", gu: "કૉપિ કરો", hi: "कॉपी करें" }, lang)}
+      </button>
+      <button type="button" onClick={onClose} className="text-xs px-3 py-1.5 rounded-lg bg-primary-bg text-primary-text font-semibold">
+        {say({ en: "Done", gu: "થઈ ગયું", hi: "हो गया" }, lang)}
+      </button>
     </div>
   );
 };
 
 // ------------------------------------------------------------------ Users and roles
 export const UsersPage: React.FC = () => {
-  const { user, token, allowed, error, setError, fail } = useAdmin();
+  const { user, token, allowed, error, setError, fail, lang } = useAdmin();
   const [data, setData] = useState<AdminUsers | null>(null);
   const [role, setRole] = useState("");
   const [q, setQ] = useState("");
@@ -97,12 +134,22 @@ export const UsersPage: React.FC = () => {
     try { await fn(); load(); } catch (err) { fail(err); }
   };
   const reset = async (u: AdminUser) => {
-    if (!token || !window.confirm(`Reset the password of ${u.username}? Their open sessions end now.`)) return;
+    const msg = say({
+      en: `Reset the password of ${u.username}? Their open sessions end now.`,
+      gu: `${u.username} નો પાસવર્ડ ફરી સેટ કરવો છે? તેમના ખુલ્લા સત્રો હમણાં જ બંધ થશે.`,
+      hi: `${u.username} का पासवर्ड रीसेट करें? उनके खुले सत्र अभी समाप्त हो जाएँगे।`,
+    }, lang);
+    if (!token || !window.confirm(msg)) return;
     await act(async () => { const r = await resetAdminPassword(token, u.id); setSecret({ who: u.username, password: r.temporary_password }); });
   };
   const toggle = (u: AdminUser) => {
     if (!token) return;
-    if (u.is_active && !window.confirm(`Disable ${u.username}? They are logged out at once and cannot log in.`)) return;
+    const msg = say({
+      en: `Disable ${u.username}? They are logged out at once and cannot log in.`,
+      gu: `${u.username} ને નિષ્ક્રિય કરવા છે? તેઓ તરત જ લૉગ આઉટ થશે અને લૉગિન કરી શકશે નહીં.`,
+      hi: `${u.username} को निष्क्रिय करें? वे तुरंत लॉग आउट हो जाएँगे और लॉगिन नहीं कर सकेंगे।`,
+    }, lang);
+    if (u.is_active && !window.confirm(msg)) return;
     void act(() => updateAdminUser(token, u.id, { is_active: !u.is_active }));
   };
   const rescope = (u: AdminUser, scope: string) => {
@@ -110,42 +157,47 @@ export const UsersPage: React.FC = () => {
   };
 
   const counts = data?.counts ?? {};
+  const statewide = say({ en: "Statewide", gu: "આખા રાજ્ય માટે", hi: "पूरे राज्य के लिए" }, lang);
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      <Hero eyebrow="Administration" title="Users and roles"
-        lead="Create accounts for the POC's test users, set each officer's district, disable an account or reset a password. Disabling or resetting logs the person out at once. Every change is in the audit log." />
+      <Hero eyebrow={say(ADMIN, lang)} title={say({ en: "Users and roles", gu: "વપરાશકર્તાઓ અને ભૂમિકાઓ", hi: "उपयोगकर्ता और भूमिकाएँ" }, lang)}
+        lead={say({
+          en: "Create accounts for the POC's test users, set each officer's district, disable an account or reset a password. Disabling or resetting logs the person out at once. Every change is in the audit log.",
+          gu: "POC ના પરીક્ષણ વપરાશકર્તાઓ માટે ખાતાં બનાવો, દરેક અધિકારીનો જિલ્લો નક્કી કરો, ખાતું નિષ્ક્રિય કરો અથવા પાસવર્ડ ફરી સેટ કરો. નિષ્ક્રિય કરવાથી કે પાસવર્ડ ફરી સેટ કરવાથી વ્યક્તિ તરત જ લૉગ આઉટ થાય છે. દરેક ફેરફાર ઓડિટ લોગમાં નોંધાય છે.",
+          hi: "POC के परीक्षण उपयोगकर्ताओं के लिए खाते बनाएँ, हर अधिकारी का जिला तय करें, खाता निष्क्रिय करें या पासवर्ड रीसेट करें। निष्क्रिय या रीसेट करने पर व्यक्ति तुरंत लॉग आउट हो जाता है। हर बदलाव ऑडिट लॉग में दर्ज होता है।",
+        }, lang)} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Tile label="Officers" value={counts.officer ?? 0} />
-        <Tile label="Home buyers" value={counts.citizen ?? 0} />
-        <Tile label="Promoters" value={counts.developer ?? 0} />
-        <Tile label="Agents" value={counts.agent ?? 0} />
+        <Tile label={say(ROLE_FILTER.officer, lang)} value={counts.officer ?? 0} />
+        <Tile label={say(ROLE_FILTER.citizen, lang)} value={counts.citizen ?? 0} />
+        <Tile label={say(ROLE_FILTER.developer, lang)} value={counts.developer ?? 0} />
+        <Tile label={say(ROLE_FILTER.agent, lang)} value={counts.agent ?? 0} />
       </div>
       {error && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900 p-3 text-sm">{error}</div>}
       {secret && <OneTime who={secret.who} password={secret.password} onClose={() => setSecret(null)} />}
 
       <form onSubmit={create} className="warm-card p-5 flex flex-col gap-3">
-        <h3 className="font-heading text-sm font-bold text-body">New account</h3>
+        <h3 className="font-heading text-sm font-bold text-body">{say({ en: "New account", gu: "નવું ખાતું", hi: "नया खाता" }, lang)}</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-xs text-muted flex flex-col gap-1">Username
+          <label className="text-xs text-muted flex flex-col gap-1">{say({ en: "Username", gu: "યુઝરનેમ", hi: "यूज़रनेम" }, lang)}
             <input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })}
-              placeholder="e.g. officer_bharuch" className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2" />
+              placeholder={say({ en: "e.g. officer_bharuch", gu: "દા.ત. officer_bharuch", hi: "उदा. officer_bharuch" }, lang)} className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2" />
           </label>
-          <label className="text-xs text-muted flex flex-col gap-1">Name shown in the app
+          <label className="text-xs text-muted flex flex-col gap-1">{say({ en: "Name shown in the app", gu: "એપમાં દેખાતું નામ", hi: "ऐप में दिखने वाला नाम" }, lang)}
             <input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })}
-              placeholder="e.g. Deputy Secretary, Bharuch" className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2" />
+              placeholder={say({ en: "e.g. Deputy Secretary, Bharuch", gu: "દા.ત. નાયબ સચિવ, ભરૂચ", hi: "उदा. उप सचिव, भरूच" }, lang)} className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2" />
           </label>
-          <label className="text-xs text-muted flex flex-col gap-1">Role
+          <label className="text-xs text-muted flex flex-col gap-1">{say({ en: "Role", gu: "ભૂમિકા", hi: "भूमिका" }, lang)}
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
               className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2">
-              <option value="officer">GUJRERA officer</option>
-              <option value="citizen">Home buyer (test user)</option>
+              <option value="officer">{say({ en: "GUJRERA officer", gu: "GUJRERA અધિકારી", hi: "GUJRERA अधिकारी" }, lang)}</option>
+              <option value="citizen">{say({ en: "Home buyer (test user)", gu: "ઘર ખરીદનાર (પરીક્ષણ વપરાશકર્તા)", hi: "घर खरीदार (परीक्षण उपयोगकर्ता)" }, lang)}</option>
             </select>
           </label>
           {form.role === "officer" && (
-            <label className="text-xs text-muted flex flex-col gap-1">District
+            <label className="text-xs text-muted flex flex-col gap-1">{say({ en: "District", gu: "જિલ્લો", hi: "जिला" }, lang)}
               <select value={form.district_scope} onChange={(e) => setForm({ ...form, district_scope: e.target.value })}
                 className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2">
-                <option value="">Statewide (also an administrator)</option>
+                <option value="">{say({ en: "Statewide (also an administrator)", gu: "આખા રાજ્ય માટે (વહીવટકર્તા પણ)", hi: "पूरे राज्य के लिए (प्रशासक भी)" }, lang)}</option>
                 {data?.districts.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </label>
@@ -153,24 +205,32 @@ export const UsersPage: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" disabled={busy || !form.username.trim()}
-            className="px-5 py-2 rounded-xl bg-brand text-on-brand text-sm font-bold disabled:opacity-50">{busy ? "Creating…" : "Create account"}</button>
-          <span className="text-xs text-muted">A one-time password is generated and shown once. Promoter and agent accounts are linked to registry records and are not created here.</span>
+            className="px-5 py-2 rounded-xl bg-brand text-on-brand text-sm font-bold disabled:opacity-50">
+            {busy ? say({ en: "Creating…", gu: "બનાવી રહ્યા છીએ…", hi: "बनाया जा रहा है…" }, lang) : say({ en: "Create account", gu: "ખાતું બનાવો", hi: "खाता बनाएँ" }, lang)}
+          </button>
+          <span className="text-xs text-muted">{say({
+            en: "A one-time password is generated and shown once. Promoter and agent accounts are linked to registry records and are not created here.",
+            gu: "એક વખતનો પાસવર્ડ બને છે અને એક જ વાર દેખાય છે. પ્રમોટર અને એજન્ટ ખાતાં રજિસ્ટ્રીના રેકોર્ડ સાથે જોડાયેલાં છે અને અહીં બનાવાતાં નથી.",
+            hi: "एक बार का पासवर्ड बनता है और एक ही बार दिखाया जाता है। प्रमोटर और एजेंट खाते रजिस्ट्री रिकॉर्ड से जुड़े हैं और यहाँ नहीं बनाए जाते।",
+          }, lang)}</span>
         </div>
       </form>
 
       <section className="warm-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-heading text-sm font-bold text-body">Accounts{data ? ` (${n(data.users.length)})` : ""}</h3>
+          <h3 className="font-heading text-sm font-bold text-body">{say({ en: "Accounts", gu: "ખાતાં", hi: "खाते" }, lang)}{data ? ` (${n(data.users.length)})` : ""}</h3>
           <div className="flex flex-wrap gap-2">
-            <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Filter by role"
+            <select value={role} onChange={(e) => setRole(e.target.value)} aria-label={say({ en: "Filter by role", gu: "ભૂમિકા પ્રમાણે ફિલ્ટર", hi: "भूमिका के अनुसार फ़िल्टर" }, lang)}
               className="rounded-lg border border-warm-border bg-card text-body text-xs px-2 py-1.5">
-              <option value="">All roles</option>
-              <option value="officer">Officers</option>
-              <option value="citizen">Home buyers</option>
-              <option value="developer">Promoters</option>
-              <option value="agent">Agents</option>
+              <option value="">{say(ROLE_FILTER[""], lang)}</option>
+              <option value="officer">{say(ROLE_FILTER.officer, lang)}</option>
+              <option value="citizen">{say(ROLE_FILTER.citizen, lang)}</option>
+              <option value="developer">{say(ROLE_FILTER.developer, lang)}</option>
+              <option value="agent">{say(ROLE_FILTER.agent, lang)}</option>
             </select>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or username" aria-label="Search accounts"
+            <input value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder={say({ en: "Search name or username", gu: "નામ અથવા યુઝરનેમ શોધો", hi: "नाम या यूज़रनेम खोजें" }, lang)}
+              aria-label={say({ en: "Search accounts", gu: "ખાતાં શોધો", hi: "खाते खोजें" }, lang)}
               className="rounded-lg border border-warm-border bg-card text-body text-xs px-2.5 py-1.5" />
           </div>
         </div>
@@ -178,9 +238,9 @@ export const UsersPage: React.FC = () => {
           <table className="w-full text-xs min-w-[860px]">
             <thead>
               <tr className="text-muted text-left border-b border-warm-border">
-                <th className="py-2 font-medium">Account</th><th className="py-2 font-medium">Role</th>
-                <th className="py-2 font-medium">District</th><th className="py-2 font-medium">Last login</th>
-                <th className="py-2 font-medium">Status</th><th className="py-2" />
+                <th className="py-2 font-medium">{say({ en: "Account", gu: "ખાતું", hi: "खाता" }, lang)}</th><th className="py-2 font-medium">{say({ en: "Role", gu: "ભૂમિકા", hi: "भूमिका" }, lang)}</th>
+                <th className="py-2 font-medium">{say({ en: "District", gu: "જિલ્લો", hi: "जिला" }, lang)}</th><th className="py-2 font-medium">{say({ en: "Last login", gu: "છેલ્લું લૉગિન", hi: "अंतिम लॉगिन" }, lang)}</th>
+                <th className="py-2 font-medium">{say({ en: "Status", gu: "સ્થિતિ", hi: "स्थिति" }, lang)}</th><th className="py-2" />
               </tr>
             </thead>
             <tbody>
@@ -189,16 +249,17 @@ export const UsersPage: React.FC = () => {
                 return (
                   <tr key={u.id} className={`border-b border-warm-border last:border-0 align-top ${u.is_active ? "" : "opacity-60"}`}>
                     <td className="py-2 pr-2">
-                      <div className="font-semibold text-body">{u.username}{self && <span className="ml-1 text-muted font-normal">(you)</span>}</div>
-                      <div className="text-muted">{u.display_name}{u.organisation ? ` · ${u.organisation}` : ""}{u.is_demo ? " · demo" : ""}</div>
+                      <div className="font-semibold text-body">{u.username}{self && <span className="ml-1 text-muted font-normal">{say({ en: "(you)", gu: "(તમે)", hi: "(आप)" }, lang)}</span>}</div>
+                      <div className="text-muted">{u.display_name}{u.organisation ? ` · ${u.organisation}` : ""}{u.is_demo ? ` · ${say({ en: "demo", gu: "ડેમો", hi: "डेमो" }, lang)}` : ""}</div>
                     </td>
                     <td className="py-2 pr-2 text-body">{u.role_label}</td>
                     <td className="py-2 pr-2">
                       {u.role === "officer" ? (
-                        <select value={u.district_scope ?? ""} disabled={self} aria-label={`District of ${u.username}`}
+                        <select value={u.district_scope ?? ""} disabled={self}
+                          aria-label={say({ en: `District of ${u.username}`, gu: `${u.username} નો જિલ્લો`, hi: `${u.username} का जिला` }, lang)}
                           onChange={(e) => rescope(u, e.target.value)}
                           className="rounded-md border border-warm-border bg-card text-body px-1.5 py-1 disabled:opacity-60">
-                          <option value="">Statewide</option>
+                          <option value="">{statewide}</option>
                           {data.districts.map((d) => <option key={d} value={d}>{d}</option>)}
                         </select>
                       ) : <span className="text-muted">—</span>}
@@ -206,14 +267,16 @@ export const UsersPage: React.FC = () => {
                     <td className="py-2 pr-2 text-muted whitespace-nowrap">{when(u.last_login_at)}</td>
                     <td className="py-2 pr-2">
                       <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${u.is_active ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-900" : "border-red-300 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-200 dark:border-red-900"}`}>
-                        {u.is_active ? "Active" : "Disabled"}
+                        {u.is_active ? say({ en: "Active", gu: "સક્રિય", hi: "सक्रिय" }, lang) : say({ en: "Disabled", gu: "નિષ્ક્રિય", hi: "निष्क्रिय" }, lang)}
                       </span>
                     </td>
                     <td className="py-2 text-right whitespace-nowrap">
-                      <button type="button" onClick={() => void reset(u)} className="text-[11px] font-semibold text-brand-strong mr-3">Reset password</button>
+                      <button type="button" onClick={() => void reset(u)} className="text-[11px] font-semibold text-brand-strong mr-3">
+                        {say({ en: "Reset password", gu: "પાસવર્ડ ફરી સેટ કરો", hi: "पासवर्ड रीसेट करें" }, lang)}
+                      </button>
                       {!self && (
                         <button type="button" onClick={() => toggle(u)} className={`text-[11px] font-semibold ${u.is_active ? "text-red-700 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"}`}>
-                          {u.is_active ? "Disable" : "Enable"}
+                          {u.is_active ? say({ en: "Disable", gu: "નિષ્ક્રિય કરો", hi: "निष्क्रिय करें" }, lang) : say({ en: "Enable", gu: "સક્રિય કરો", hi: "सक्रिय करें" }, lang)}
                         </button>
                       )}
                     </td>
@@ -243,7 +306,7 @@ const detailText = (d: Record<string, unknown>): string => {
 };
 
 export const AuditPage: React.FC = () => {
-  const { token, allowed, error, fail } = useAdmin();
+  const { token, allowed, error, fail, lang } = useAdmin();
   const [f, setF] = useState<AuditFilters>({ category: "" });
   const [data, setData] = useState<AuditLogResponse | null>(null);
   const [open, setOpen] = useState<number | null>(null);
@@ -257,57 +320,71 @@ export const AuditPage: React.FC = () => {
   const s = data?.summary;
   const set = (patch: Partial<AuditFilters>) => setF((x) => ({ ...x, ...patch, offset: 0 }));
 
+  const range = (d: AuditLogResponse): string => {
+    if (lang === "gu") return `${d.since}${d.until ? ` થી ${d.until}` : " થી આજ સુધી"} · નવી પહેલાં · ${n(d.total)} નોંધો`;
+    if (lang === "hi") return `${d.since}${d.until ? ` से ${d.until}` : " से आज तक"} · नई पहले · ${n(d.total)} प्रविष्टियाँ`;
+    return `From ${d.since}${d.until ? ` to ${d.until}` : " to today"} · newest first · ${n(d.total)} entries`;
+  };
+
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      <Hero eyebrow="Administration" title="Audit log"
-        lead="Who did what, and when: every report, export, data load and account change, and every refusal (another district, an attempt to change data, an unsafe query, a failed login, a page the role may not open). Passwords are never logged." />
+      <Hero eyebrow={say(ADMIN, lang)} title={say({ en: "Audit log", gu: "ઓડિટ લોગ", hi: "ऑडिट लॉग" }, lang)}
+        lead={say({
+          en: "Who did what, and when: every report, export, data load and account change, and every refusal (another district, an attempt to change data, an unsafe query, a failed login, a page the role may not open). Passwords are never logged.",
+          gu: "કોણે શું કર્યું અને ક્યારે: દરેક રિપોર્ટ, નિકાસ, ડેટા લોડ અને ખાતામાં ફેરફાર, તથા દરેક ઇનકાર (બીજો જિલ્લો, ડેટા બદલવાનો પ્રયાસ, અસુરક્ષિત ક્વેરી, નિષ્ફળ લૉગિન, ભૂમિકા ન ખોલી શકે તેવું પેજ). પાસવર્ડ ક્યારેય નોંધાતા નથી.",
+          hi: "किसने क्या किया और कब: हर रिपोर्ट, निर्यात, डेटा लोड और खाते में बदलाव, और हर इनकार (दूसरा जिला, डेटा बदलने का प्रयास, असुरक्षित क्वेरी, विफल लॉगिन, ऐसा पेज जिसे भूमिका नहीं खोल सकती)। पासवर्ड कभी दर्ज नहीं किए जाते।",
+        }, lang)} />
       {s && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Tile label="Entries in this view" value={data!.total} />
-          <Tile label="People" value={s.distinct_users} />
-          <Tile label="Failed logins" value={s.failed_logins} tone="bad" />
-          <Tile label="Asked about another district" value={s.out_of_scope} tone="bad" />
-          <Tile label="Tried to change data" value={s.write_attempts} tone="bad" />
-          <Tile label="Pages a role may not open" value={s.access_denied + s.blocked_queries} tone="bad" />
+          <Tile label={say({ en: "Entries in this view", gu: "આ દૃશ્યમાં નોંધો", hi: "इस दृश्य में प्रविष्टियाँ" }, lang)} value={data!.total} />
+          <Tile label={say({ en: "People", gu: "વ્યક્તિઓ", hi: "व्यक्ति" }, lang)} value={s.distinct_users} />
+          <Tile label={say({ en: "Failed logins", gu: "નિષ્ફળ લૉગિન", hi: "विफल लॉगिन" }, lang)} value={s.failed_logins} tone="bad" />
+          <Tile label={say({ en: "Asked about another district", gu: "બીજા જિલ્લા વિશે પૂછ્યું", hi: "दूसरे जिले के बारे में पूछा" }, lang)} value={s.out_of_scope} tone="bad" />
+          <Tile label={say({ en: "Tried to change data", gu: "ડેટા બદલવાનો પ્રયાસ", hi: "डेटा बदलने का प्रयास" }, lang)} value={s.write_attempts} tone="bad" />
+          <Tile label={say({ en: "Pages a role may not open", gu: "ભૂમિકા ન ખોલી શકે તેવાં પેજ", hi: "ऐसे पेज जिन्हें भूमिका नहीं खोल सकती" }, lang)} value={s.access_denied + s.blocked_queries} tone="bad" />
         </div>
       )}
       {error && <div role="alert" className="rounded-xl border border-red-300 bg-red-50 text-red-900 p-3 text-sm">{error}</div>}
 
       <section className="warm-card p-5 flex flex-col gap-3">
         <div className="flex flex-wrap gap-2 items-end">
-          <div className="flex rounded-lg border border-warm-border p-0.5" role="group" aria-label="Category">
-            {[["", "All"], ["refusal", "Refusals"], ["report", "Reports"], ["data", "Data loads"], ["admin", "Accounts"], ["login", "Logins"], ["work", "Officer work"]].map(([k, label]) => (
+          <div className="flex rounded-lg border border-warm-border p-0.5" role="group" aria-label={say({ en: "Category", gu: "શ્રેણી", hi: "श्रेणी" }, lang)}>
+            {CATEGORIES.map(([k, label]) => (
               <button key={k} type="button" onClick={() => set({ category: k })} aria-pressed={(f.category ?? "") === k}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold ${(f.category ?? "") === k ? "bg-brand-soft text-body ring-1 ring-brand" : "text-muted hover:text-body"}`}>
-                {label}{data && k ? ` ${n(data.summary.by_category[k] ?? 0)}` : ""}
+                {say(label, lang)}{data && k ? ` ${n(data.summary.by_category[k] ?? 0)}` : ""}
               </button>
             ))}
           </div>
-          <input placeholder="Username" value={f.username ?? ""} onChange={(e) => set({ username: e.target.value })} aria-label="Username"
+          <input placeholder={say({ en: "Username", gu: "યુઝરનેમ", hi: "यूज़रनेम" }, lang)} value={f.username ?? ""} onChange={(e) => set({ username: e.target.value })}
+            aria-label={say({ en: "Username", gu: "યુઝરનેમ", hi: "यूज़रनेम" }, lang)}
             className="rounded-lg border border-warm-border bg-card text-body text-xs px-2.5 py-1.5 w-36" />
-          <select value={f.role ?? ""} onChange={(e) => set({ role: e.target.value })} aria-label="Role"
+          <select value={f.role ?? ""} onChange={(e) => set({ role: e.target.value })} aria-label={say({ en: "Role", gu: "ભૂમિકા", hi: "भूमिका" }, lang)}
             className="rounded-lg border border-warm-border bg-card text-body text-xs px-2 py-1.5">
-            <option value="">All roles</option><option value="officer">Officers</option><option value="citizen">Citizens</option>
-            <option value="developer">Promoters</option><option value="agent">Agents</option>
+            <option value="">{say(ROLE_FILTER[""], lang)}</option><option value="officer">{say(ROLE_FILTER.officer, lang)}</option><option value="citizen">{say(CITIZENS, lang)}</option>
+            <option value="developer">{say(ROLE_FILTER.developer, lang)}</option><option value="agent">{say(ROLE_FILTER.agent, lang)}</option>
           </select>
-          <label className="text-[11px] text-muted flex items-center gap-1">From
+          <label className="text-[11px] text-muted flex items-center gap-1">{say({ en: "From", gu: "થી", hi: "से" }, lang)}
             <input type="date" value={f.since ?? ""} onChange={(e) => set({ since: e.target.value })}
               className="rounded-lg border border-warm-border bg-card text-body text-xs px-2 py-1" /></label>
-          <label className="text-[11px] text-muted flex items-center gap-1">To
+          <label className="text-[11px] text-muted flex items-center gap-1">{say({ en: "To", gu: "સુધી", hi: "तक" }, lang)}
             <input type="date" value={f.until ?? ""} onChange={(e) => set({ until: e.target.value })}
               className="rounded-lg border border-warm-border bg-card text-body text-xs px-2 py-1" /></label>
-          <input placeholder="Search details (e.g. Bopal)" value={f.q ?? ""} onChange={(e) => set({ q: e.target.value })} aria-label="Search details"
+          <input placeholder={say({ en: "Search details (e.g. Bopal)", gu: "વિગતો શોધો (દા.ત. Bopal)", hi: "विवरण खोजें (उदा. Bopal)" }, lang)} value={f.q ?? ""} onChange={(e) => set({ q: e.target.value })}
+            aria-label={say({ en: "Search details", gu: "વિગતો શોધો", hi: "विवरण खोजें" }, lang)}
             className="rounded-lg border border-warm-border bg-card text-body text-xs px-2.5 py-1.5 w-48" />
           <button type="button" onClick={() => token && void downloadAuditCsv(token, f).catch(fail)}
-            className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-primary-bg text-primary-text font-semibold">Download CSV</button>
+            className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-primary-bg text-primary-text font-semibold">
+            {say({ en: "Download CSV", gu: "CSV ડાઉનલોડ", hi: "CSV डाउनलोड" }, lang)}
+          </button>
         </div>
-        {data && <p className="text-[11px] text-muted">From {data.since}{data.until ? ` to ${data.until}` : " to today"} · newest first · {n(data.total)} entries</p>}
+        {data && <p className="text-[11px] text-muted">{range(data)}</p>}
         <div className="overflow-x-auto">
           <table className="w-full text-xs min-w-[820px]">
             <thead>
               <tr className="text-muted text-left border-b border-warm-border">
-                <th className="py-2 font-medium w-36">Time</th><th className="py-2 font-medium w-36">Who</th>
-                <th className="py-2 font-medium">What happened</th><th className="py-2 font-medium">Details</th>
+                <th className="py-2 font-medium w-36">{say({ en: "Time", gu: "સમય", hi: "समय" }, lang)}</th><th className="py-2 font-medium w-36">{say({ en: "Who", gu: "કોણ", hi: "कौन" }, lang)}</th>
+                <th className="py-2 font-medium">{say({ en: "What happened", gu: "શું થયું", hi: "क्या हुआ" }, lang)}</th><th className="py-2 font-medium">{say({ en: "Details", gu: "વિગતો", hi: "विवरण" }, lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -327,15 +404,15 @@ export const AuditPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-          {data && data.entries.length === 0 && <p className="py-4 text-sm text-muted">Nothing matches these filters.</p>}
+          {data && data.entries.length === 0 && <p className="py-4 text-sm text-muted">{say({ en: "Nothing matches these filters.", gu: "આ ફિલ્ટર સાથે કંઈ મળતું નથી.", hi: "इन फ़िल्टर से कुछ मेल नहीं खाता।" }, lang)}</p>}
         </div>
         {data && data.total > (f.offset ?? 0) + data.entries.length && (
           <button type="button" onClick={() => setF((x) => ({ ...x, offset: (x.offset ?? 0) + 100 }))}
-            className="self-start text-xs font-semibold text-brand-strong">Older entries →</button>
+            className="self-start text-xs font-semibold text-brand-strong">{say({ en: "Older entries →", gu: "જૂની નોંધો →", hi: "पुरानी प्रविष्टियाँ →" }, lang)}</button>
         )}
         {(f.offset ?? 0) > 0 && (
           <button type="button" onClick={() => setF((x) => ({ ...x, offset: Math.max(0, (x.offset ?? 0) - 100) }))}
-            className="self-start text-xs font-semibold text-brand-strong">← Newer entries</button>
+            className="self-start text-xs font-semibold text-brand-strong">{say({ en: "← Newer entries", gu: "← નવી નોંધો", hi: "← नई प्रविष्टियाँ" }, lang)}</button>
         )}
       </section>
     </div>

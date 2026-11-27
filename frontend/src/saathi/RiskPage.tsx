@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AuthExpiredError, RiskItem, RiskResponse, fetchRisk } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { useSaathi } from "./context";
+import { say, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { StringKey, tr } from "./strings";
@@ -87,12 +87,12 @@ const Row: React.FC<{ r: RiskItem }> = ({ r }) => {
                   <span className="min-w-0">
                     <span className="text-body">{s.text}</span>
                     <span className="block text-[11px] text-muted break-all">
-                      {SIGNAL[s.code]?.en ?? s.code} · {s.citations.map((c) => `${c.type.replace(/_/g, " ")} ${c.id}`).join(", ")}
+                      {SIGNAL[s.code] ? say(SIGNAL[s.code], lang) : s.code} · {s.citations.map((c) => `${c.type.replace(/_/g, " ")} ${c.id}`).join(", ")}
                     </span>
                   </span>
                 </li>
               ))}
-              {r.signals.length === 0 && <li className="text-muted">No warning signals.</li>}
+              {r.signals.length === 0 && <li className="text-muted">{say({ en: "No warning signals.", gu: "કોઈ ચેતવણી સંકેત નથી.", hi: "कोई चेतावनी संकेत नहीं।" }, lang)}</li>}
             </ul>
           </td>
         </tr>
@@ -141,7 +141,7 @@ export const RiskPage: React.FC = () => {
               <span className="text-sm text-muted">{data.district_scope}</span>
             ) : (
               <select
-                aria-label="District"
+                aria-label={say({ en: "District", gu: "જિલ્લો", hi: "जिला" }, lang)}
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2"
@@ -150,7 +150,7 @@ export const RiskPage: React.FC = () => {
                 {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             )}
-            <div className="flex rounded-lg border border-warm-border p-0.5" role="group" aria-label="Risk level">
+            <div className="flex rounded-lg border border-warm-border p-0.5" role="group" aria-label={say({ en: "Risk level", gu: "જોખમનું સ્તર", hi: "जोखिम का स्तर" }, lang)}>
               {(["high", "medium", "low", "all"] as const).map((b) => (
                 <button
                   key={b}
@@ -226,24 +226,28 @@ export const RiskPage: React.FC = () => {
                 <table className="w-full text-sm">
                   <thead className="text-xs text-muted bg-subtle">
                     <tr>
-                      <th className="text-left font-semibold px-4 py-2">Project</th>
-                      <th className="text-left font-semibold px-3 py-2 hidden md:table-cell">District</th>
-                      <th className="text-left font-semibold px-3 py-2 hidden lg:table-cell">Promoter</th>
-                      <th className="text-left font-semibold px-3 py-2 hidden sm:table-cell">Built / expected</th>
-                      <th className="text-left font-semibold px-3 py-2 hidden xl:table-cell">Projected finish</th>
-                      <th className="text-right font-semibold px-4 py-2">Score</th>
+                      <th className="text-left font-semibold px-4 py-2">{say({ en: "Project", gu: "પ્રોજેક્ટ", hi: "प्रोजेक्ट" }, lang)}</th>
+                      <th className="text-left font-semibold px-3 py-2 hidden md:table-cell">{say({ en: "District", gu: "જિલ્લો", hi: "जिला" }, lang)}</th>
+                      <th className="text-left font-semibold px-3 py-2 hidden lg:table-cell">{say({ en: "Promoter", gu: "પ્રમોટર", hi: "प्रमोटर" }, lang)}</th>
+                      <th className="text-left font-semibold px-3 py-2 hidden sm:table-cell">{say({ en: "Built / expected", gu: "બંધાયેલ / અપેક્ષિત", hi: "निर्मित / अपेक्षित" }, lang)}</th>
+                      <th className="text-left font-semibold px-3 py-2 hidden xl:table-cell">{say({ en: "Projected finish", gu: "અંદાજિત પૂર્ણતા", hi: "अनुमानित समापन" }, lang)}</th>
+                      <th className="text-right font-semibold px-4 py-2">{say({ en: "Score", gu: "સ્કોર", hi: "स्कोर" }, lang)}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((r) => <Row key={r.project_id} r={r} />)}
                     {items.length === 0 && (
-                      <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">No projects at this level.</td></tr>
+                      <tr><td colSpan={6} className="px-4 py-6 text-center text-muted">{say({ en: "No projects at this level.", gu: "આ સ્તરે કોઈ પ્રોજેક્ટ નથી.", hi: "इस स्तर पर कोई प्रोजेक्ट नहीं।" }, lang)}</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
               <p className="px-5 py-3 border-t border-warm-border text-[11px] text-muted">
-                Click a project to see each signal, its points and its source. Score = sum of points (max 100): high ≥ 60, medium ≥ 30.
+                {say({
+                  en: "Click a project to see each signal, its points and its source. Score = sum of points (max 100): high ≥ 60, medium ≥ 30.",
+                  gu: "દરેક સંકેત, તેના પોઇન્ટ અને સ્રોત જોવા પ્રોજેક્ટ પર ક્લિક કરો. સ્કોર = પોઇન્ટનો સરવાળો (મહત્તમ 100): ઊંચું ≥ 60, મધ્યમ ≥ 30.",
+                  hi: "हर संकेत, उसके अंक और स्रोत देखने के लिए प्रोजेक्ट पर क्लिक करें। स्कोर = अंकों का योग (अधिकतम 100): उच्च ≥ 60, मध्यम ≥ 30।",
+                }, lang)}
               </p>
             </section>
           )}

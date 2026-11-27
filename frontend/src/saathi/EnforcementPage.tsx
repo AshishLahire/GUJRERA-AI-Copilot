@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AuthExpiredError, EnfCase, EnfList, fetchCase, fetchCases, updateCase } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { useSaathi } from "./context";
+import { Said, say, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { StringKey, tr } from "./strings";
@@ -16,11 +16,26 @@ const KIND_STYLE: Record<EnfCase["kind"], string> = {
   lapsed: "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-200 dark:border-red-900",
   misleading: "bg-accent-surface text-accent-amber-strong border-accent-border",
 };
-const STATUS_LABEL: Record<EnfCase["status"], string> = {
-  new: "New", reviewing: "Reviewing", notice_issued: "Notice issued", closed: "Closed",
+const STATUS_LABEL: Record<EnfCase["status"], Said> = {
+  new: { en: "New", gu: "નવું", hi: "नया" },
+  reviewing: { en: "Reviewing", gu: "સમીક્ષા હેઠળ", hi: "समीक्षाधीन" },
+  notice_issued: { en: "Notice issued", gu: "નોટિસ આપી", hi: "नोटिस जारी" },
+  closed: { en: "Closed", gu: "બંધ", hi: "बंद" },
 };
-const OUTCOMES = [["registered", "Registered / regularised"], ["penalty", "Penalty imposed"], ["false_alarm", "False alarm"], ["other", "Other"]];
-const FILTERS: [string, string][] = [["open", "Open"], ["new", "New"], ["reviewing", "Reviewing"], ["notice_issued", "Notice issued"], ["closed", "Closed"], ["", "All"]];
+const OUTCOMES: [string, Said][] = [
+  ["registered", { en: "Registered / regularised", gu: "નોંધાયેલ / નિયમિત કર્યું", hi: "पंजीकृत / नियमित किया" }],
+  ["penalty", { en: "Penalty imposed", gu: "દંડ લાદ્યો", hi: "दंड लगाया" }],
+  ["false_alarm", { en: "False alarm", gu: "ખોટી ચેતવણી", hi: "गलत चेतावनी" }],
+  ["other", { en: "Other", gu: "અન્ય", hi: "अन्य" }],
+];
+const FILTERS: [string, Said][] = [
+  ["open", { en: "Open", gu: "ખુલ્લા", hi: "खुले" }],
+  ["new", STATUS_LABEL.new],
+  ["reviewing", STATUS_LABEL.reviewing],
+  ["notice_issued", STATUS_LABEL.notice_issued],
+  ["closed", STATUS_LABEL.closed],
+  ["", { en: "All", gu: "બધા", hi: "सभी" }],
+];
 const DISTRICTS = ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar", "Bhavnagar"];
 
 const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -68,45 +83,51 @@ const CaseDetail: React.FC<{ id: number; onChanged: () => void }> = ({ id, onCha
   };
 
   if (!c) return <div className="p-6 text-sm text-muted">{error ?? "…"}</div>;
+  const outcomeLabel = c.outcome ? OUTCOMES.find(([v]) => v === c.outcome)?.[1] : undefined;
   return (
     <div className="flex flex-col gap-5 p-5">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs text-muted">{c.ref_no}</span>
           <KindChip kind={c.kind} />
-          <span className="text-xs text-muted">· {STATUS_LABEL[c.status]}{c.outcome ? ` (${c.outcome.replace("_", " ")})` : ""}</span>
+          <span className="text-xs text-muted">· {say(STATUS_LABEL[c.status], lang)}{c.outcome ? ` (${outcomeLabel ? say(outcomeLabel, lang) : c.outcome.replace("_", " ")})` : ""}</span>
         </div>
         <h3 className="mt-1 font-heading text-lg font-bold text-body">{c.title}</h3>
         <p className="text-xs text-muted">{c.law}</p>
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <div><dt className="text-xs text-muted">Advertised promoter</dt><dd className="text-body">{c.advertised_promoter ?? "—"}</dd></div>
-        <div><dt className="text-xs text-muted">District</dt><dd className="text-body">{c.district ?? "—"}</dd></div>
-        <div className="col-span-2"><dt className="text-xs text-muted">Registration number claimed</dt><dd className="text-body font-mono text-xs break-all">{c.claimed_rera ?? "None shown on the ad"}</dd></div>
-        <div><dt className="text-xs text-muted">Phone numbers on ads</dt><dd className="text-body tabular-nums">{c.phones.join(", ") || "—"}</dd></div>
-        <div><dt className="text-xs text-muted">Websites</dt><dd className="text-body break-all">{c.websites.join(", ") || "—"}</dd></div>
-        <div><dt className="text-xs text-muted">Reports</dt><dd className="text-body">{c.reports} · first {fmt(c.opened_on)}, last {fmt(c.last_reported)}</dd></div>
-        <div><dt className="text-xs text-muted">Asks payment to an account</dt><dd className={c.asks_payment_to_account ? "text-red-700 dark:text-red-300 font-semibold" : "text-body"}>{c.asks_payment_to_account ? "Yes" : "No"}</dd></div>
+        <div><dt className="text-xs text-muted">{say({ en: "Advertised promoter", gu: "જાહેરાતમાં દર્શાવેલ પ્રમોટર", hi: "विज्ञापन में दिखाया गया प्रमोटर" }, lang)}</dt><dd className="text-body">{c.advertised_promoter ?? "—"}</dd></div>
+        <div><dt className="text-xs text-muted">{say({ en: "District", gu: "જિલ્લો", hi: "जिला" }, lang)}</dt><dd className="text-body">{c.district ?? "—"}</dd></div>
+        <div className="col-span-2"><dt className="text-xs text-muted">{say({ en: "Registration number claimed", gu: "દાવો કરેલો નોંધણી નંબર", hi: "दावा किया गया पंजीकरण नंबर" }, lang)}</dt><dd className="text-body font-mono text-xs break-all">{c.claimed_rera ?? say({ en: "None shown on the ad", gu: "જાહેરાતમાં કોઈ દર્શાવેલ નથી", hi: "विज्ञापन में कोई नहीं दिखाया गया" }, lang)}</dd></div>
+        <div><dt className="text-xs text-muted">{say({ en: "Phone numbers on ads", gu: "જાહેરાતો પરના ફોન નંબર", hi: "विज्ञापनों पर फ़ोन नंबर" }, lang)}</dt><dd className="text-body tabular-nums">{c.phones.join(", ") || "—"}</dd></div>
+        <div><dt className="text-xs text-muted">{say({ en: "Websites", gu: "વેબસાઇટ", hi: "वेबसाइटें" }, lang)}</dt><dd className="text-body break-all">{c.websites.join(", ") || "—"}</dd></div>
+        <div><dt className="text-xs text-muted">{say({ en: "Reports", gu: "રિપોર્ટ", hi: "रिपोर्ट" }, lang)}</dt><dd className="text-body">{c.reports} · {say({
+          en: `first ${fmt(c.opened_on)}, last ${fmt(c.last_reported)}`,
+          gu: `પ્રથમ ${fmt(c.opened_on)}, છેલ્લો ${fmt(c.last_reported)}`,
+          hi: `पहली ${fmt(c.opened_on)}, अंतिम ${fmt(c.last_reported)}`,
+        }, lang)}</dd></div>
+        <div><dt className="text-xs text-muted">{say({ en: "Asks payment to an account", gu: "ખાતામાં ચુકવણી માંગે છે", hi: "खाते में भुगतान माँगता है" }, lang)}</dt><dd className={c.asks_payment_to_account ? "text-red-700 dark:text-red-300 font-semibold" : "text-body"}>{c.asks_payment_to_account ? say({ en: "Yes", gu: "હા", hi: "हाँ" }, lang) : say({ en: "No", gu: "ના", hi: "नहीं" }, lang)}</dd></div>
       </dl>
 
       <section className="rounded-lg border border-warm-border">
         <h4 className="px-4 py-2.5 border-b border-warm-border text-sm font-bold text-body">{tr("enfAction", lang)}<En k="enfAction" className="text-muted" /></h4>
         <div className="p-4 grid gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-muted">Status
+            <label className="text-xs text-muted">{say({ en: "Status", gu: "સ્થિતિ", hi: "स्थिति" }, lang)}
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5">
-                {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{say(l, lang)}</option>)}
               </select>
             </label>
-            <label className="text-xs text-muted">Outcome
+            <label className="text-xs text-muted">{say({ en: "Outcome", gu: "પરિણામ", hi: "परिणाम" }, lang)}
               <select value={outcome} onChange={(e) => setOutcome(e.target.value)} className="mt-1 w-full rounded-md border border-warm-border bg-card text-body text-sm px-2 py-1.5">
                 <option value="">—</option>
-                {OUTCOMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {OUTCOMES.map(([v, l]) => <option key={v} value={v}>{say(l, lang)}</option>)}
               </select>
             </label>
           </div>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Note (e.g. notice no., inspection date)"
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+            placeholder={say({ en: "Note (e.g. notice no., inspection date)", gu: "નોંધ (દા.ત. નોટિસ નંબર, તપાસની તારીખ)", hi: "टिप्पणी (जैसे नोटिस संख्या, निरीक्षण तिथि)" }, lang)}
             className="rounded-md border border-warm-border bg-card text-body text-sm px-3 py-2 focus:outline-none focus:border-brand" />
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => void save()} disabled={busy}
@@ -125,7 +146,9 @@ const CaseDetail: React.FC<{ id: number; onChanged: () => void }> = ({ id, onCha
           {(c.evidence ?? []).map((r) => (
             <li key={r.id} className="rounded-lg border border-warm-border p-3">
               <div className="flex flex-wrap gap-x-3 text-[11px] text-muted mb-2">
-                <span>{fmt(r.reported_on)}</span><span>via {r.channel}</span><span>check: {r.verdict.replace(/_/g, " ")}</span>
+                <span>{fmt(r.reported_on)}</span>
+                <span>{say({ en: "via", gu: "માધ્યમ:", hi: "माध्यम:" }, lang)} {r.channel}</span>
+                <span>{say({ en: "check:", gu: "તપાસ:", hi: "जाँच:" }, lang)} {r.verdict.replace(/_/g, " ")}</span>
               </div>
               <pre className="whitespace-pre-wrap text-xs text-body font-sans bg-subtle rounded p-2 max-h-40 overflow-auto">{r.excerpt}</pre>
               {r.problems.length > 0 && (
@@ -184,27 +207,27 @@ export const EnforcementPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap rounded-lg border border-warm-border p-0.5" role="group" aria-label="Status">
+            <div className="flex flex-wrap rounded-lg border border-warm-border p-0.5" role="group" aria-label={say({ en: "Status", gu: "સ્થિતિ", hi: "स्थिति" }, lang)}>
               {FILTERS.map(([v, l]) => (
                 <button key={v || "all"} type="button" aria-pressed={status === v} onClick={() => { setStatus(v); setSelected(null); }}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold ${status === v ? "bg-subtle text-body ring-1 ring-warm-strong" : "text-muted hover:text-body"}`}>
-                  {l}
+                  {say(l, lang)}
                 </button>
               ))}
             </div>
-            <select aria-label="Kind" value={kind} onChange={(e) => { setKind(e.target.value); setSelected(null); }}
+            <select aria-label={say({ en: "Kind", gu: "પ્રકાર", hi: "प्रकार" }, lang)} value={kind} onChange={(e) => { setKind(e.target.value); setSelected(null); }}
               className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2">
-              <option value="">All kinds</option>
-              <option value="unregistered">{tr("enfUnregistered", "en")}</option>
-              <option value="lapsed">{tr("enfLapsed", "en")}</option>
-              <option value="misleading">{tr("enfMisleading", "en")}</option>
+              <option value="">{say({ en: "All kinds", gu: "બધા પ્રકાર", hi: "सभी प्रकार" }, lang)}</option>
+              <option value="unregistered">{tr("enfUnregistered", lang)}</option>
+              <option value="lapsed">{tr("enfLapsed", lang)}</option>
+              <option value="misleading">{tr("enfMisleading", lang)}</option>
             </select>
             {data?.district_scope ? (
               <span className="text-sm text-muted">{data.district_scope}</span>
             ) : (
-              <select aria-label="District" value={district} onChange={(e) => { setDistrict(e.target.value); setSelected(null); }}
+              <select aria-label={say({ en: "District", gu: "જિલ્લો", hi: "जिला" }, lang)} value={district} onChange={(e) => { setDistrict(e.target.value); setSelected(null); }}
                 className="rounded-lg border border-warm-border bg-card text-body text-sm px-3 py-2">
-                <option value="">All districts</option>
+                <option value="">{say({ en: "All districts", gu: "બધા જિલ્લા", hi: "सभी जिले" }, lang)}</option>
                 {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             )}
@@ -220,25 +243,25 @@ export const EnforcementPage: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-body truncate">{c.title}</div>
-                        <div className="text-[11px] text-muted">{c.ref_no} · {c.district ?? "?"} · {STATUS_LABEL[c.status]}</div>
+                        <div className="text-[11px] text-muted">{c.ref_no} · {c.district ?? "?"} · {say(STATUS_LABEL[c.status], lang)}</div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="font-heading font-bold tabular-nums text-body">{c.reports}</div>
-                        <div className="text-[10px] text-muted">reports</div>
+                        <div className="text-[10px] text-muted">{say({ en: "reports", gu: "રિપોર્ટ", hi: "रिपोर्ट" }, lang)}</div>
                       </div>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <KindChip kind={c.kind} />
-                      {c.asks_payment_to_account && <span className="text-[11px] text-red-700 dark:text-red-300 font-semibold">pay-to-account</span>}
-                      <span className="text-[11px] text-muted">last {fmt(c.last_reported)}</span>
+                      {c.asks_payment_to_account && <span className="text-[11px] text-red-700 dark:text-red-300 font-semibold">{say({ en: "pay-to-account", gu: "ખાતામાં ચુકવણી", hi: "खाते में भुगतान" }, lang)}</span>}
+                      <span className="text-[11px] text-muted">{say({ en: "last", gu: "છેલ્લો", hi: "अंतिम" }, lang)} {fmt(c.last_reported)}</span>
                     </div>
                   </button>
                 </li>
               ))}
-              {data!.items.length === 0 && <li className="px-4 py-6 text-sm text-muted text-center">No cases.</li>}
+              {data!.items.length === 0 && <li className="px-4 py-6 text-sm text-muted text-center">{say({ en: "No cases.", gu: "કોઈ કેસ નથી.", hi: "कोई मामला नहीं।" }, lang)}</li>}
             </ul>
             <div className="rounded-xl border border-warm-border bg-card lg:sticky lg:top-20">
-              {selected ? <CaseDetail id={selected} onChanged={load} /> : <div className="p-6 text-sm text-muted">Select a case.</div>}
+              {selected ? <CaseDetail id={selected} onChanged={load} /> : <div className="p-6 text-sm text-muted">{say({ en: "Select a case.", gu: "કેસ પસંદ કરો.", hi: "मामला चुनें।" }, lang)}</div>}
             </div>
           </div>
         </>

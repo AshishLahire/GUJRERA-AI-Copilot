@@ -354,7 +354,7 @@ export const ReraCheckPage: React.FC = () => {
               </div>
               <p className="font-heading text-lg sm:text-xl font-bold leading-snug">{report.headline[lang]}</p>
               {lang !== "en" && <p className="text-sm opacity-80 mt-1">{report.headline.en}</p>}
-              <p className="text-sm mt-3 leading-relaxed">{report.next_steps}</p>
+              <p className="text-sm mt-3 leading-relaxed">{report.next_steps_i18n?.[lang] ?? report.next_steps}</p>
             </div>
 
             {REPORTABLE.has(report.verdict) && (report.ocr?.text || text).trim().length >= 20 && (
@@ -373,7 +373,7 @@ export const ReraCheckPage: React.FC = () => {
                       aria-label={STATUS_STYLE[c.status].label}
                     />
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-body">{c.title}</div>
+                      <div className="text-sm font-semibold text-body">{c.title_i18n?.[lang] ?? c.title}</div>
                       <div className="text-xs text-muted leading-relaxed">{c.detail}</div>
                       {c.evidence && (
                         <div className="mt-1 text-[11px] font-mono text-body bg-subtle rounded px-2 py-1 break-words">

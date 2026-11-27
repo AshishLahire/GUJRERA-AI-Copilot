@@ -223,3 +223,18 @@ def test_officers_get_district_lists_within_their_scope(demo_repo, scope, questi
 
     officer = Repository(demo_repo.s, Principal(1, "officer", district_scope=scope), audit_sink=lambda _r: None)
     assert respond(question, ChatState(), officer).intent == intent
+
+
+def test_ad_check_text_comes_in_gujarati_and_hindi(public_client):
+    from gujrera.trust.checks import NEXT_STEPS
+    from gujrera.trust.i18n import NEXT_STEPS as NEXT_I18N, TITLES
+
+    assert set(NEXT_I18N) == set(NEXT_STEPS)  # every verdict has its next steps in both languages
+    for text in ("Shree Sample Residency, Olpad. Book now! GujRERA No. PR/GJ/SURAT/OLPAD/SUDA/MOCK99999/010125",
+                 "Luxury flats in Vesu, Surat. 2BHK from 45 lakh. Book today with 51,000!"):
+        r = public_client.post("/api/gujrera/trust/text", json={"text": text}).json()
+        assert r["next_steps_i18n"]["gu"] and r["next_steps_i18n"]["hi"] and r["next_steps_i18n"]["en"] == r["next_steps"]
+        for c in r["checks"]:
+            assert c["title_i18n"]["en"] == c["title"]
+            if c["title"] in TITLES:
+                assert c["title_i18n"]["gu"] and c["title_i18n"]["hi"]

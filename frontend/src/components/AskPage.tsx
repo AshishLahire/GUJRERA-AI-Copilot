@@ -1,7 +1,7 @@
 import { AnswerFeedback } from "./AnswerFeedback";
 import React, { useEffect, useRef, useState } from "react";
 import { AuthExpiredError, ChatReply, Lang, fetchChatStarters, navigateTo, openCalculator, openMyComplaint, openReport, sendChat, transcribeVoice } from "../api/gujrera";
-import { say, useSaathi } from "../saathi/context";
+import { Said, say, useSaathi } from "../saathi/context";
 import { REPORTABLE, ReportAd } from "../saathi/ReportAd";
 import { StateChip } from "../saathi/OrderTrackerPage";
 import { WatchButton } from "../saathi/WatchPage";
@@ -14,14 +14,25 @@ const SUMMARY_PROMPT: Record<Lang, string> = {
   hi: "मेरा अनुपालन सारांश दिखाएँ",
 };
 
-const ROLE_SUGGESTIONS: Record<string, string[]> = {
-  developer: ["What are my dues?", "Pending notices for my projects", "My QPR filings", "My registration expiry"],
-  agent: ["My registration status", "My complaints"],
-  citizen: ["My complaints", "File a complaint"],
+const ROLE_SUGGESTIONS: Record<string, Said[]> = {
+  developer: [
+    { en: "What are my dues?", gu: "મારાં બાકી લેણાં શું છે?", hi: "मेरे बकाया क्या हैं?" },
+    { en: "Pending notices for my projects", gu: "મારા પ્રોજેક્ટની બાકી નોટિસ", hi: "मेरे प्रोजेक्ट के लंबित नोटिस" },
+    { en: "My QPR filings", gu: "મારા ત્રિમાસિક અહેવાલ (QPR)", hi: "मेरी तिमाही रिपोर्ट (QPR)" },
+    { en: "My registration expiry", gu: "મારી નોંધણીની મુદત", hi: "मेरे पंजीकरण की अवधि" },
+  ],
+  agent: [
+    { en: "My registration status", gu: "મારી નોંધણીની સ્થિતિ", hi: "मेरे पंजीकरण की स्थिति" },
+    { en: "My complaints", gu: "મારી ફરિયાદો", hi: "मेरी शिकायतें" },
+  ],
+  citizen: [
+    { en: "My complaints", gu: "મારી ફરિયાદો", hi: "मेरी शिकायतें" },
+    { en: "File a complaint", gu: "ફરિયાદ નોંધાવો", hi: "शिकायत दर्ज करें" },
+  ],
   officer: [
-    "Lapsed or soon-ending registrations",
-    "Projects past their completion date",
-    "District-wise projects and delays",
+    { en: "Lapsed or soon-ending registrations", gu: "મુદત પૂરી થયેલી કે જલ્દી પૂરી થતી નોંધણીઓ", hi: "समाप्त या जल्द समाप्त होने वाले पंजीकरण" },
+    { en: "Projects past their completion date", gu: "પૂર્ણ થવાની તારીખ વીતી ગયેલા પ્રોજેક્ટ", hi: "समापन तिथि बीत चुके प्रोजेक्ट" },
+    { en: "District-wise projects and delays", gu: "જિલ્લા મુજબ પ્રોજેક્ટ અને વિલંબ", hi: "जिलेवार प्रोजेक्ट और देरी" },
   ],
 };
 
@@ -590,14 +601,15 @@ export const AskPage: React.FC<{ initialQuestion?: string | null }> = ({ initial
             <p className="font-heading text-base font-bold text-body">તમારા ઘરનો દરેક જવાબ, તમારી ભાષામાં</p>
             <p className="text-sm text-muted">{say({ en: "Try one of these:", gu: "આમાંથી એક અજમાવો:", hi: "इनमें से एक आज़माएँ:" }, uiLang)}</p>
             <div className="flex flex-wrap justify-center gap-2">
-              {[...(user ? (ROLE_SUGGESTIONS[user.role] ?? []).map((text) => ({ lang: "en" as Lang, text })) : []), ...starters].map((s) => (
+              {[...(user ? (ROLE_SUGGESTIONS[user.role] ?? []).map((q) => ({ lang: "en" as Lang, text: q.en, label: say(q, uiLang) })) : []),
+                ...starters.map((s) => ({ ...s, label: s.text }))].map((s) => (
                 <button
                   key={s.text}
                   type="button"
                   onClick={() => send(s.text)}
                   className="text-xs px-3 py-1.5 rounded-full border border-warm-border bg-subtle text-body hover:border-accent-amber"
                 >
-                  {s.text}
+                  {s.label}
                 </button>
               ))}
             </div>

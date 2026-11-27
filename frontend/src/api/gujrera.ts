@@ -24,6 +24,7 @@ export interface TrustCheck {
   status: "pass" | "fail" | "warn" | "info";
   severity: "critical" | "warning" | "info";
   title: string;
+  title_i18n?: Partial<Record<Lang, string>>;
   detail: string;
   evidence: string | null;
   source: RecordSource | null;
@@ -34,6 +35,7 @@ export interface TrustReport {
   verdict: TrustVerdict;
   headline: Record<Lang, string>;
   next_steps: string;
+  next_steps_i18n?: Partial<Record<Lang, string>>;
   checks: TrustCheck[];
   claim: {
     project_numbers: string[];

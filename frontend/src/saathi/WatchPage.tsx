@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AuthExpiredError, WATCH_CHANGED_EVENT, Watch, fetchUnread, fetchWatches, markWatchSeen, navigateTo, unwatchProject, watchProject } from "../api/gujrera";
 import { Icon } from "./Brand";
-import { useSaathi } from "./context";
+import { say, useSaathi } from "./context";
 import { En } from "./En";
 import { LoginPrompt } from "./RolePages";
 import { tr } from "./strings";
@@ -45,7 +45,7 @@ export const WatchButton: React.FC<{ projectId: number; compact?: boolean }> = (
 
 /** Bell with the unread count, for buyers. */
 export const WatchBell: React.FC<{ page: string }> = ({ page }) => {
-  const { user, token } = useSaathi();
+  const { user, token, lang } = useSaathi();
   const [n, setN] = useState(0);
   const buyer = user?.role === "citizen" && !!token;
   useEffect(() => {
@@ -57,7 +57,7 @@ export const WatchBell: React.FC<{ page: string }> = ({ page }) => {
   }, [buyer, token, page]);
   if (!buyer) return null;
   return (
-    <button type="button" onClick={() => navigateTo("watch")} aria-label={`${n} new alerts`}
+    <button type="button" onClick={() => navigateTo("watch")} aria-label={say({ en: `${n} new alerts`, gu: `${n} નવી ચેતવણીઓ`, hi: `${n} नई सूचनाएँ` }, lang)}
       className="relative w-8 h-8 rounded-lg border border-warm-border flex items-center justify-center text-muted hover:text-body">
       <Icon name="bell" className="w-4 h-4" />
       {n > 0 && (
@@ -95,7 +95,7 @@ export const WatchPage: React.FC = () => {
       {buyer && data && (
         <>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-body"><b>{data.unread}</b> new alert(s) · {data.watches.length} project(s)</span>
+            <span className="text-sm text-body"><b>{data.unread}</b> {say({ en: "new alert(s)", gu: "નવી ચેતવણી(ઓ)", hi: "नई सूचना(एँ)" }, lang)} · {data.watches.length} {say({ en: "project(s)", gu: "પ્રોજેક્ટ", hi: "प्रोजेक्ट" }, lang)}</span>
             {data.unread > 0 && (
               <button type="button" onClick={() => void readAll()} className="px-3 py-1.5 rounded-lg border border-warm-strong text-xs font-semibold text-body leading-tight">
                 {tr("watchMarkRead", lang)}<En k="watchMarkRead" className="font-normal" />
@@ -105,7 +105,7 @@ export const WatchPage: React.FC = () => {
           {data.watches.length === 0 && (
             <div className="rounded-xl border border-dashed border-warm-strong p-8 text-center text-sm text-muted">
               <span className="inline-flex w-10 h-10 rounded-lg bg-brand-soft text-brand-strong items-center justify-center mb-3"><Icon name="eye" /></span>
-              <p>Open a project's before-you-buy report or ask about it in the chat, then press "Watch this project".</p>
+              <p>{say({ en: "Open a project's before-you-buy report or ask about it in the chat, then press \"Watch this project\".", gu: "કોઈ પ્રોજેક્ટનો ખરીદી પહેલાંનો અહેવાલ ખોલો અથવા ચેટમાં તેના વિશે પૂછો, પછી \"આ પ્રોજેક્ટ પર નજર રાખો\" દબાવો.", hi: "किसी प्रोजेक्ट की ख़रीद से पहले की रिपोर्ट खोलें या चैट में उसके बारे में पूछें, फिर \"इस प्रोजेक्ट की निगरानी करें\" दबाएँ।" }, lang)}</p>
             </div>
           )}
           <ul className="flex flex-col gap-4">
@@ -114,20 +114,20 @@ export const WatchPage: React.FC = () => {
                 <div className="px-5 py-3 border-b border-warm-border flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="font-semibold text-body">{lang === "gu" && w.name_gu ? w.name_gu : w.name.replace(" (Demo)", "")}
-                      {w.unread > 0 && <span className="ml-2 rounded-full bg-brand text-on-brand text-[10px] font-bold px-1.5 py-0.5">{w.unread} new</span>}
+                      {w.unread > 0 && <span className="ml-2 rounded-full bg-brand text-on-brand text-[10px] font-bold px-1.5 py-0.5">{w.unread} {say({ en: "new", gu: "નવી", hi: "नई" }, lang)}</span>}
                     </div>
-                    <div className="text-[11px] text-muted">{w.district} · {w.status} · watching since {fmt(w.watching_since)}</div>
+                    <div className="text-[11px] text-muted">{w.district} · {w.status} · {say({ en: "watching since", gu: "નજર રાખવાની શરૂઆત", hi: "निगरानी शुरू" }, lang)} {fmt(w.watching_since)}</div>
                   </div>
-                  <button type="button" onClick={() => void stop(w.project_id)} className="text-xs text-muted hover:text-body">Stop watching</button>
+                  <button type="button" onClick={() => void stop(w.project_id)} className="text-xs text-muted hover:text-body">{say({ en: "Stop watching", gu: "નજર રાખવાનું બંધ કરો", hi: "निगरानी बंद करें" }, lang)}</button>
                 </div>
                 <ol className="px-5 py-3 flex flex-col gap-2">
-                  {w.events.length === 0 && <li className="text-sm text-muted">Nothing in the last year.</li>}
+                  {w.events.length === 0 && <li className="text-sm text-muted">{say({ en: "Nothing in the last year.", gu: "છેલ્લા એક વર્ષમાં કંઈ નથી.", hi: "पिछले एक साल में कुछ नहीं।" }, lang)}</li>}
                   {w.events.map((e, i) => (
                     <li key={i} className={`flex gap-3 text-sm ${e.unread ? "text-body" : "text-muted"}`}>
                       <span className={`mt-1.5 w-2 h-2 shrink-0 rounded-full ${TONE_DOT[e.tone]}`} />
                       <span className="min-w-0">
                         <span className="text-[11px] tabular-nums mr-2">{fmt(e.date)}</span>
-                        {e.unread && <span className="mr-1 text-[10px] font-bold text-brand-strong">NEW</span>}
+                        {e.unread && <span className="mr-1 text-[10px] font-bold text-brand-strong">{say({ en: "NEW", gu: "નવું", hi: "नया" }, lang)}</span>}
                         {e.text}
                       </span>
                     </li>

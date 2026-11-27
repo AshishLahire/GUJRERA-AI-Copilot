@@ -132,8 +132,16 @@ class TrustReport:
     as_of: date | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        from gujrera.trust.i18n import NEXT_STEPS as NEXT_I18N
+        from gujrera.trust.i18n import TITLES
+
         d = asdict(self)
         d["as_of"] = self.as_of.isoformat() if self.as_of else None
+        # The fixed text in Gujarati and Hindi too; the page shows the answer's language.
+        if isinstance(d.get("next_steps"), str):
+            d["next_steps_i18n"] = {"en": d["next_steps"], **NEXT_I18N.get(str(d.get("verdict")), {})}
+        for c in d.get("checks") or []:
+            c["title_i18n"] = {"en": c["title"], **TITLES.get(c["title"], {})}
         return d
 
 
