@@ -105,8 +105,9 @@ export const HomePage: React.FC<{ onAsk: (q: string) => void; onNavigate: (p: Pa
       <section className="hero-band p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-wider text-accent-amber-strong">
-              {{ en: "Gujarat Real Estate Regulatory Authority", gu: "ગુજરાત રિયલ એસ્ટેટ નિયમનકારી સત્તામંડળ", hi: "गुजरात रियल एस्टेट विनियामक प्राधिकरण" }[lang]}
+            {/* Never presented as GUJRERA's own service: this is a prototype built for the department. */}
+            <p className="inline-flex rounded-full border border-warm-strong bg-card px-3 py-1 text-xs font-semibold uppercase tracking-wider text-body">
+              {{ en: "Prototype for GUJRERA · not an official service", gu: "GUJRERA માટે પ્રોટોટાઇપ · સત્તાવાર સેવા નથી", hi: "GUJRERA के लिए प्रोटोटाइप · आधिकारिक सेवा नहीं" }[lang]}
             </p>
             <h2 className="mt-2 font-heading text-2xl sm:text-3xl font-bold text-body leading-tight">
               {{ en: "Every RERA answer, in your language", gu: "તમારા ઘરનો દરેક જવાબ, તમારી ભાષામાં", hi: "हर RERA जवाब, आपकी भाषा में" }[lang]}

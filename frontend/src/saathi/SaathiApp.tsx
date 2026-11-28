@@ -245,6 +245,10 @@ const Shell: React.FC = () => {
               <h1 className="font-heading font-bold text-body text-base sm:text-lg truncate">{tr(current.key, lang)}</h1>
               <En k={current.key} className="text-[12px] text-muted opacity-100 truncate" />
             </div>
+            <span className="hidden sm:inline-flex shrink-0 rounded-full border border-warm-strong px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted"
+              title={{ en: "A prototype, not an official GUJRERA service", gu: "પ્રોટોટાઇપ, સત્તાવાર GUJRERA સેવા નથી", hi: "प्रोटोटाइप, आधिकारिक GUJRERA सेवा नहीं" }[lang]}>
+              {{ en: "Prototype", gu: "પ્રોટોટાઇપ", hi: "प्रोटोटाइप" }[lang]}
+            </span>
             <div className="ml-auto flex items-center gap-2 shrink-0">
               <div className="flex rounded-lg border border-warm-border p-0.5" role="group" aria-label="Language">
                 {LANGS.map((l) => (
