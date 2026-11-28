@@ -95,10 +95,16 @@ const Card: React.FC<{ card: ChatReply["cards"][number]; question?: string }> = 
     return (
       <div className="mt-3 rounded-lg border border-warm-border bg-subtle p-3 text-xs grid grid-cols-2 gap-2">
         <div className="col-span-2 font-mono break-all text-body">{fmt(card.rera_no)}</div>
-        <div><span className="text-muted">Status </span><span className="capitalize">{fmt(card.status)}</span></div>
-        <div><span className="text-muted">Valid until </span>{fmt(card.reg_valid_until)}</div>
-        <div><span className="text-muted">Promoter </span>{fmt(card.promoter_name)}</div>
-        <div><span className="text-muted">Delay </span>{Number(card.delay_days) > 0 ? `${card.delay_days} days` : "None"}</div>
+        <div><span className="text-muted">{say({ en: "Status", gu: "સ્થિતિ", hi: "स्थिति" }, cardLang)} </span><span className="capitalize">{
+          card.status === "unverified" ? say({ en: "Completion not recorded", gu: "પૂર્ણતા નોંધાઈ નથી", hi: "पूरा होना दर्ज नहीं" }, cardLang)
+            : card.status === "ongoing" ? say({ en: "Ongoing", gu: "ચાલુ", hi: "चालू" }, cardLang)
+              : card.status === "completed" ? say({ en: "Completed", gu: "પૂર્ણ", hi: "पूरा" }, cardLang) : fmt(card.status)}</span></div>
+        <div><span className="text-muted">{say({ en: "Valid until", gu: "માન્ય", hi: "मान्य" }, cardLang)} </span>{fmt(card.reg_valid_until)}</div>
+        <div><span className="text-muted">{say({ en: "Promoter", gu: "પ્રમોટર", hi: "प्रमोटर" }, cardLang)} </span>{fmt(card.promoter_name)}</div>
+        <div><span className="text-muted">{say({ en: "Delay", gu: "વિલંબ", hi: "देरी" }, cardLang)} </span>{
+          Number(card.delay_days) > 0 ? say({ en: `${card.delay_days} days`, gu: `${card.delay_days} દિવસ`, hi: `${card.delay_days} दिन` }, cardLang)
+            : card.status === "unverified" ? say({ en: "Date passed, not recorded", gu: "તારીખ વીતી, નોંધ નથી", hi: "तारीख बीती, दर्ज नहीं" }, cardLang)
+              : say({ en: "None", gu: "નથી", hi: "नहीं" }, cardLang)}</div>
         {card.project_id != null && (
           <button type="button" onClick={() => openReport(Number(card.project_id))}
             className="col-span-2 justify-self-start mt-1 px-3 py-1.5 rounded-md border border-warm-strong bg-card font-semibold hover:bg-page">
